@@ -44,7 +44,7 @@ export const Transaction = objectType({
         t.nonNull.float("tax");
         t.nonNull.field("paymentMethod", { type: "PaymentMethod" });
         t.nonNull.field("status", { type: "Status" });
-        t.nonNull.string("createdAt");
-        t.nonNull.string("syncedAt");
+        t.nonNull.dateTime("createdAt");
+        t.nonNull.dateTime("syncedAt");
     },
 });

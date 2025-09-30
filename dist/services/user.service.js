@@ -35,7 +35,7 @@ export const createUser = async (userData) => {
 export const createStaff = async (staffData) => {
     // Check if the requested role is a valid staff role
     const hashedPassword = await bcrypt.hash(staffData.password, 10);
-    const validRoles = ["MANAGER", "CASHIER"];
+    const validRoles = ["MANAGER", "CASHIER", "STAFF"];
     if (!validRoles.includes(staffData.role)) {
         throw new Error("Invalid role provided for staff creation.");
     }
@@ -56,7 +56,7 @@ export const createStaff = async (staffData) => {
  * @param {string} password - The plain-text password.
  * @returns {Promise<object|null>} An object with the user and the JWT if successful, or null if authentication fails.
  */
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, res) => {
     // Find the user by email
     const user = await prisma.user.findUnique({
         where: { email },
@@ -64,58 +64,51 @@ export const loginUser = async (email, password) => {
     if (!user || !(await bcrypt.compare(password, user.password))) {
         return null;
     }
+    console.log("User: ", user.username);
+    console.log("User Role: ", user.role);
+    console.log("User fullname: ", user.fullname);
     const token = jwt.sign({
         userId: user.id,
         role: user.role,
-    }, JWT_SECRET, { expiresIn: "15m" });
-    console.log(JWT_SECRET);
+        email: user.email
+    }, JWT_SECRET, { expiresIn: "1d" });
     const refresh_token = jwt.sign({
         userId: user.id,
     }, REFRESH_SECRET, { expiresIn: "7d" });
+    res.cookie("jid", refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax", // or "none" if frontend is on a different port
+        path: "/graphql"
+    });
     // Remove password from the response for security
     const { password: _, ...userWithoutPassword } = user;
     return { user: userWithoutPassword, token, refresh_token };
 };
 /**
  * @description
- * Verifies a JWT and returns the decoded payload.
- * @param {string} token - The JWT to verify.
- * @returns {object|null} The decoded token payload or null if verification fails.
+ * Retrieves all Staff users owned by the manager from the database.
+ * @param {number} managerId - Manager Id query.
+ * @returns {Promise<array>} An array of user objects without password
  */
-export const verifyToken = (token) => {
-    try {
-        return jwt.verify(token, JWT_SECRET);
-    }
-    catch (err) {
-        return null;
-    }
-};
-/**
- * Refreshes an access token using a valid refresh token.
- * This function should be called when the access token expires.
- * @param {string} refreshToken - The refresh token from a secure cookie.
- * @returns {Promise<string|null>} A new access token, or null if the refresh token is invalid.
- */
-export const refreshAccessToken = async (refreshToken) => {
-    try {
-        const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-        const userId = decoded.userId;
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            return null;
-        }
-        const newAccessToken = jwt.sign({
-            userId: user.id,
-        }, JWT_SECRET, {
-            expiresIn: "15m",
-        });
-        return newAccessToken;
-    }
-    catch (error) {
-        return null;
-    }
+export const getAllStaffs = async (managerId) => {
+    const users = await prisma.user.findMany({
+        where: {
+            managerId: managerId,
+        },
+        select: {
+            id: true,
+            email: true,
+            fullname: true,
+            username: true,
+            role: true,
+            profilePhoto: true,
+            createdAt: true
+        },
+    });
+    console.log("Manager Id:", managerId);
+    console.log("Users:", users);
+    return users;
 };
 /**
  * @description

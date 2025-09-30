@@ -2,7 +2,7 @@
 import { objectType, enumType } from 'nexus';
 export const Role = enumType({
     name: 'Role',
-    members: ['ADMIN', 'USER']
+    members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER"]
 });
 export const User = objectType({
     name: 'User',
@@ -12,7 +12,7 @@ export const User = objectType({
         t.nonNull.string('email');
         t.nonNull.field('role', { type: 'Role' });
         t.nullable.string('profilePhoto');
-        t.nonNull.string('createdAt');
+        t.nonNull.dateTime('createdAt');
         t.nonNull.list.nonNull.field('branchesOwned', {
             type: 'Branch',
             resolve: (parent, args, ctx) => {

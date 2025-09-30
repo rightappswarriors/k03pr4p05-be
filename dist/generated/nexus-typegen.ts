@@ -4,9 +4,23 @@
  */
 
 
-
-
-
+import type { core } from "nexus"
+declare global {
+  interface NexusGenCustomInputMethods<TypeName extends string> {
+    /**
+     * A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+     */
+    dateTime<FieldName extends string>(fieldName: FieldName, opts?: core.CommonInputFieldConfig<TypeName, FieldName>): void // "DateTime";
+  }
+}
+declare global {
+  interface NexusGenCustomOutputMethods<TypeName extends string> {
+    /**
+     * A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+     */
+    dateTime<FieldName extends string>(fieldName: FieldName, ...opts: core.ScalarOutSpread<TypeName, FieldName>): void // "DateTime";
+  }
+}
 
 
 declare global {
@@ -14,13 +28,61 @@ declare global {
 }
 
 export interface NexusGenInputs {
+  CartItemInput: { // input type
+    itemId: number; // Int!
+    price: number; // Float!
+    quantity: number; // Int!
+  }
+  CreateItemInput: { // input type
+    barcode: string; // String!
+    brand?: string | null; // String
+    categoryId?: number | null; // Int
+    description?: string | null; // String
+    image?: string | null; // String
+    name: string; // String!
+  }
+  InventoryItemInput: { // input type
+    inventoryId: number; // Int!
+    itemData?: NexusGenInputs['ItemInput'] | null; // ItemInput
+    locationData?: NexusGenInputs['LocationInput'] | null; // LocationInput
+    name: string; // String!
+    price: number; // Float!
+    quantity: number; // Int!
+  }
+  InventoryItemUpdateInput: { // input type
+    itemData?: NexusGenInputs['ItemInput'] | null; // ItemInput
+    locationData?: NexusGenInputs['LocationInput'] | null; // LocationInput
+    name?: string | null; // String
+    quantity?: number | null; // Int
+  }
+  ItemInput: { // input type
+    id: number; // Int!
+  }
+  LocationInput: { // input type
+    aisle?: string | null; // String
+    rack?: string | null; // String
+    shelf?: string | null; // String
+  }
+  OutletStaffInput: { // input type
+    role: string; // String!
+    userId: number; // Int!
+  }
+  UpdateItemInput: { // input type
+    barcode?: string | null; // String
+    brand?: string | null; // String
+    categoryId?: number | null; // Int
+    description?: string | null; // String
+    image?: string | null; // String
+    name?: string | null; // String
+  }
 }
 
 export interface NexusGenEnums {
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "DIGITAL"
-  Role: "ADMIN" | "USER"
+  Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
   Status: "CANCELED" | "FAILED" | "PENDING" | "SYNCED"
+  orderBy: "asc" | "desc"
 }
 
 export interface NexusGenScalars {
@@ -29,12 +91,21 @@ export interface NexusGenScalars {
   Float: number
   Boolean: boolean
   ID: string
+  DateTime: any
 }
 
 export interface NexusGenObjects {
+  AuthPayload: { // root type
+    refresh_token: string; // String!
+    token: string; // String!
+    user: NexusGenRootTypes['User']; // User!
+  }
+  BatchPayload: { // root type
+    count: number; // Int!
+  }
   Branch: { // root type
     address: string; // String!
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
     name?: string | null; // String
@@ -45,8 +116,12 @@ export interface NexusGenObjects {
     transactionId: number; // Int!
   }
   Category: { // root type
+    _count?: NexusGenRootTypes['CategoryCount'] | null; // CategoryCount
     id: number; // Int!
     name: string; // String!
+  }
+  CategoryCount: { // root type
+    itemCount?: number | null; // Int
   }
   Color: { // root type
     id: number; // Int!
@@ -62,6 +137,7 @@ export interface NexusGenObjects {
     inventoryId: number; // Int!
     itemId: number; // Int!
     locationId?: number | null; // Int
+    price: number; // Float!
     quantity: number; // Int!
   }
   Item: { // root type
@@ -72,7 +148,10 @@ export interface NexusGenObjects {
     id: number; // Int!
     image?: string | null; // String
     name: string; // String!
-    price: number; // Float!
+  }
+  ItemsByRack: { // root type
+    items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    rack: string; // String!
   }
   Location: { // root type
     ailse: string; // String!
@@ -85,7 +164,7 @@ export interface NexusGenObjects {
     address: string; // String!
     branchId: number; // Int!
     code: string; // String!
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     governmentTax?: number | null; // Float
     id: number; // Int!
     isActive: boolean; // Boolean!
@@ -107,18 +186,18 @@ export interface NexusGenObjects {
     cashReceived?: number | null; // Float
     cashierId: number; // Int!
     change?: number | null; // Float
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     outletId: number; // Int!
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
-    syncedAt: string; // String!
+    syncedAt: NexusGenScalars['DateTime']; // DateTime!
     tax: number; // Float!
     total: number; // Float!
   }
   User: { // root type
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
     fullname: string; // String!
     id: number; // Int!
@@ -138,9 +217,18 @@ export type NexusGenRootTypes = NexusGenObjects
 export type NexusGenAllTypes = NexusGenRootTypes & NexusGenScalars & NexusGenEnums
 
 export interface NexusGenFieldTypes {
+  AuthPayload: { // field return type
+    refresh_token: string; // String!
+    token: string; // String!
+    user: NexusGenRootTypes['User']; // User!
+  }
+  BatchPayload: { // field return type
+    count: number; // Int!
+  }
   Branch: { // field return type
     address: string; // String!
-    createdAt: string; // String!
+    branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
     name: string | null; // String
@@ -155,9 +243,13 @@ export interface NexusGenFieldTypes {
     transactionId: number; // Int!
   }
   Category: { // field return type
-    Item: NexusGenRootTypes['Item'][]; // [Item!]!
+    _count: NexusGenRootTypes['CategoryCount'] | null; // CategoryCount
     id: number; // Int!
+    items: NexusGenRootTypes['Item'][]; // [Item!]!
     name: string; // String!
+  }
+  CategoryCount: { // field return type
+    itemCount: number | null; // Int
   }
   Color: { // field return type
     id: number; // Int!
@@ -179,6 +271,7 @@ export interface NexusGenFieldTypes {
     itemId: number; // Int!
     location: NexusGenRootTypes['Location'] | null; // Location
     locationId: number | null; // Int
+    price: number; // Float!
     quantity: number; // Int!
   }
   Item: { // field return type
@@ -193,7 +286,10 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     image: string | null; // String
     name: string; // String!
-    price: number; // Float!
+  }
+  ItemsByRack: { // field return type
+    items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    rack: string; // String!
   }
   Location: { // field return type
     ailse: string; // String!
@@ -203,14 +299,41 @@ export interface NexusGenFieldTypes {
     shelf: string; // String!
   }
   Mutation: { // field return type
+    bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    createBranch: NexusGenRootTypes['Branch']; // Branch!
+    createCategories: NexusGenRootTypes['Category'][]; // [Category!]!
+    createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
+    createInventoryItem: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
+    createItems: NexusGenRootTypes['BatchPayload'][]; // [BatchPayload!]!
+    createOutlet: NexusGenRootTypes['Outlet']; // Outlet!
+    createOutletStaff: NexusGenRootTypes['OutletStaff']; // OutletStaff!
+    createStaff: NexusGenRootTypes['User']; // User!
+    createTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
+    deleteBranch: NexusGenRootTypes['Branch']; // Branch!
+    deleteCategory: NexusGenRootTypes['Category']; // Category!
+    deleteInventory: boolean | null; // Boolean
+    deleteInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
+    deleteItem: NexusGenRootTypes['Item']; // Item!
+    deleteOutlet: NexusGenRootTypes['Outlet']; // Outlet!
+    deleteOutletStaffs: NexusGenRootTypes['OutletStaff']; // OutletStaff!
+    deleteUser: NexusGenRootTypes['User']; // User!
+    login: NexusGenRootTypes['AuthPayload']; // AuthPayload!
+    refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     signup: NexusGenRootTypes['User']; // User!
+    updateBranch: NexusGenRootTypes['Branch']; // Branch!
+    updateCategory: NexusGenRootTypes['Category']; // Category!
+    updateInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
+    updateInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
+    updateItem: NexusGenRootTypes['Item']; // Item!
+    updateOutlet: NexusGenRootTypes['Outlet']; // Outlet!
+    updateUser: NexusGenRootTypes['User']; // User!
   }
   Outlet: { // field return type
     address: string; // String!
     branch: NexusGenRootTypes['Branch']; // Branch!
     branchId: number; // Int!
     code: string; // String!
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     governmentTax: number | null; // Float
     id: number; // Int!
     inventory: NexusGenRootTypes['Inventory'] | null; // Inventory
@@ -221,8 +344,8 @@ export interface NexusGenFieldTypes {
     owner: NexusGenRootTypes['User']; // User!
     ownerId: number; // Int!
     serviceCharge: number | null; // Float
-    staff: NexusGenRootTypes['OutletStaff'][]; // [OutletStaff!]!
-    transaction: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
+    staffs: NexusGenRootTypes['OutletStaff'][]; // [OutletStaff!]!
+    transactions: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     wifiSSID: string | null; // String
   }
   OutletStaff: { // field return type
@@ -234,15 +357,29 @@ export interface NexusGenFieldTypes {
     userId: number; // Int!
   }
   Query: { // field return type
+    getAllCategory: NexusGenRootTypes['Category'][]; // [Category!]!
+    getAllStaffs: NexusGenRootTypes['User'][]; // [User!]!
     getAllUsers: NexusGenRootTypes['User'][]; // [User!]!
-    getUserById: NexusGenRootTypes['User'] | null; // User
+    getBranchById: NexusGenRootTypes['Branch']; // Branch!
+    getCategoryById: NexusGenRootTypes['Category']; // Category!
+    getCategoryItems: NexusGenRootTypes['Item'][]; // [Item!]!
+    getInventoryByOutletId: NexusGenRootTypes['Inventory'] | null; // Inventory
+    getInventoryItemsByRack: NexusGenRootTypes['ItemsByRack'][]; // [ItemsByRack!]!
+    getItems: NexusGenRootTypes['Item'][]; // [Item!]!
+    getOutletById: NexusGenRootTypes['Outlet'] | null; // Outlet
+    getOutletItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    getOutletStaff: NexusGenRootTypes['User'][]; // [User!]!
+    getOutletsByBranch: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
+    getOwnedBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
+    getUserById: NexusGenRootTypes['User']; // User!
   }
   Transaction: { // field return type
     cashReceived: number | null; // Float
     cashier: NexusGenRootTypes['User']; // User!
     cashierId: number; // Int!
     change: number | null; // Float
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     items: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
@@ -250,13 +387,13 @@ export interface NexusGenFieldTypes {
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
-    syncedAt: string; // String!
+    syncedAt: NexusGenScalars['DateTime']; // DateTime!
     tax: number; // Float!
     total: number; // Float!
   }
   User: { // field return type
     branchesOwned: NexusGenRootTypes['Branch'][]; // [Branch!]!
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
     fullname: string; // String!
     id: number; // Int!
@@ -270,9 +407,18 @@ export interface NexusGenFieldTypes {
 }
 
 export interface NexusGenFieldTypeNames {
+  AuthPayload: { // field return type name
+    refresh_token: 'String'
+    token: 'String'
+    user: 'User'
+  }
+  BatchPayload: { // field return type name
+    count: 'Int'
+  }
   Branch: { // field return type name
     address: 'String'
-    createdAt: 'String'
+    branches: 'Branch'
+    createdAt: 'DateTime'
     id: 'Int'
     isActive: 'Boolean'
     name: 'String'
@@ -287,9 +433,13 @@ export interface NexusGenFieldTypeNames {
     transactionId: 'Int'
   }
   Category: { // field return type name
-    Item: 'Item'
+    _count: 'CategoryCount'
     id: 'Int'
+    items: 'Item'
     name: 'String'
+  }
+  CategoryCount: { // field return type name
+    itemCount: 'Int'
   }
   Color: { // field return type name
     id: 'Int'
@@ -311,6 +461,7 @@ export interface NexusGenFieldTypeNames {
     itemId: 'Int'
     location: 'Location'
     locationId: 'Int'
+    price: 'Float'
     quantity: 'Int'
   }
   Item: { // field return type name
@@ -325,7 +476,10 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     image: 'String'
     name: 'String'
-    price: 'Float'
+  }
+  ItemsByRack: { // field return type name
+    items: 'InventoryItems'
+    rack: 'String'
   }
   Location: { // field return type name
     ailse: 'String'
@@ -335,14 +489,41 @@ export interface NexusGenFieldTypeNames {
     shelf: 'String'
   }
   Mutation: { // field return type name
+    bulkCreateInventoryItems: 'InventoryItems'
+    createBranch: 'Branch'
+    createCategories: 'Category'
+    createInventory: 'Inventory'
+    createInventoryItem: 'BatchPayload'
+    createItems: 'BatchPayload'
+    createOutlet: 'Outlet'
+    createOutletStaff: 'OutletStaff'
+    createStaff: 'User'
+    createTransaction: 'Transaction'
+    deleteBranch: 'Branch'
+    deleteCategory: 'Category'
+    deleteInventory: 'Boolean'
+    deleteInventoryItem: 'InventoryItems'
+    deleteItem: 'Item'
+    deleteOutlet: 'Outlet'
+    deleteOutletStaffs: 'OutletStaff'
+    deleteUser: 'User'
+    login: 'AuthPayload'
+    refreshToken: 'AuthPayload'
     signup: 'User'
+    updateBranch: 'Branch'
+    updateCategory: 'Category'
+    updateInventory: 'Inventory'
+    updateInventoryItem: 'InventoryItems'
+    updateItem: 'Item'
+    updateOutlet: 'Outlet'
+    updateUser: 'User'
   }
   Outlet: { // field return type name
     address: 'String'
     branch: 'Branch'
     branchId: 'Int'
     code: 'String'
-    createdAt: 'String'
+    createdAt: 'DateTime'
     governmentTax: 'Float'
     id: 'Int'
     inventory: 'Inventory'
@@ -353,8 +534,8 @@ export interface NexusGenFieldTypeNames {
     owner: 'User'
     ownerId: 'Int'
     serviceCharge: 'Float'
-    staff: 'OutletStaff'
-    transaction: 'Transaction'
+    staffs: 'OutletStaff'
+    transactions: 'Transaction'
     wifiSSID: 'String'
   }
   OutletStaff: { // field return type name
@@ -366,7 +547,21 @@ export interface NexusGenFieldTypeNames {
     userId: 'Int'
   }
   Query: { // field return type name
+    getAllCategory: 'Category'
+    getAllStaffs: 'User'
     getAllUsers: 'User'
+    getBranchById: 'Branch'
+    getCategoryById: 'Category'
+    getCategoryItems: 'Item'
+    getInventoryByOutletId: 'Inventory'
+    getInventoryItemsByRack: 'ItemsByRack'
+    getItems: 'Item'
+    getOutletById: 'Outlet'
+    getOutletItems: 'InventoryItems'
+    getOutletStaff: 'User'
+    getOutletsByBranch: 'Outlet'
+    getOwnedBranches: 'Branch'
+    getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
   }
   Transaction: { // field return type name
@@ -374,7 +569,7 @@ export interface NexusGenFieldTypeNames {
     cashier: 'User'
     cashierId: 'Int'
     change: 'Float'
-    createdAt: 'String'
+    createdAt: 'DateTime'
     id: 'Int'
     items: 'CartItem'
     outlet: 'Outlet'
@@ -382,13 +577,13 @@ export interface NexusGenFieldTypeNames {
     paymentMethod: 'PaymentMethod'
     status: 'Status'
     subtotal: 'Float'
-    syncedAt: 'String'
+    syncedAt: 'DateTime'
     tax: 'Float'
     total: 'Float'
   }
   User: { // field return type name
     branchesOwned: 'Branch'
-    createdAt: 'String'
+    createdAt: 'DateTime'
     email: 'String'
     fullname: 'String'
     id: 'Int'
@@ -403,6 +598,90 @@ export interface NexusGenFieldTypeNames {
 
 export interface NexusGenArgTypes {
   Mutation: {
+    bulkCreateInventoryItems: { // args
+      items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
+    }
+    createBranch: { // args
+      address: string; // String!
+      name: string; // String!
+      phone: string; // String!
+    }
+    createCategories: { // args
+      categories: string[]; // [String!]!
+    }
+    createInventory: { // args
+      name?: string | null; // String
+      storeId: number; // Int!
+    }
+    createInventoryItem: { // args
+      inventoryId: number; // Int!
+      items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
+    }
+    createItems: { // args
+      items: NexusGenInputs['CreateItemInput'][]; // [CreateItemInput!]!
+    }
+    createOutlet: { // args
+      address: string; // String!
+      branchId: string; // ID!
+      code: string; // String!
+      governmentTax: number; // Float!
+      name: string; // String!
+      outletType: NexusGenEnums['OutletType']; // OutletType!
+      phone: string; // String!
+      serviceCharge: number; // Float!
+    }
+    createOutletStaff: { // args
+      id: string; // ID!
+      users: NexusGenInputs['OutletStaffInput'][]; // [OutletStaffInput!]!
+    }
+    createStaff: { // args
+      email: string; // String!
+      fullname: string; // String!
+      password: string; // String!
+      role?: NexusGenEnums['Role'] | null; // Role
+      username: string; // String!
+    }
+    createTransaction: { // args
+      cashReceived?: number | null; // Float
+      cashierId: number; // Int!
+      change?: number | null; // Float
+      itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
+      outletId: number; // Int!
+      paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+      status: NexusGenEnums['Status']; // Status!
+      subtotal: number; // Float!
+      tax: number; // Float!
+      total: number; // Float!
+    }
+    deleteBranch: { // args
+      id: string; // ID!
+    }
+    deleteCategory: { // args
+      id: string; // ID!
+    }
+    deleteInventory: { // args
+      id: number; // Int!
+    }
+    deleteInventoryItem: { // args
+      id: number; // Int!
+    }
+    deleteItem: { // args
+      id: string; // ID!
+    }
+    deleteOutlet: { // args
+      id: string; // ID!
+    }
+    deleteOutletStaffs: { // args
+      id: string; // ID!
+      userIds: string[]; // [ID!]!
+    }
+    deleteUser: { // args
+      id: string; // ID!
+    }
+    login: { // args
+      email: string; // String!
+      password: string; // String!
+    }
     signup: { // args
       email: string; // String!
       fullname: string; // String!
@@ -410,10 +689,86 @@ export interface NexusGenArgTypes {
       role?: NexusGenEnums['Role'] | null; // Role
       username: string; // String!
     }
+    updateBranch: { // args
+      address?: string | null; // String
+      id: string; // ID!
+      name?: string | null; // String
+      phone?: string | null; // String
+    }
+    updateCategory: { // args
+      id: string; // ID!
+      name: string; // String!
+    }
+    updateInventory: { // args
+      id: number; // Int!
+      name: string; // String!
+    }
+    updateInventoryItem: { // args
+      data: NexusGenInputs['InventoryItemUpdateInput']; // InventoryItemUpdateInput!
+      id: number; // Int!
+    }
+    updateItem: { // args
+      id: string; // ID!
+      item: NexusGenInputs['UpdateItemInput']; // UpdateItemInput!
+    }
+    updateOutlet: { // args
+      address?: string | null; // String
+      code?: string | null; // String
+      governmentTax?: number | null; // Float
+      name?: string | null; // String
+      outletId: string; // ID!
+      outletType?: NexusGenEnums['OutletType'] | null; // OutletType
+      phone?: string | null; // String
+      serviceCharge?: number | null; // Float
+    }
+    updateUser: { // args
+      fullname?: string | null; // String
+      id: string; // ID!
+      username?: string | null; // String
+    }
   }
   Query: {
+    getAllCategory: { // args
+      orderBy?: string | null; // String
+      pageSize?: number | null; // Int
+      query?: string | null; // String
+    }
+    getBranchById: { // args
+      id: string; // ID!
+    }
+    getCategoryById: { // args
+      id: string; // ID!
+    }
+    getCategoryItems: { // args
+      id: string; // ID!
+    }
+    getInventoryByOutletId: { // args
+      outletId: number; // Int!
+    }
+    getInventoryItemsByRack: { // args
+      outletId: number; // Int!
+    }
+    getItems: { // args
+      orderBy?: NexusGenEnums['orderBy'] | null; // orderBy
+      query?: string | null; // String
+      size?: number | null; // Int
+    }
+    getOutletById: { // args
+      id: string; // ID!
+    }
+    getOutletStaff: { // args
+      outletId: string; // ID!
+    }
+    getOutletsByBranch: { // args
+      branchId: string; // ID!
+    }
+    getTransactionsByStoreId: { // args
+      endDate?: string | null; // String
+      outletId: number; // Int!
+      startDate?: string | null; // String
+    }
     getUserById: { // args
-      id: number; // Int!
+      id: string; // ID!
     }
   }
 }
@@ -426,7 +781,7 @@ export interface NexusGenTypeInterfaces {
 
 export type NexusGenObjectNames = keyof NexusGenObjects;
 
-export type NexusGenInputNames = never;
+export type NexusGenInputNames = keyof NexusGenInputs;
 
 export type NexusGenEnumNames = keyof NexusGenEnums;
 

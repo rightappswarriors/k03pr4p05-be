@@ -8,7 +8,7 @@ export const Location = objectType({
         t.nonNull.string('shelf');
         t.nullable.field('item', {
             type: 'InventoryItems',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, __) => {
                 return parent.item;
             }
         });

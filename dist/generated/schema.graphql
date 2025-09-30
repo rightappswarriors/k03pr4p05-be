@@ -2,9 +2,20 @@
 ### Do not make changes to this file directly
 
 
+type AuthPayload {
+  refresh_token: String!
+  token: String!
+  user: User!
+}
+
+type BatchPayload {
+  count: Int!
+}
+
 type Branch {
   address: String!
-  createdAt: String!
+  branches: [Branch!]!
+  createdAt: DateTime!
   id: Int!
   isActive: Boolean!
   name: String
@@ -20,10 +31,21 @@ type CartItem {
   transactionId: Int!
 }
 
+input CartItemInput {
+  itemId: Int!
+  price: Float!
+  quantity: Int!
+}
+
 type Category {
-  Item: [Item!]!
+  _count: CategoryCount
   id: Int!
+  items: [Item!]!
   name: String!
+}
+
+type CategoryCount {
+  itemCount: Int
 }
 
 type Color {
@@ -32,12 +54,42 @@ type Color {
   name: String!
 }
 
+input CreateItemInput {
+  barcode: String!
+  brand: String
+  categoryId: Int
+  description: String
+  image: String
+  name: String!
+}
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
 type Inventory {
   id: Int!
   items: [InventoryItems!]!
   name: String
   outlet: Outlet!
   outletId: Int!
+}
+
+input InventoryItemInput {
+  inventoryId: Int!
+  itemData: ItemInput
+  locationData: LocationInput
+  name: String!
+  price: Float!
+  quantity: Int!
+}
+
+input InventoryItemUpdateInput {
+  itemData: ItemInput
+  locationData: LocationInput
+  name: String
+  quantity: Int
 }
 
 type InventoryItems {
@@ -48,6 +100,7 @@ type InventoryItems {
   itemId: Int!
   location: Location
   locationId: Int
+  price: Float!
   quantity: Int!
 }
 
@@ -63,7 +116,15 @@ type Item {
   id: Int!
   image: String
   name: String!
-  price: Float!
+}
+
+input ItemInput {
+  id: Int!
+}
+
+type ItemsByRack {
+  items: [InventoryItems!]!
+  rack: String!
 }
 
 type Location {
@@ -74,8 +135,41 @@ type Location {
   shelf: String!
 }
 
+input LocationInput {
+  aisle: String
+  rack: String
+  shelf: String
+}
+
 type Mutation {
+  bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
+  createBranch(address: String!, name: String!, phone: String!): Branch!
+  createCategories(categories: [String!]!): [Category!]!
+  createInventory(name: String, storeId: Int!): Inventory
+  createInventoryItem(inventoryId: Int!, items: [InventoryItemInput!]!): BatchPayload
+  createItems(items: [CreateItemInput!]!): [BatchPayload!]!
+  createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
+  createOutletStaff(id: ID!, users: [OutletStaffInput!]!): OutletStaff!
+  createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, status: Status!, subtotal: Float!, tax: Float!, total: Float!): Transaction
+  deleteBranch(id: ID!): Branch!
+  deleteCategory(id: ID!): Category!
+  deleteInventory(id: Int!): Boolean
+  deleteInventoryItem(id: Int!): InventoryItems!
+  deleteItem(id: ID!): Item!
+  deleteOutlet(id: ID!): Outlet!
+  deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
+  deleteUser(id: ID!): User!
+  login(email: String!, password: String!): AuthPayload!
+  refreshToken: AuthPayload!
   signup(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
+  updateCategory(id: ID!, name: String!): Category!
+  updateInventory(id: Int!, name: String!): Inventory
+  updateInventoryItem(data: InventoryItemUpdateInput!, id: Int!): InventoryItems!
+  updateItem(id: ID!, item: UpdateItemInput!): Item!
+  updateOutlet(address: String, code: String, governmentTax: Float, name: String, outletId: ID!, outletType: OutletType, phone: String, serviceCharge: Float): Outlet!
+  updateUser(fullname: String, id: ID!, username: String): User!
 }
 
 type Outlet {
@@ -83,7 +177,7 @@ type Outlet {
   branch: Branch!
   branchId: Int!
   code: String!
-  createdAt: String!
+  createdAt: DateTime!
   governmentTax: Float
   id: Int!
   inventory: Inventory
@@ -94,8 +188,8 @@ type Outlet {
   owner: User!
   ownerId: Int!
   serviceCharge: Float
-  staff: [OutletStaff!]!
-  transaction: [Transaction!]!
+  staffs: [OutletStaff!]!
+  transactions: [Transaction!]!
   wifiSSID: String
 }
 
@@ -105,6 +199,11 @@ type OutletStaff {
   outletId: Int!
   role: Role!
   user: User!
+  userId: Int!
+}
+
+input OutletStaffInput {
+  role: String!
   userId: Int!
 }
 
@@ -121,13 +220,29 @@ enum PaymentMethod {
 }
 
 type Query {
+  getAllCategory(orderBy: String, pageSize: Int, query: String): [Category!]!
+  getAllStaffs: [User!]!
   getAllUsers: [User!]!
-  getUserById(id: Int!): User
+  getBranchById(id: ID!): Branch!
+  getCategoryById(id: ID!): Category!
+  getCategoryItems(id: ID!): [Item!]!
+  getInventoryByOutletId(outletId: Int!): Inventory
+  getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
+  getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
+  getOutletById(id: ID!): Outlet
+  getOutletItems: [InventoryItems!]!
+  getOutletStaff(outletId: ID!): [User!]!
+  getOutletsByBranch(branchId: ID!): [Outlet!]!
+  getOwnedBranches: [Branch!]!
+  getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
+  getUserById(id: ID!): User!
 }
 
 enum Role {
   ADMIN
-  USER
+  CASHIER
+  MANAGER
+  STAFF
 }
 
 enum Status {
@@ -142,7 +257,7 @@ type Transaction {
   cashier: User!
   cashierId: Int!
   change: Float
-  createdAt: String!
+  createdAt: DateTime!
   id: Int!
   items: [CartItem!]!
   outlet: Outlet!
@@ -150,14 +265,23 @@ type Transaction {
   paymentMethod: PaymentMethod!
   status: Status!
   subtotal: Float!
-  syncedAt: String!
+  syncedAt: DateTime!
   tax: Float!
   total: Float!
 }
 
+input UpdateItemInput {
+  barcode: String
+  brand: String
+  categoryId: Int
+  description: String
+  image: String
+  name: String
+}
+
 type User {
   branchesOwned: [Branch!]!
-  createdAt: String!
+  createdAt: DateTime!
   email: String!
   fullname: String!
   id: Int!
@@ -167,4 +291,9 @@ type User {
   role: Role!
   staff: [OutletStaff]!
   transaction: [Transaction]!
+}
+
+enum orderBy {
+  asc
+  desc
 }

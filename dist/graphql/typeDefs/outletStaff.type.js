@@ -8,7 +8,7 @@ export const OuteltStaff = objectType({
         t.nonNull.field("role", { type: "Role" });
         t.nonNull.field("outlet", {
             type: "Outlet",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outletStaff
                     .findUnique({ where: { id: parent.id } })
                     .outlet();
@@ -16,7 +16,7 @@ export const OuteltStaff = objectType({
         }); // Relationship to the User who is the staff member
         t.nonNull.field("user", {
             type: "User",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outletStaff
                     .findUnique({ where: { id: parent.id } })
                     .user();

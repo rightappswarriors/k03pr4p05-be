@@ -14,13 +14,13 @@ export const Outlet = objectType({
         t.nullable.float("governmentTax");
         t.nullable.float("serviceCharge");
         t.nonNull.field("outletType", { type: "OutletType" });
-        t.nonNull.string("createdAt");
+        t.nonNull.dateTime('createdAt');
         t.nullable.string("wifiSSID");
         t.nonNull.boolean("isActive");
         t.nonNull.int("ownerId");
         t.nonNull.field("owner", {
             type: "User",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outlet
                     .findUnique({ where: { id: parent.id } })
                     .owner();
@@ -29,34 +29,33 @@ export const Outlet = objectType({
         t.nonNull.int("branchId");
         t.nonNull.field("branch", {
             type: "Branch",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outlet
                     .findUnique({ where: { id: parent.id } })
                     .branch();
             },
         });
-        t.nonNull.list.nonNull.field("staff", {
+        t.nonNull.list.nonNull.field("staffs", {
             type: "OutletStaff",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outlet
                     .findUnique({ where: { id: parent.id } })
-                    .staff();
+                    .staffs();
             },
         });
         t.nullable.field("inventory", {
             type: "Inventory",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outlet
                     .findUnique({ where: { id: parent.id } })
                     .inventory();
             },
         });
-        t.nonNull.list.nonNull.field("transaction", {
+        t.nonNull.list.nonNull.field("transactions", {
             type: "Transaction",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.outlet
-                    .findUnique({ where: { id: parent.id } })
-                    .transaction();
+                    .findMany({ where: { id: parent.id } });
             },
         });
     },

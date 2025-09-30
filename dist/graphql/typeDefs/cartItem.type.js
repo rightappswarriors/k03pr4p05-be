@@ -7,7 +7,7 @@ export const CartItem = objectType({
         t.nonNull.int("quantity"); // Correct way to resolve the transaction
         t.nonNull.field("transaction", {
             type: "Transaction",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 // Use Prisma's relational query to get the transaction
                 return ctx.prisma.cartItem
                     .findUnique({
@@ -23,7 +23,7 @@ export const CartItem = objectType({
         }); // Correct way to resolve the item
         t.nonNull.field("item", {
             type: "Item",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 // Use Prisma's relational query to get the item
                 return ctx.prisma.cartItem
                     .findUnique({

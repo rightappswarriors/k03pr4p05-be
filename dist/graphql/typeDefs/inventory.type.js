@@ -8,7 +8,7 @@ export const Inventory = objectType({
         // Relationship to the Outlet this inventory belongs to
         t.nonNull.field("outlet", {
             type: "Outlet",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.inventory
                     .findUnique({ where: { id: parent.id } })
                     .outlet();
@@ -16,7 +16,7 @@ export const Inventory = objectType({
         });
         t.nonNull.list.nonNull.field("items", {
             type: "InventoryItems",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.inventoryItems
                     .findUnique({
                     where: { id: parent.id },

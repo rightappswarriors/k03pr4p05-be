@@ -6,7 +6,7 @@ export const Color = objectType({
         t.nonNull.string('name');
         t.nonNull.list.nonNull.field('items', {
             type: 'Item',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.item
                     .findUnique({ where: { id: parent.id } })
                     .item();
