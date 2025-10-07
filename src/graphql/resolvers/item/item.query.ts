@@ -45,7 +45,7 @@ export const ItemQuery = extendType({
     t.nonNull.field("getItemById", {
       type: "Item",
       args: {
-        id: nonNull(intArg())
+        id: nonNull(arg({type: "ID"}))
       },
       async resolve(_, {id}, ctx) {
         requireAuth(ctx)

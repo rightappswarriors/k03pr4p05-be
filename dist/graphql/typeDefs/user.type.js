@@ -9,6 +9,7 @@ export const User = objectType({
     definition(t) {
         t.nonNull.int('id');
         t.nonNull.string('fullname');
+        t.nonNull.string('username');
         t.nonNull.string('email');
         t.nonNull.field('role', { type: 'Role' });
         t.nullable.string('profilePhoto');

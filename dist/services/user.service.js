@@ -112,6 +112,39 @@ export const getAllStaffs = async (managerId) => {
 };
 /**
  * @description
+ * Retrieves all Staff users owned by the manager from the database.
+ * @param {number} ownerId - Manager Id query.
+ * @returns {Promise<array>} An array of user objects without password
+ */
+export const getAllOutletStaffs = async (ownerId) => {
+    const outlets = await prisma.outlet.findMany({
+        where: { ownerId },
+        select: {
+            id: true,
+            name: true,
+            staff: {
+                select: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            username: true,
+                            fullname: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    // Flatten staff array to `staffs` array of users
+    return outlets.map((outlet) => ({
+        id: outlet.id,
+        name: outlet.name,
+        staff: outlet.staff.map((s) => s.user),
+    }));
+};
+/**
+ * @description
  * Retrieves all users from the database.
  * @returns {Promise<array>} An array of user objects without password
  */

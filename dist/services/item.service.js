@@ -156,9 +156,14 @@ export const getInventoryItemsByRack = async (inventoryId) => {
         throw new Error("Failed to fetch inventory items by rack.");
     }
 };
+export const getItemById = async (id) => {
+    return prisma.item.findUnique({
+        where: { id: id }
+    });
+};
 export const updateItem = async (id, data) => {
     return prisma.item.update({
-        where: { id: id },
+        where: { id },
         data: data
     });
 };

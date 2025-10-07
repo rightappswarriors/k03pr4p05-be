@@ -18,10 +18,12 @@ export const Inventory = objectType({
             type: "InventoryItems",
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.inventoryItems
-                    .findUnique({
+                    .findMany({
                     where: { id: parent.id },
-                })
-                    .items();
+                    include: {
+                        item: true
+                    }
+                });
             },
         });
     },

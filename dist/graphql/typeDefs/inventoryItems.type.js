@@ -7,7 +7,7 @@ export const InventoryItems = objectType({
         t.nonNull.int("itemId");
         t.nonNull.int("quantity");
         t.nullable.int("locationId");
-        t.nonNull.float('price');
+        t.nullable.float('price');
         t.nonNull.field("inventory", {
             type: "Inventory",
             resolve: (parent, _, ctx) => {

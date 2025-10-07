@@ -1,6 +1,22 @@
-import { extendType, arg, nonNull } from "nexus";
+import { objectType, extendType, arg, nonNull } from "nexus";
 import * as outletService from "../../../services/outlet.service.js";
 import { requireAuth, requireRole, requireOwnership, } from "../../../middleware/auth.middleware.js";
+export const OutletWithItems = objectType({
+    name: "OutletWithItems",
+    definition(t) {
+        t.nonNull.int("id");
+        t.nonNull.int("branchId");
+        t.nonNull.string("name");
+        t.string("address");
+        t.string("phone");
+        t.string("code");
+        t.float("governmentTax");
+        t.float("serviceCharge");
+        t.boolean("isActive");
+        t.string("outletType");
+        t.nonNull.list.nonNull.field("items", { type: "InventoryItems" });
+    },
+});
 export const OutletQuery = extendType({
     type: "Query",
     definition(t) {
@@ -43,7 +59,7 @@ export const OutletQuery = extendType({
             },
             async resolve(_, { outletId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGING"]);
+                requireRole(ctx, ["ADMIN", "MANAGER"]);
                 try {
                     return await outletService.getOutletStaffs(Number(outletId));
                 }
@@ -53,14 +69,18 @@ export const OutletQuery = extendType({
                 }
             },
         });
-        t.nonNull.list.nonNull.field("getOutletItems", {
-            type: "InventoryItems",
+        t.nonNull.field("getOutletItems", {
+            type: "OutletWithItems",
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
-                const userId = Number(ctx.user.userID);
+                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+                const userId = Number(ctx.user.userId);
                 try {
-                    return await outletService.getOutletItemsByAssignedStaff(userId);
+                    const items = await outletService.getOutletItemsByAssignedStaff(userId, ctx.user.role);
+                    if (!items) {
+                        throw new Error("No items found add items");
+                    }
+                    return items;
                 }
                 catch (error) {
                     console.error("Error getting outlet items:", error);

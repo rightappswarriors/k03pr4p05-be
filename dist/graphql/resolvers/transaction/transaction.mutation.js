@@ -1,4 +1,4 @@
-import { extendType, nonNull, intArg, list, arg, inputObjectType, } from "nexus";
+import { extendType, nonNull, intArg, stringArg, list, arg, inputObjectType, } from "nexus";
 import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
 import * as transactionService from "../../../services/transaction.service.js";
 export const CartItemInput = inputObjectType({
@@ -20,16 +20,17 @@ export const TransactionMutation = extendType({
                 cashierId: nonNull(intArg()),
                 total: nonNull(arg({ type: "Float" })),
                 subtotal: nonNull(arg({ type: "Float" })),
-                tax: nonNull(arg({ type: "Float" })),
+                vatAmount: nonNull(arg({ type: "Float" })),
                 cashReceived: arg({ type: "Float" }),
                 change: arg({ type: "Float" }),
                 paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
                 status: nonNull(arg({ type: "Status" })),
+                createdAt: nonNull(stringArg()),
                 itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
             },
             async resolve(_, args, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
                 const { itemsSold, ...transactionData } = args;
                 if (!itemsSold || itemsSold.length === 0) {
                     throw new Error("Missing itemsSold array.");

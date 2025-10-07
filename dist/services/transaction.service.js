@@ -15,20 +15,45 @@ export const processTransaction = async (transactionData, itemsSold) => {
     return prisma.$transaction(async (tx) => {
         // 1. Deduct items from the inventory.
         // We'll iterate through each item and decrement the quantity.
+        const inventory = await tx.inventory.findUnique({
+            where: {
+                outletId: transactionData.outletId,
+            },
+            select: {
+                id: true,
+            },
+        });
+        console.log("Inventory Id:", inventory.id);
+        if (!inventory) {
+            throw new Error(`No inventory found for outlet ID: ${transactionData.outletId}`);
+        }
         for (const item of itemsSold) {
             // Find the specific InventoryItems record for this item and store.
+            console.log("Inventory Id:", inventory.id);
+            console.log("Item:", item.itemId);
             const inventoryItem = await tx.inventoryItems.findUnique({
                 where: {
                     inventoryId_itemId: {
-                        inventoryId: transactionData.inventoryId,
+                        inventoryId: inventory.id,
                         itemId: item.itemId,
                     },
                 },
+                select: {
+                    id: true
+                }
             });
-            if (!inventoryItem || inventoryItem.quantity < item.quantity) {
-                throw new Error(`Insufficient stock for item ID: ${item.itemId}`);
+            if (!inventoryItem) {
+                throw new Error(`No inventory item found for item ID: ${item.itemId} in inventory ID: ${inventory.id}`);
             }
+            console.log("InventoryItems Id:", inventoryItem.id);
+            //if (!inventoryItem || inventoryItem.quantity < item.quantity) {
+            //  throw new Error(`Insufficient stock for item ID: ${item.itemId}`);
+            //}
             // Decrement the quantity.
+            console.log("InventoryItems Id:", inventoryItem.id);
+            if (!inventory) {
+                throw new Error(`No Inventory Item found: ${item.id}`);
+            }
             await tx.inventoryItems.update({
                 where: {
                     id: inventoryItem.id,
@@ -58,6 +83,7 @@ export const processTransaction = async (transactionData, itemsSold) => {
                 items: true, // Include the CartItems in the response
             },
         });
+        console.log(newTransaction);
         return newTransaction;
     });
 };

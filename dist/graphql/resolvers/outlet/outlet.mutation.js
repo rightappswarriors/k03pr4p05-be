@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, nullable, list, inputObjectType, } from "nexus";
+import { extendType, arg, nonNull, nullable, list, inputObjectType, objectType, } from "nexus";
 import { requireRole, requireAuth, requireOwnership, } from "../../../middleware/auth.middleware.js";
 import * as outletService from "../../../services/outlet.service.js";
 export const OutletStaffInput = inputObjectType({
@@ -6,6 +6,14 @@ export const OutletStaffInput = inputObjectType({
     definition(t) {
         t.nonNull.int("userId");
         t.nonNull.string("role");
+    },
+});
+export const AddedOutletStaffs = objectType({
+    name: "AddedOutletStaffs",
+    definition(t) {
+        t.nonNull.int("id");
+        t.nonNull.string("name");
+        t.nonNull.list.nonNull.field("staff", { type: "User" });
     },
 });
 export const outletMutation = extendType({
@@ -57,22 +65,22 @@ export const outletMutation = extendType({
                 }
             },
         });
-        t.nonNull.field("createOutletStaff", {
-            type: "OutletStaff",
+        t.nonNull.field("AddOutletStaff", {
+            type: "AddedOutletStaffs",
             args: {
-                id: nonNull(arg({ type: "ID" })),
+                outletId: nonNull(arg({ type: "ID" })),
                 users: nonNull(arg({ type: list(nonNull("OutletStaffInput")) })),
             },
-            async resolve(_, { id, users }, ctx) {
+            async resolve(_, { outletId, users }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER"]);
-                await requireOwnership(ctx, "Outlet", id);
+                await requireOwnership(ctx, "Outlet", outletId);
                 try {
                     if (Array.isArray(users)) {
                         if (users.length === 0) {
                             throw new Error("Request body must be a non-empty array of users.");
                         }
-                        return await outletService.addStaffsToOutlet(Number(id), users);
+                        return await outletService.addStaffsToOutlet(Number(outletId), users);
                     }
                     else {
                         const { userId, role } = users;
@@ -80,7 +88,7 @@ export const outletMutation = extendType({
                             // Use 400 for a bad request (missing data)
                             throw new Error("Missing required fields: userId and role");
                         }
-                        return await outletService.addStaffToOutlet(Number(id), userId, role);
+                        return await outletService.addStaffToOutlet(Number(outletId), userId, role);
                     }
                 }
                 catch (error) {

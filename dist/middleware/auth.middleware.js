@@ -9,7 +9,11 @@ export async function requireOwnership(ctx, modelName, resourceId) {
     if (!userId || !resourceId) {
         throw new Error("Invalid request parameters or missing user information.");
     }
-    const resource = await ctx.prisma[modelName].findUnique({
+    const delegate = ctx.prisma[modelName.charAt(0).toLowerCase() + modelName.slice(1)];
+    if (!delegate) {
+        throw new Error(`Model ${modelName} not found in Prisma client`);
+    }
+    const resource = await delegate.findUnique({
         where: { id: Number(resourceId) },
         select: { ownerId: true },
     });

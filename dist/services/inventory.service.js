@@ -146,17 +146,18 @@ export const createInventoryItem = async (itemsData, inventoryId) => {
     return newInventoryItems;
 };
 /**
- * @description Retrieves a single inventory record by its storeId.
- * @param {number} storeId - The ID of the store.
- * @returns {Promise<object>} The inventory record.
+ * @description Retrieves inventory items by outletId.
+ * @param {number} outletId - The ID of the outlet.
+ * @returns {Promise<InventoryItems[]>} List of inventory items.
  */
 export const getInventoryByOutletId = async (outletId) => {
-    const storeInventory = await prisma.inventory.findUnique({
-        where: { outletId: outletId },
+    console.log("Outlet ID received in resolver:", outletId);
+    const storeInventory = await prisma.inventory.findFirst({
+        where: { outletId: Number(outletId) },
         include: {
             outlet: true,
             items: {
-                select: { item: true },
+                select: { item: true, price: true, quantity: true },
             },
         },
     });

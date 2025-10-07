@@ -97,7 +97,11 @@ export const ItemMutation = extendType({
                     throw new Error("You must provide at least one field to update.");
                 }
                 try {
-                    return await itemService.updateItem(Number(id), item);
+                    const updatedItem = await itemService.updateItem(Number(id), item);
+                    if (!updatedItem) {
+                        throw new Error("Item not found");
+                    }
+                    return updatedItem;
                 }
                 catch (error) {
                     console.error("Error updating item", error);
@@ -114,7 +118,11 @@ export const ItemMutation = extendType({
                     requireAuth(ctx);
                     requireRole(ctx, ["ADMIN", "MANAGER"]);
                     try {
-                        return await itemService.deleteItem(Number(id));
+                        const deletedItem = await itemService.deleteItem(Number(id));
+                        if (!deletedItem) {
+                            throw new Error("Item not found");
+                        }
+                        return deletedItem;
                     }
                     catch (error) {
                         console.error("Error deleting item", error);

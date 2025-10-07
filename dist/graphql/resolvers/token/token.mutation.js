@@ -1,19 +1,41 @@
 import jwt from "jsonwebtoken";
-import { extendType } from "nexus";
+import { extendType, nonNull, stringArg } from "nexus";
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 const JWT_SECRET = process.env.JWT_SECRET;
 export const RefreshMutation = extendType({
     type: "Mutation",
     definition(t) {
+        t.nonNull.field("me", {
+            type: "User",
+            async resolve(_, __, ctx) {
+                const authHeader = ctx.req.authorization;
+                if (!authHeader)
+                    return null;
+                const token = authHeader.replace("Bearer ", "");
+                try {
+                    const payload = jwt.verify(token, JWT_SECRET);
+                    return await ctx.prisma.user.findUnique({
+                        where: { id: payload.userId },
+                    });
+                }
+                catch (error) {
+                    console.error("Invalid token in me query:", error);
+                    return null;
+                }
+            },
+        });
         t.nonNull.field("refreshToken", {
             type: "AuthPayload",
-            async resolve(_, __, { req, res, prisma }) {
-                const token = req.cookies.jid;
+            args: {
+                refresh_token: nonNull(stringArg()),
+            },
+            async resolve(_, { refresh_token }, { req, res, prisma }) {
+                /** const token = req.cookies.jid;
                 if (!token) {
-                    throw new Error("No refresh token provided");
-                }
+                  throw new Error("No refresh token provided");
+                }}*/
                 try {
-                    const payload = jwt.verify(token, REFRESH_SECRET);
+                    const payload = jwt.verify(refresh_token, REFRESH_SECRET);
                     const user = await prisma.user.findUnique({
                         where: {
                             id: payload.userId,

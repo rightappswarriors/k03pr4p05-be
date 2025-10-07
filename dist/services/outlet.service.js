@@ -46,14 +46,34 @@ export const createOutlet = async (outletData, branchId, ownerId) => {
  */
 export const addStaffToOutlet = async (outletId, userId, role) => {
     try {
-        const newStaff = await prisma.outletStaff.create({
+        await prisma.outletStaff.create({
             data: {
                 outletId,
                 userId,
                 role,
             },
         });
-        return newStaff;
+        const newOutletStaff = await prisma.outlet.findFirst({
+            where: { id: outletId },
+            select: {
+                id: true,
+                name: true,
+                staff: {
+                    where: {
+                        userId: userId,
+                    },
+                    select: {
+                        user: {
+                            select: {
+                                id: true,
+                                fullname: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        return newOutletStaff;
     }
     catch (error) {
         // You should add more specific error handling here, e.g., for duplicate entries.
@@ -69,15 +89,35 @@ export const addStaffToOutlet = async (outletId, userId, role) => {
  * @returns {Promise<object>} The result of the bulk insert.
  */
 export const addStaffsToOutlet = async (outletId, users) => {
-    const newStaffs = await prisma.outletStaff.createMany({
+    await prisma.outletStaff.createMany({
         data: users.map((u) => ({
             outletId,
-            userId: u.userId,
+            userId: Number(u.userId),
             role: u.role,
         })),
         skipDuplicates: true, // avoids unique constraint errors
     });
-    return newStaffs;
+    const newOutletStaffs = await prisma.outlet.findFirst({
+        where: { id: outletId },
+        select: {
+            id: true,
+            name: true,
+            staff: {
+                where: {
+                    userId: { in: users.map((u) => Number(u.userId)) },
+                },
+                select: {
+                    user: {
+                        select: {
+                            id: true,
+                            fullname: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+    return newOutletStaffs;
 };
 /**
  * Removes staff members from a outlet by deleting their entries in the OutletStaff table.
@@ -190,29 +230,54 @@ export const getOutletStaffs = async (outletId) => {
         throw new Error("Failed to retrieve outlet staff.");
     }
 };
-export const getOutletItemsByAssignedStaff = async (userId) => {
+export const getOutletItemsByAssignedStaff = async (userId, role) => {
+    const where = role === "ADMIN" || role === "MANAGER"
+        ? { ownerId: userId }
+        : { staff: { some: { userId: userId } } };
     const outlet = await prisma.outlet.findFirst({
-        where: {
-            staff: {
-                some: { userId },
-            },
-        },
+        where,
         select: {
+            id: true,
+            branchId: true,
+            name: true,
+            address: true,
+            phone: true,
+            code: true,
+            governmentTax: true,
+            serviceCharge: true,
+            outletType: true,
             inventory: {
                 select: {
                     items: {
                         select: {
                             id: true,
+                            price: true,
                             quantity: true,
-                            item: true,
                             location: true,
+                            item: {
+                                select: {
+                                    id: true,
+                                    image: true,
+                                    description: true,
+                                    barcode: true,
+                                    name: true,
+                                    categoryId: true,
+                                    category: true
+                                }
+                            }
                         },
                     },
                 },
             },
         },
     });
-    return outlet?.inventory?.items ?? [];
+    if (!outlet)
+        return null;
+    // Flatten so it matches `OutletWithItems`
+    return {
+        ...outlet,
+        items: outlet.inventory?.items ?? [],
+    };
 };
 /**
  * @description

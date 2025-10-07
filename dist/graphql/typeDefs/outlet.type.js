@@ -10,6 +10,7 @@ export const Outlet = objectType({
         t.nonNull.string("name");
         t.nonNull.string("address");
         t.nonNull.string("code");
+        t.nonNull.string("phone");
         t.nullable.int("nextTransactionNumber");
         t.nullable.float("governmentTax");
         t.nullable.float("serviceCharge");

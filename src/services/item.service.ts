@@ -164,7 +164,7 @@ export const getInventoryItemsByRack = async (inventoryId) => {
 };
 export const getItemById = async(id) => {
   return prisma.item.findUnique({
-    where: id
+    where: { id: id}
   })
 }
 export const updateItem = async (id, data) => {

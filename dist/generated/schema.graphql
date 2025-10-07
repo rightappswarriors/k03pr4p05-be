@@ -2,6 +2,18 @@
 ### Do not make changes to this file directly
 
 
+input AddItemToInventoryInput {
+  itemId: Int!
+  price: Float!
+  quantity: Int!
+}
+
+type AddedOutletStaffs {
+  id: Int!
+  name: String!
+  staff: [User!]!
+}
+
 type AuthPayload {
   refresh_token: String!
   token: String!
@@ -100,7 +112,7 @@ type InventoryItems {
   itemId: Int!
   location: Location
   locationId: Int
-  price: Float!
+  price: Float
   quantity: Int!
 }
 
@@ -142,16 +154,16 @@ input LocationInput {
 }
 
 type Mutation {
+  AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
+  addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   createBranch(address: String!, name: String!, phone: String!): Branch!
   createCategories(categories: [String!]!): [Category!]!
   createInventory(name: String, storeId: Int!): Inventory
-  createInventoryItem(inventoryId: Int!, items: [InventoryItemInput!]!): BatchPayload
   createItems(items: [CreateItemInput!]!): [BatchPayload!]!
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
-  createOutletStaff(id: ID!, users: [OutletStaffInput!]!): OutletStaff!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
-  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, status: Status!, subtotal: Float!, tax: Float!, total: Float!): Transaction
+  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   deleteBranch(id: ID!): Branch!
   deleteCategory(id: ID!): Category!
   deleteInventory(id: Int!): Boolean
@@ -161,7 +173,8 @@ type Mutation {
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deleteUser(id: ID!): User!
   login(email: String!, password: String!): AuthPayload!
-  refreshToken: AuthPayload!
+  me: User!
+  refreshToken(refresh_token: String!): AuthPayload!
   signup(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateCategory(id: ID!, name: String!): Category!
@@ -187,6 +200,7 @@ type Outlet {
   outletType: OutletType!
   owner: User!
   ownerId: Int!
+  phone: String!
   serviceCharge: Float
   staffs: [OutletStaff!]!
   transactions: [Transaction!]!
@@ -213,6 +227,26 @@ enum OutletType {
   wholesale
 }
 
+type OutletWithItems {
+  address: String
+  branchId: Int!
+  code: String
+  governmentTax: Float
+  id: Int!
+  isActive: Boolean
+  items: [InventoryItems!]!
+  name: String!
+  outletType: String
+  phone: String
+  serviceCharge: Float
+}
+
+type OutletsWithStaff {
+  id: Int!
+  name: String!
+  staff: [User!]!
+}
+
 enum PaymentMethod {
   CARD
   CASH
@@ -220,17 +254,21 @@ enum PaymentMethod {
 }
 
 type Query {
+  ME: User!
   getAllCategory(orderBy: String, pageSize: Int, query: String): [Category!]!
+  getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs: [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
   getCategoryById(id: ID!): Category!
   getCategoryItems(id: ID!): [Item!]!
   getInventoryByOutletId(outletId: Int!): Inventory
+  getInventoryItemByOutletId(outletId: ID!): [InventoryItems]!
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
+  getItemById(id: ID!): Item!
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
   getOutletById(id: ID!): Outlet
-  getOutletItems: [InventoryItems!]!
+  getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
   getOutletsByBranch(branchId: ID!): [Outlet!]!
   getOwnedBranches: [Branch!]!
@@ -291,6 +329,7 @@ type User {
   role: Role!
   staff: [OutletStaff]!
   transaction: [Transaction]!
+  username: String!
 }
 
 enum orderBy {

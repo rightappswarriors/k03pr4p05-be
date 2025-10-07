@@ -1,4 +1,4 @@
-import { extendType, nonNull, intArg, stringArg, list, arg, objectType } from "nexus";
+import { extendType, nonNull, intArg, stringArg, list, arg, objectType, inputObjectType } from "nexus";
 import { requireAuth, requireOwnership, requireRole, } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
 export const BatchPayload = objectType({
@@ -6,6 +6,14 @@ export const BatchPayload = objectType({
     definition(t) {
         t.nonNull.int("count");
     },
+});
+export const AddItemToInventoryInput = inputObjectType({
+    name: "AddItemToInventoryInput",
+    definition(t) {
+        t.nonNull.int("itemId");
+        t.nonNull.int("quantity");
+        t.nonNull.float("price");
+    }
 });
 export const InventoryMutation = extendType({
     type: "Mutation",
@@ -20,6 +28,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { outletId, name }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN"]);
+                await requireOwnership(ctx, "Outlet", Number(outletId));
                 try {
                     return await inventoryService.createInventory(name ?? "", outletId);
                 }
@@ -70,18 +79,31 @@ export const InventoryMutation = extendType({
                 }
             },
         });
-        // Create inventory items
-        t.field("createInventoryItem", {
-            type: BatchPayload, // Prisma createMany returns { count }
+        //! Create inventory items
+        t.field("addItemsToInventory", {
+            type: "BatchPayload", // Prisma createMany returns { count }
             args: {
-                inventoryId: nonNull(intArg()),
+                inventoryId: nonNull(arg({ type: "ID" })),
                 items: nonNull(list(nonNull(arg({
-                    type: "InventoryItemInput", // You'll need to define this input type
+                    type: "AddItemToInventoryInput", // You'll need to define this input type
                 })))),
             },
             async resolve(_, { inventoryId, items }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER"]);
+                inventoryId = Number(inventoryId);
+                const inventory = await ctx.prisma.inventory.findFirst({
+                    where: { id: inventoryId },
+                    select: {
+                        outlet: {
+                            select: { id: true }
+                        }
+                    }
+                });
+                if (!inventory || !inventory.outlet) {
+                    throw new Error("Can't find Inventory or Outlet");
+                }
+                await requireOwnership(ctx, "outlet", inventory.outlet.id);
                 try {
                     return await inventoryService.createInventoryItem(items, inventoryId);
                 }

@@ -41,31 +41,52 @@ export const ItemQuery = extendType({
                 }
             }
         }),
-            t.nonNull.list.nonNull.field("getInventoryItemsByRack", {
-                type: "ItemsByRack",
+            t.nonNull.field("getItemById", {
+                type: "Item",
                 args: {
-                    outletId: nonNull(intArg()),
+                    id: nonNull(arg({ type: "ID" }))
                 },
-                async resolve(_, { outletId }, ctx) {
+                async resolve(_, { id }, ctx) {
                     requireAuth(ctx);
                     requireRole(ctx, ["ADMIN", "MANAGER"]);
-                    // Find the inventory by outletId
-                    const inventory = await ctx.prisma.inventory.findUnique({
-                        where: { outletId },
-                    });
-                    if (!inventory) {
-                        throw new Error("Inventory not found for this outlet.");
+                    try {
+                        const item = await itemService.getItemById(Number(id));
+                        if (!item) {
+                            throw new Error("Item not found");
+                        }
+                        return item;
                     }
-                    const itemsByRack = await itemService.getInventoryItemsByRack(inventory.id);
-                    if (!itemsByRack) {
-                        throw new Error("No inventory items found for this store.");
+                    catch (error) {
+                        console.error("Error getting Item:", error);
+                        throw new Error("Error getting Item.");
                     }
-                    // Transform map { rack: [items] } into array of { rack, items }
-                    return Object.entries(itemsByRack).map(([rack, items]) => ({
-                        rack,
-                        items,
-                    }));
-                },
+                }
             });
+        t.nonNull.list.nonNull.field("getInventoryItemsByRack", {
+            type: "ItemsByRack",
+            args: {
+                outletId: nonNull(intArg()),
+            },
+            async resolve(_, { outletId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                // Find the inventory by outletId
+                const inventory = await ctx.prisma.inventory.findUnique({
+                    where: { outletId },
+                });
+                if (!inventory) {
+                    throw new Error("Inventory not found for this outlet.");
+                }
+                const itemsByRack = await itemService.getInventoryItemsByRack(inventory.id);
+                if (!itemsByRack) {
+                    throw new Error("No inventory items found for this store.");
+                }
+                // Transform map { rack: [items] } into array of { rack, items }
+                return Object.entries(itemsByRack).map(([rack, items]) => ({
+                    rack,
+                    items,
+                }));
+            },
+        });
     },
 });
