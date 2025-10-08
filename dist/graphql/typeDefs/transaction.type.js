@@ -14,7 +14,7 @@ export const Transaction = objectType({
         t.nonNull.int("outletId");
         t.nonNull.field("outlet", {
             type: "Outlet",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.transaction
                     .findUnique({ where: { id: parent.id } })
                     .outlet();
@@ -23,7 +23,7 @@ export const Transaction = objectType({
         t.nonNull.int("cashierId");
         t.nonNull.field("cashier", {
             type: "User",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.transaction
                     .findUnique({ where: { id: parent.id } })
                     .cashier();
@@ -31,7 +31,7 @@ export const Transaction = objectType({
         });
         t.nonNull.list.nonNull.field("items", {
             type: "CartItem",
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.transaction
                     .findUnique({ where: { id: parent.id } })
                     .items();
@@ -46,5 +46,13 @@ export const Transaction = objectType({
         t.nonNull.field("status", { type: "Status" });
         t.nonNull.dateTime("createdAt");
         t.nonNull.dateTime("syncedAt");
+        t.nullable.field("paymentDetails", {
+            type: "PaymentDetails",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.transaction
+                    .findUnique({ where: { id: parent.id } })
+                    .paymentDetails();
+            }
+        });
     },
 });

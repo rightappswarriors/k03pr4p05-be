@@ -16,7 +16,7 @@ export const User = objectType({
         t.nonNull.dateTime('createdAt');
         t.nonNull.list.nonNull.field('branchesOwned', {
             type: 'Branch',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .branchesOwned();
@@ -24,7 +24,7 @@ export const User = objectType({
         });
         t.nonNull.list.nonNull.field('outletOwned', {
             type: 'Outlet',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .outletOwned();
@@ -40,7 +40,7 @@ export const User = objectType({
         });
         t.nonNull.list.field('transaction', {
             type: 'Transaction',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .transaction();
@@ -48,10 +48,18 @@ export const User = objectType({
         });
         t.nullable.field('manager', {
             type: 'User',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .manager();
+            }
+        });
+        t.nullable.field('paymongoAPIKeys', {
+            type: 'PaymongoAPIKeys',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .paymongoAPIKeys();
             }
         });
     }

@@ -85,6 +85,7 @@ export interface NexusGenInputs {
 export interface NexusGenEnums {
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "DIGITAL"
+  PaymentType: "CARD" | "GCASH" | "PAYMAYA"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
   Status: "CANCELED" | "FAILED" | "PENDING" | "SYNCED"
   orderBy: "asc" | "desc"
@@ -209,6 +210,21 @@ export interface NexusGenObjects {
     id: number; // Int!
     name: string; // String!
     staff: NexusGenRootTypes['User'][]; // [User!]!
+  }
+  PaymentDetails: { // root type
+    email?: string | null; // String
+    fullname?: string | null; // String
+    id: number; // Int!
+    paymentIntentId?: string | null; // String
+    paymentMethodId?: string | null; // String
+    status?: string | null; // String
+    type?: NexusGenEnums['PaymentType'] | null; // PaymentType
+    username?: string | null; // String
+  }
+  PaymongoAPIKeys: { // root type
+    id: number; // Int!
+    public_key: string; // String!
+    secret_key: string; // String!
   }
   Query: {};
   Transaction: { // root type
@@ -411,6 +427,23 @@ export interface NexusGenFieldTypes {
     name: string; // String!
     staff: NexusGenRootTypes['User'][]; // [User!]!
   }
+  PaymentDetails: { // field return type
+    email: string | null; // String
+    fullname: string | null; // String
+    id: number; // Int!
+    paymentIntentId: string | null; // String
+    paymentMethodId: string | null; // String
+    status: string | null; // String
+    transaction: NexusGenRootTypes['Transaction']; // Transaction!
+    type: NexusGenEnums['PaymentType'] | null; // PaymentType
+    username: string | null; // String
+  }
+  PaymongoAPIKeys: { // field return type
+    id: number; // Int!
+    owner: NexusGenRootTypes['User']; // User!
+    public_key: string; // String!
+    secret_key: string; // String!
+  }
   Query: { // field return type
     ME: NexusGenRootTypes['User']; // User!
     getAllCategory: NexusGenRootTypes['Category'][]; // [Category!]!
@@ -443,6 +476,7 @@ export interface NexusGenFieldTypes {
     items: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
+    paymentDetails: NexusGenRootTypes['PaymentDetails'] | null; // PaymentDetails
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
@@ -458,6 +492,7 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     manager: NexusGenRootTypes['User'] | null; // User
     outletOwned: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
+    paymongoAPIKeys: NexusGenRootTypes['PaymongoAPIKeys'] | null; // PaymongoAPIKeys
     profilePhoto: string | null; // String
     role: NexusGenEnums['Role']; // Role!
     staff: Array<NexusGenRootTypes['OutletStaff'] | null>; // [OutletStaff]!
@@ -631,6 +666,23 @@ export interface NexusGenFieldTypeNames {
     name: 'String'
     staff: 'User'
   }
+  PaymentDetails: { // field return type name
+    email: 'String'
+    fullname: 'String'
+    id: 'Int'
+    paymentIntentId: 'String'
+    paymentMethodId: 'String'
+    status: 'String'
+    transaction: 'Transaction'
+    type: 'PaymentType'
+    username: 'String'
+  }
+  PaymongoAPIKeys: { // field return type name
+    id: 'Int'
+    owner: 'User'
+    public_key: 'String'
+    secret_key: 'String'
+  }
   Query: { // field return type name
     ME: 'User'
     getAllCategory: 'Category'
@@ -663,6 +715,7 @@ export interface NexusGenFieldTypeNames {
     items: 'CartItem'
     outlet: 'Outlet'
     outletId: 'Int'
+    paymentDetails: 'PaymentDetails'
     paymentMethod: 'PaymentMethod'
     status: 'Status'
     subtotal: 'Float'
@@ -678,6 +731,7 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     manager: 'User'
     outletOwned: 'Outlet'
+    paymongoAPIKeys: 'PaymongoAPIKeys'
     profilePhoto: 'String'
     role: 'Role'
     staff: 'OutletStaff'

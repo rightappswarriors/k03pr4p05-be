@@ -1,0 +1,34 @@
+import { extendType, arg, nonNull, objectType, stringArg } from "nexus";
+import * as userAPIKey from "../../../services/userAPI.service.js";
+import {
+  requireAuth,
+  requireRole,
+} from "../../../middleware/auth.middleware.js";
+
+
+export const ApiMutation = extendType({
+  type: "Mutation",
+  definition(t){
+    t.nonNull.field("createAPIKey", {
+      type: "PaymongoAPIKeys",
+      args: {
+        public_key: nonNull(stringArg()),
+        secret_key: nonNull(stringArg())
+      },
+      resolve: async (_, {public_key, secret_key}, ctx)=>{
+        requireAuth(ctx)
+        requireRole(ctx, ["ADMIN"])
+        if (!public_key || !secret_key) {
+          throw new Error("Required fields secret key and public key")
+        }
+        try {
+          const userId = ctx.user.userId
+          return await userAPIKey.createPaymongoAPIKey(Number(userId), {public_key, secret_key})
+        } catch (error) {
+          console.error("Error saving your API keys")
+          throw new Error("Error saving your API keys")
+        }
+      }
+    })
+  }
+})

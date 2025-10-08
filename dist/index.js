@@ -3,6 +3,8 @@ import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@as-integrations/express4";
 import { makeSchema } from "nexus";
 import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
@@ -25,6 +27,8 @@ import * as CategoryTypes from "./graphql/typeDefs/category.type.js";
 import * as ColorTypes from "./graphql/typeDefs/color.type.js";
 import * as TransactionTypes from "./graphql/typeDefs/transaction.type.js";
 import * as TokenMutation from "./graphql/resolvers/token/token.mutation.js";
+import * as APITypes from "./graphql/typeDefs/paymogoAPI.type.js";
+import * as PaymentDetails from "./graphql/typeDefs/paymentDetails.type.js";
 // Branch Mutation and QUery
 import { branchMutation } from "./graphql/resolvers/branch/branch.mutation.js";
 import { branchQuery } from "./graphql/resolvers/branch/branch.query.js";
@@ -87,11 +91,15 @@ const schema = makeSchema({
         // Transaction
         ...Object.values(TransactionMutation),
         ...Object.values(TransactionQuery),
+        // Payment 
+        ...Object.values(PaymentDetails),
         // Token
         ...Object.values(TokenMutation),
         // You will add other modules here as you create them, e.g.,
         // ...Object.values(BranchTypes),
         // ...Object.values(BranchMutations)
+        // APi
+        ...Object.values(APITypes),
     ],
     outputs: {
         // This will generate `schema.graphql` and `nexus-typegen.ts`

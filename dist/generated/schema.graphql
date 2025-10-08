@@ -247,10 +247,35 @@ type OutletsWithStaff {
   staff: [User!]!
 }
 
+type PaymentDetails {
+  email: String
+  fullname: String
+  id: Int!
+  paymentIntentId: String
+  paymentMethodId: String
+  status: String
+  transaction: Transaction!
+  type: PaymentType
+  username: String
+}
+
 enum PaymentMethod {
   CARD
   CASH
   DIGITAL
+}
+
+enum PaymentType {
+  CARD
+  GCASH
+  PAYMAYA
+}
+
+type PaymongoAPIKeys {
+  id: Int!
+  owner: User!
+  public_key: String!
+  secret_key: String!
 }
 
 type Query {
@@ -300,6 +325,7 @@ type Transaction {
   items: [CartItem!]!
   outlet: Outlet!
   outletId: Int!
+  paymentDetails: PaymentDetails
   paymentMethod: PaymentMethod!
   status: Status!
   subtotal: Float!
@@ -325,6 +351,7 @@ type User {
   id: Int!
   manager: User
   outletOwned: [Outlet!]!
+  paymongoAPIKeys: PaymongoAPIKeys
   profilePhoto: String
   role: Role!
   staff: [OutletStaff]!

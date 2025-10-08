@@ -39,7 +39,8 @@ export const processTransaction = async (transactionData, itemsSold) => {
                     },
                 },
                 select: {
-                    id: true
+                    id: true,
+                    quantity: true,
                 }
             });
             if (!inventoryItem) {
