@@ -209,12 +209,12 @@ model CartItem {
 enum PaymentMethod {
   CARD
   CASH
-  DIGITAL
+  E_WALLET
 }
 
 enum Status {
   PENDING
-  PAYED
+  PAID
   SYNCED
   FAILED
   CANCELED
@@ -243,19 +243,21 @@ model Transaction {
 }
 
 enum PaymentType {
-  GCASH
-  PAYMAYA
-  CARD
+  gcash
+  paymaya
+  card
 }
 
 model PaymentDetails {
   id              Int         @id @default(autoincrement())
   fullname        String?
   username        String?
-  email           String ?
-  type            PaymentType
+  email           String?
+  phoneNumber     String
+  paymentType     PaymentType
   paymentMethodId String? // From PayMongo: pm_...
   paymentIntentId String? // From PayMongo: pi_...
+  client_key      String?
   status          String? // succeeded, failed, etc.
   transactionId   Int         @unique
   transaction     Transaction @relation(fields: [transactionId], references: [id])

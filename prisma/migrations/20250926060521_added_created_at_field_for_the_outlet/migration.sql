@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "public"."Outlet" ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

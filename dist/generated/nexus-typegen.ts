@@ -46,6 +46,16 @@ export interface NexusGenInputs {
     image?: string | null; // String
     name: string; // String!
   }
+  CustomerDertails: { // input type
+    client_key?: string | null; // String
+    email?: string | null; // String
+    fullname?: string | null; // String
+    paymentIntentId?: string | null; // String
+    paymentMethodId?: string | null; // String
+    paymentType?: NexusGenEnums['PaymentType'] | null; // PaymentType
+    phoneNumber?: string | null; // String
+    status?: string | null; // String
+  }
   InventoryItemInput: { // input type
     inventoryId: number; // Int!
     itemData?: NexusGenInputs['ItemInput'] | null; // ItemInput
@@ -86,6 +96,7 @@ export interface NexusGenEnums {
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "DIGITAL"
   PaymentType: "CARD" | "GCASH" | "PAYMAYA"
+  PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
   Status: "CANCELED" | "FAILED" | "PENDING" | "SYNCED"
   orderBy: "asc" | "desc"
@@ -214,12 +225,20 @@ export interface NexusGenObjects {
   PaymentDetails: { // root type
     email?: string | null; // String
     fullname?: string | null; // String
-    id: number; // Int!
+    id?: number | null; // Int
     paymentIntentId?: string | null; // String
     paymentMethodId?: string | null; // String
     status?: string | null; // String
     type?: NexusGenEnums['PaymentType'] | null; // PaymentType
     username?: string | null; // String
+  }
+  PaymentInitiation: { // root type
+    client_key: string; // String!
+    paymentIntentId: string; // String!
+    paymentMethodId: string; // String!
+    public_key: string; // String!
+    return_url: string; // String!
+    url: string; // String!
   }
   PaymongoAPIKeys: { // root type
     id: number; // Int!
@@ -368,6 +387,8 @@ export interface NexusGenFieldTypes {
     deleteOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     deleteOutletStaffs: NexusGenRootTypes['OutletStaff']; // OutletStaff!
     deleteUser: NexusGenRootTypes['User']; // User!
+    finalizeTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
+    initiatePayment: NexusGenRootTypes['PaymentInitiation'] | null; // PaymentInitiation
     login: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     me: NexusGenRootTypes['User']; // User!
     refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
@@ -430,13 +451,21 @@ export interface NexusGenFieldTypes {
   PaymentDetails: { // field return type
     email: string | null; // String
     fullname: string | null; // String
-    id: number; // Int!
+    id: number | null; // Int
     paymentIntentId: string | null; // String
     paymentMethodId: string | null; // String
     status: string | null; // String
     transaction: NexusGenRootTypes['Transaction']; // Transaction!
     type: NexusGenEnums['PaymentType'] | null; // PaymentType
     username: string | null; // String
+  }
+  PaymentInitiation: { // field return type
+    client_key: string; // String!
+    paymentIntentId: string; // String!
+    paymentMethodId: string; // String!
+    public_key: string; // String!
+    return_url: string; // String!
+    url: string; // String!
   }
   PaymongoAPIKeys: { // field return type
     id: number; // Int!
@@ -607,6 +636,8 @@ export interface NexusGenFieldTypeNames {
     deleteOutlet: 'Outlet'
     deleteOutletStaffs: 'OutletStaff'
     deleteUser: 'User'
+    finalizeTransaction: 'Transaction'
+    initiatePayment: 'PaymentInitiation'
     login: 'AuthPayload'
     me: 'User'
     refreshToken: 'AuthPayload'
@@ -676,6 +707,14 @@ export interface NexusGenFieldTypeNames {
     transaction: 'Transaction'
     type: 'PaymentType'
     username: 'String'
+  }
+  PaymentInitiation: { // field return type name
+    client_key: 'String'
+    paymentIntentId: 'String'
+    paymentMethodId: 'String'
+    public_key: 'String'
+    return_url: 'String'
+    url: 'String'
   }
   PaymongoAPIKeys: { // field return type name
     id: 'Int'
@@ -793,6 +832,7 @@ export interface NexusGenArgTypes {
       itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
       outletId: number; // Int!
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+      paymentType?: string | null; // String
       status: NexusGenEnums['Status']; // Status!
       subtotal: number; // Float!
       total: number; // Float!
@@ -822,6 +862,22 @@ export interface NexusGenArgTypes {
     }
     deleteUser: { // args
       id: string; // ID!
+    }
+    finalizeTransaction: { // args
+      createdAt: string; // String!
+      itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
+      outletId: number; // Int!
+      paymentDetails: NexusGenEnums['PaymentTypeEnum']; // PaymentTypeEnum!
+      paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+      subtotal: number; // Float!
+      total: number; // Float!
+      vatAmount: number; // Float!
+    }
+    initiatePayment: { // args
+      customerDetails?: NexusGenInputs['CustomerDertails'] | null; // CustomerDertails
+      outletId: number; // Int!
+      paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+      total: number; // Float!
     }
     login: { // args
       email: string; // String!

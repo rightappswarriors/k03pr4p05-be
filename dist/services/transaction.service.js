@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { decrypt } from "../lib/encrypt.js";
+import * as paymongoService from "./paymongo.service.js";
 const prisma = new PrismaClient();
 /**
  * @description
@@ -41,7 +43,7 @@ export const processTransaction = async (transactionData, itemsSold) => {
                 select: {
                     id: true,
                     quantity: true,
-                }
+                },
             });
             if (!inventoryItem) {
                 throw new Error(`No inventory item found for item ID: ${item.itemId} in inventory ID: ${inventory.id}`);
@@ -123,4 +125,124 @@ export const processTransaction = async (transactionData, itemsSold) => {
         },
     });
     return transactions;
+};
+export const finalizeTransaction = async (transactionData, itemsSold) => {
+    return prisma.$transaction(async (tx) => {
+        // 1. Deduct items from the inventory.
+        // We'll iterate through each item and decrement the quantity.
+        const inventory = await tx.inventory.findUnique({
+            where: {
+                outletId: transactionData.outletId,
+            },
+            select: {
+                id: true,
+            },
+        });
+        console.log("Inventory Id:", inventory.id);
+        if (!inventory) {
+            throw new Error(`No inventory found for outlet ID: ${transactionData.outletId}`);
+        }
+        for (const item of itemsSold) {
+            // Find the specific InventoryItems record for this item and store.
+            console.log("Inventory Id:", inventory.id);
+            console.log("Item:", item.itemId);
+            const inventoryItem = await tx.inventoryItems.findUnique({
+                where: {
+                    inventoryId_itemId: {
+                        inventoryId: inventory.id,
+                        itemId: item.itemId,
+                    },
+                },
+                select: {
+                    id: true,
+                    quantity: true,
+                },
+            });
+            if (!inventoryItem) {
+                throw new Error(`No inventory item found for item ID: ${item.itemId} in inventory ID: ${inventory.id}`);
+            }
+            console.log("InventoryItems Id:", inventoryItem.id);
+            //if (!inventoryItem || inventoryItem.quantity < item.quantity) {
+            //  throw new Error(`Insufficient stock for item ID: ${item.itemId}`);
+            //}
+            // Decrement the quantity.
+            console.log("InventoryItems Id:", inventoryItem.id);
+            if (!inventory) {
+                throw new Error(`No Inventory Item found: ${item.id}`);
+            } /*
+            await tx.inventoryItems.update({
+              where: {
+                id: inventoryItem.id,
+              },
+              data: {
+                quantity: {
+                  decrement: item.quantity,
+                },
+              },
+            });*/
+        }
+        // 2. Create the transaction record.
+        const newTransaction = await tx.transaction.create({
+            data: {
+                ...transactionData,
+                // Create the CartItem records and link them to the transaction.
+                items: {
+                    createMany: {
+                        data: itemsSold.map((item) => ({
+                            itemId: item.itemId,
+                            quantity: item.quantity,
+                        })),
+                    },
+                },
+            },
+            include: {
+                items: true, // Include the CartItems in the response
+            },
+        });
+        console.log(newTransaction);
+        return newTransaction;
+    });
+};
+export const initiatePayment = async (transactionData) => {
+    const outletOwner = await prisma.outlet.findUnique({
+        where: { id: transactionData.outletId },
+        select: {
+            name: true,
+            branch: {
+                select: {
+                    owner: {
+                        select: {
+                            paymongoAPIKeys: {
+                                select: {
+                                    secret_key: true,
+                                    public_key: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+    const secret_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
+    const public_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
+    const paymentMethodData = await paymongoService.createPaymentMethod({
+        paymentType: transactionData.paymentType,
+        secret_key,
+    });
+    const description = `${outletOwner.name} - POS ${transactionData.paymentType} Payment (${new Date().toLocaleDateString()})`;
+    const paymentIntentData = await paymongoService.createPaymentIntent(transactionData.total, description, secret_key);
+    const attachPaymentIntent = await paymongoService.attachPaymentIntent(paymentIntentData.id, // Payment Intent Id : pi_M4pRMcK1kEa2bHoLLq5bQmDD
+    paymentMethodData.id, // Payment Method Id: pm_GkxdXASw7s1tsXF6XvUGzfLq
+    paymentIntentData.attributes.client_key, // Client key: pi_M4pRMcK1kEa2bHoLLq5bQmDD_client_7QAKX73MwuRyTyLgb8GSLWEx
+    secret_key);
+    // Required base64key
+    return {
+        url: attachPaymentIntent.data.attributes.next_action.redirect.url,
+        return_url: attachPaymentIntent.data.attributes.next_action.redirect.return_url,
+        public_key,
+        paymentIntentId: attachPaymentIntent.data.id,
+        client_key: attachPaymentIntent.data.attributes.client_key,
+        paymentMethodId: paymentMethodData.id,
+    };
 };

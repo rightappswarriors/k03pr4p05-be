@@ -6,7 +6,7 @@ export const PaymentType = enumType({
 export const PaymentDetails = objectType({
     name: "PaymentDetails",
     definition(t) {
-        t.nonNull.int("id");
+        t.nullable.int("id");
         t.nullable.string("fullname");
         t.nullable.string("username");
         t.nullable.string("email");

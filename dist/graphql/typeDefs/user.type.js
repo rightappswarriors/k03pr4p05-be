@@ -32,7 +32,7 @@ export const User = objectType({
         });
         t.nonNull.list.field('staff', {
             type: 'OutletStaff',
-            resolve: (parent, args, ctx) => {
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .staff();

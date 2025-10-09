@@ -75,6 +75,17 @@ input CreateItemInput {
   name: String!
 }
 
+input CustomerDertails {
+  client_key: String
+  email: String
+  fullname: String
+  paymentIntentId: String
+  paymentMethodId: String
+  paymentType: PaymentType
+  phoneNumber: String
+  status: String
+}
+
 """
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
 """
@@ -163,7 +174,7 @@ type Mutation {
   createItems(items: [CreateItemInput!]!): [BatchPayload!]!
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
-  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   deleteBranch(id: ID!): Branch!
   deleteCategory(id: ID!): Category!
   deleteInventory(id: Int!): Boolean
@@ -172,6 +183,8 @@ type Mutation {
   deleteOutlet(id: ID!): Outlet!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deleteUser(id: ID!): User!
+  finalizeTransaction(createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentDetails: PaymentTypeEnum!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  initiatePayment(customerDetails: CustomerDertails, outletId: Int!, paymentMethod: PaymentMethod!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
   me: User!
   refreshToken(refresh_token: String!): AuthPayload!
@@ -250,13 +263,22 @@ type OutletsWithStaff {
 type PaymentDetails {
   email: String
   fullname: String
-  id: Int!
+  id: Int
   paymentIntentId: String
   paymentMethodId: String
   status: String
   transaction: Transaction!
   type: PaymentType
   username: String
+}
+
+type PaymentInitiation {
+  client_key: String!
+  paymentIntentId: String!
+  paymentMethodId: String!
+  public_key: String!
+  return_url: String!
+  url: String!
 }
 
 enum PaymentMethod {
@@ -269,6 +291,13 @@ enum PaymentType {
   CARD
   GCASH
   PAYMAYA
+}
+
+enum PaymentTypeEnum {
+  card
+  gcash
+  paymaya
+  qrph
 }
 
 type PaymongoAPIKeys {

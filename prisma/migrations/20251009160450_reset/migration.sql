@@ -5,10 +5,13 @@ CREATE TYPE "public"."Role" AS ENUM ('ADMIN', 'MANAGER', 'STAFF', 'CASHIER');
 CREATE TYPE "public"."OutletType" AS ENUM ('retail', 'wholesale', 'service');
 
 -- CreateEnum
-CREATE TYPE "public"."PaymentMethod" AS ENUM ('CARD', 'CASH', 'DIGITAL');
+CREATE TYPE "public"."PaymentMethod" AS ENUM ('CARD', 'CASH', 'E_WALLET');
 
 -- CreateEnum
-CREATE TYPE "public"."Status" AS ENUM ('PENDING', 'SYNCED', 'FAILED', 'CANCELED');
+CREATE TYPE "public"."Status" AS ENUM ('PENDING', 'PAID', 'SYNCED', 'FAILED', 'CANCELED');
+
+-- CreateEnum
+CREATE TYPE "public"."PaymentType" AS ENUM ('gcash', 'paymaya', 'card');
 
 -- CreateTable
 CREATE TABLE "public"."User" (
@@ -21,8 +24,19 @@ CREATE TABLE "public"."User" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "profilePhoto" TEXT,
     "managerId" INTEGER,
+    "enabledPaymentMethod" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PaymongoAPIKeys" (
+    "id" SERIAL NOT NULL,
+    "public_key" TEXT NOT NULL,
+    "secret_key" TEXT NOT NULL,
+    "ownerId" INTEGER NOT NULL,
+
+    CONSTRAINT "PaymongoAPIKeys_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -32,7 +46,7 @@ CREATE TABLE "public"."Branch" (
     "address" TEXT NOT NULL,
     "phone" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "ownerId" INTEGER NOT NULL,
 
     CONSTRAINT "Branch_pkey" PRIMARY KEY ("id")
@@ -51,6 +65,7 @@ CREATE TABLE "public"."Outlet" (
     "outletType" "public"."OutletType" NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "wifiSSID" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "branchId" INTEGER NOT NULL,
     "ownerId" INTEGER NOT NULL,
 
@@ -87,24 +102,25 @@ CREATE TABLE "public"."Inventory" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."Location" (
+    "id" SERIAL NOT NULL,
+    "aisle" TEXT,
+    "rack" TEXT,
+    "shelf" TEXT,
+
+    CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."InventoryItems" (
     "id" SERIAL NOT NULL,
     "inventoryId" INTEGER NOT NULL,
     "itemId" INTEGER NOT NULL,
+    "price" DOUBLE PRECISION NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 0,
     "locationId" INTEGER,
 
     CONSTRAINT "InventoryItems_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Location" (
-    "id" SERIAL NOT NULL,
-    "aisle" TEXT NOT NULL,
-    "rack" TEXT NOT NULL,
-    "shelf" TEXT NOT NULL,
-
-    CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -128,10 +144,9 @@ CREATE TABLE "public"."Color" (
 CREATE TABLE "public"."Item" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
-    "price" DOUBLE PRECISION NOT NULL,
     "image" TEXT,
     "description" TEXT,
-    "barcode" TEXT,
+    "barcode" TEXT NOT NULL,
     "brand" TEXT,
     "categoryId" INTEGER,
 
@@ -152,19 +167,34 @@ CREATE TABLE "public"."Transaction" (
     "id" SERIAL NOT NULL,
     "outletId" INTEGER NOT NULL,
     "cashierId" INTEGER NOT NULL,
-    "deviceId" INTEGER NOT NULL,
     "total" DOUBLE PRECISION NOT NULL,
-    "tax" DOUBLE PRECISION NOT NULL,
+    "vatAmount" DOUBLE PRECISION NOT NULL,
     "subtotal" DOUBLE PRECISION NOT NULL,
-    "cashReceived" DOUBLE PRECISION NOT NULL,
-    "change" DOUBLE PRECISION NOT NULL,
+    "cashReceived" DOUBLE PRECISION,
+    "change" DOUBLE PRECISION,
     "paymentMethod" "public"."PaymentMethod" NOT NULL,
     "status" "public"."Status" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL,
     "syncedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "retryCount" INTEGER NOT NULL,
 
     CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PaymentDetails" (
+    "id" SERIAL NOT NULL,
+    "fullname" TEXT,
+    "username" TEXT,
+    "email" TEXT,
+    "phoneNumber" TEXT NOT NULL,
+    "paymentType" "public"."PaymentType" NOT NULL,
+    "paymentMethodId" TEXT,
+    "paymentIntentId" TEXT,
+    "client_key" TEXT,
+    "status" TEXT,
+    "transactionId" INTEGER NOT NULL,
+
+    CONSTRAINT "PaymentDetails_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -180,6 +210,9 @@ CREATE UNIQUE INDEX "User_username_key" ON "public"."User"("username");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PaymongoAPIKeys_ownerId_key" ON "public"."PaymongoAPIKeys"("ownerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Outlet_code_key" ON "public"."Outlet"("code");
@@ -203,10 +236,19 @@ CREATE UNIQUE INDEX "Category_name_key" ON "public"."Category"("name");
 CREATE UNIQUE INDEX "Color_name_key" ON "public"."Color"("name");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Item_name_key" ON "public"."Item"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PaymentDetails_transactionId_key" ON "public"."PaymentDetails"("transactionId");
+
+-- CreateIndex
 CREATE INDEX "_ColorToItem_B_index" ON "public"."_ColorToItem"("B");
 
 -- AddForeignKey
 ALTER TABLE "public"."User" ADD CONSTRAINT "User_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "public"."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PaymongoAPIKeys" ADD CONSTRAINT "PaymongoAPIKeys_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Branch" ADD CONSTRAINT "Branch_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -224,7 +266,7 @@ ALTER TABLE "public"."OutletStaff" ADD CONSTRAINT "OutletStaff_outletId_fkey" FO
 ALTER TABLE "public"."OutletStaff" ADD CONSTRAINT "OutletStaff_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."Inventory" ADD CONSTRAINT "Inventory_outletId_fkey" FOREIGN KEY ("outletId") REFERENCES "public"."Outlet"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."Inventory" ADD CONSTRAINT "Inventory_outletId_fkey" FOREIGN KEY ("outletId") REFERENCES "public"."Outlet"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."InventoryItems" ADD CONSTRAINT "InventoryItems_inventoryId_fkey" FOREIGN KEY ("inventoryId") REFERENCES "public"."Inventory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -233,7 +275,7 @@ ALTER TABLE "public"."InventoryItems" ADD CONSTRAINT "InventoryItems_inventoryId
 ALTER TABLE "public"."InventoryItems" ADD CONSTRAINT "InventoryItems_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "public"."Item"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."InventoryItems" ADD CONSTRAINT "InventoryItems_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "public"."Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "public"."InventoryItems" ADD CONSTRAINT "InventoryItems_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "public"."Location"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Item" ADD CONSTRAINT "Item_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "public"."Category"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -249,6 +291,9 @@ ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_outletId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "public"."Transaction" ADD CONSTRAINT "Transaction_cashierId_fkey" FOREIGN KEY ("cashierId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PaymentDetails" ADD CONSTRAINT "PaymentDetails_transactionId_fkey" FOREIGN KEY ("transactionId") REFERENCES "public"."Transaction"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."_ColorToItem" ADD CONSTRAINT "_ColorToItem_A_fkey" FOREIGN KEY ("A") REFERENCES "public"."Color"("id") ON DELETE CASCADE ON UPDATE CASCADE;
