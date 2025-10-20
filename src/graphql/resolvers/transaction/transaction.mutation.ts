@@ -15,20 +15,25 @@ import {
   requireRole,
 } from "../../../middleware/auth.middleware.js";
 import * as transactionService from "../../../services/transaction.service.js";
-
-export const CustomertDetails = inputObjectType({
-  name: "CustomerDertails",
+export const CustomerDetails = inputObjectType({
+  name: "CustomerDetails",
   definition(t) {
     t.nullable.string("fullname");
     t.nullable.string("phoneNumber");
     t.nullable.string("email");
-    t.nullable.field("paymentType", { type: "PaymentType" });
+    t.nullable.field("paymentType", { type: "PaymentTypeEnum" });
     t.nullable.string("paymentMethodId");
     t.nullable.string("paymentIntentId");
     t.nullable.string("client_key");
     t.nullable.string("status");
+    t.nullable.int("exp_month")
+    t.nullable.int("exp_year")
+    t.nullable.string("card_number")
+    t.nullable.string("cvc")
+    t.nullable.string("bank_code")
   },
 });
+
 export const CartItemInput = inputObjectType({
   name: "CartItemInput",
   definition(t) {
@@ -102,7 +107,8 @@ export const TransactionMutation = extendType({
         outletId: nonNull(intArg()),
         total: nonNull(arg({ type: "Float" })),
         paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
-        customerDetails: nullable(arg({ type: "CustomerDertails" })),
+        paymentType: nonNull(arg({ type: "PaymentTypeEnum" })),
+        customerDetails: nullable(arg({ type: "CustomerDetails" })),
       },
       resolve: async (_, transactionData, ctx) => {
         requireAuth(ctx);
@@ -116,12 +122,8 @@ export const TransactionMutation = extendType({
         try {
           return await transactionService.initiatePayment(fullTransactionData);
         } catch (error) {
-          console.error(
-            `Error upon making transaction through ${transactionData.paymentType}`
-          );
-          throw new Error(
-            `Error upon making transaction through ${transactionData.paymentType}`
-          );
+          console.error(`Error upon making transaction through: ${error}`);
+          throw new Error("Error upon initiating transaction");
         }
       },
     });
@@ -133,14 +135,14 @@ export const TransactionMutation = extendType({
         subtotal: nonNull(arg({ type: "Float" })),
         vatAmount: nonNull(arg({ type: "Float" })),
         paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
-        paymentDetails: nonNull(arg({ type: "PaymentTypeEnum" })),
+        customerDetails: nullable(arg({ type: "CustomerDetails" })),
         itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
       },
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
         const userId = ctx.user.userId;
-        const { itemSold, ...transactionData } = args;
+        const { itemsSold, ...transactionData } = args;
         const fullTransactionData = {
           transactionData,
           createdAt: new Date().toISOString(),
@@ -149,14 +151,14 @@ export const TransactionMutation = extendType({
         try {
           return await transactionService.finalizeTransaction(
             fullTransactionData,
-            itemSold
+            itemsSold
           );
         } catch (error) {
           console.error(
-            `Error upon making transaction through ${transactionData.paymentType}`
+            `Error upon making transaction through ${error}`
           );
           throw new Error(
-            `Error upon making transaction through ${transactionData.paymentType}`
+            `Error upon making transaction through`
           );
         }
       },

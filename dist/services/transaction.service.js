@@ -126,13 +126,14 @@ export const processTransaction = async (transactionData, itemsSold) => {
     });
     return transactions;
 };
-export const finalizeTransaction = async (transactionData, itemsSold) => {
+export const finalizeTransaction = async (transactionDatas, itemsSold) => {
     return prisma.$transaction(async (tx) => {
         // 1. Deduct items from the inventory.
         // We'll iterate through each item and decrement the quantity.
+        console.log("Transaction data", transactionDatas);
         const inventory = await tx.inventory.findUnique({
             where: {
-                outletId: transactionData.outletId,
+                outletId: transactionDatas.transactionData.outletId,
             },
             select: {
                 id: true,
@@ -140,7 +141,7 @@ export const finalizeTransaction = async (transactionData, itemsSold) => {
         });
         console.log("Inventory Id:", inventory.id);
         if (!inventory) {
-            throw new Error(`No inventory found for outlet ID: ${transactionData.outletId}`);
+            throw new Error(`No inventory found for outlet ID: ${transactionDatas.transactionData.outletId}`);
         }
         for (const item of itemsSold) {
             // Find the specific InventoryItems record for this item and store.
@@ -181,10 +182,24 @@ export const finalizeTransaction = async (transactionData, itemsSold) => {
               },
             });*/
         }
+        const status = transactionDatas.transactionData.customerDetails.status === "succeeded" ? "PAID" : "FAILED";
         // 2. Create the transaction record.
+        const { customerDetails, outletId, total, subtotal, vatAmount, paymentMethod, } = transactionDatas.transactionData;
         const newTransaction = await tx.transaction.create({
             data: {
-                ...transactionData,
+                total,
+                outletId,
+                subtotal,
+                vatAmount,
+                paymentMethod,
+                customerDetails: {
+                    create: {
+                        ...customerDetails
+                    }
+                },
+                status: status,
+                cashierId: transactionDatas.cashierId,
+                createdAt: transactionDatas.createdAt,
                 // Create the CartItem records and link them to the transaction.
                 items: {
                     createMany: {
@@ -204,45 +219,50 @@ export const finalizeTransaction = async (transactionData, itemsSold) => {
     });
 };
 export const initiatePayment = async (transactionData) => {
-    const outletOwner = await prisma.outlet.findUnique({
-        where: { id: transactionData.outletId },
-        select: {
-            name: true,
-            branch: {
-                select: {
-                    owner: {
-                        select: {
-                            paymongoAPIKeys: {
-                                select: {
-                                    secret_key: true,
-                                    public_key: true,
+    try {
+        const outletOwner = await prisma.outlet.findUnique({
+            where: { id: transactionData.outletId },
+            select: {
+                name: true,
+                branch: {
+                    select: {
+                        owner: {
+                            select: {
+                                paymongoAPIKeys: {
+                                    select: {
+                                        secret_key: true,
+                                        public_key: true,
+                                    },
                                 },
                             },
                         },
                     },
                 },
             },
-        },
-    });
-    const secret_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
-    const public_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
-    const paymentMethodData = await paymongoService.createPaymentMethod({
-        paymentType: transactionData.paymentType,
-        secret_key,
-    });
-    const description = `${outletOwner.name} - POS ${transactionData.paymentType} Payment (${new Date().toLocaleDateString()})`;
-    const paymentIntentData = await paymongoService.createPaymentIntent(transactionData.total, description, secret_key);
-    const attachPaymentIntent = await paymongoService.attachPaymentIntent(paymentIntentData.id, // Payment Intent Id : pi_M4pRMcK1kEa2bHoLLq5bQmDD
-    paymentMethodData.id, // Payment Method Id: pm_GkxdXASw7s1tsXF6XvUGzfLq
-    paymentIntentData.attributes.client_key, // Client key: pi_M4pRMcK1kEa2bHoLLq5bQmDD_client_7QAKX73MwuRyTyLgb8GSLWEx
-    secret_key);
-    // Required base64key
-    return {
-        url: attachPaymentIntent.data.attributes.next_action.redirect.url,
-        return_url: attachPaymentIntent.data.attributes.next_action.redirect.return_url,
-        public_key,
-        paymentIntentId: attachPaymentIntent.data.id,
-        client_key: attachPaymentIntent.data.attributes.client_key,
-        paymentMethodId: paymentMethodData.id,
-    };
+        });
+        const secret_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
+        const public_key = decrypt(outletOwner.branch.owner.paymongoAPIKeys.secret_key);
+        const paymentMethodData = await paymongoService.createPaymentMethod({
+            paymentType: transactionData.paymentType,
+            secret_key,
+            customerDetails: transactionData.customerDetails,
+        });
+        const description = `${outletOwner.name} - POS ${transactionData.paymentType} Payment (${new Date().toLocaleDateString()})`;
+        const paymentIntentData = await paymongoService.createPaymentIntent(transactionData.total, description, secret_key);
+        const attachPaymentIntent = await paymongoService.attachPaymentIntent(paymentIntentData.data.id, // Payment Intent Id : pi_M4pRMcK1kEa2bHoLLq5bQmDD
+        paymentMethodData.data.id, // Payment Method Id: pm_GkxdXASw7s1tsXF6XvUGzfLq
+        paymentIntentData.data.attributes.client_key, // Client key: pi_M4pRMcK1kEa2bHoLLq5bQmDD_client_7QAKX73MwuRyTyLgb8GSLWEx
+        secret_key);
+        return {
+            url: attachPaymentIntent.data.data.attributes.next_action.redirect.url,
+            return_url: attachPaymentIntent.data.data.attributes.next_action.redirect.return_url,
+            public_key,
+            paymentIntentId: attachPaymentIntent.data.data.id,
+            client_key: attachPaymentIntent.data.data.attributes.client_key,
+            paymentMethodId: paymentMethodData.data.id,
+        };
+    }
+    catch (error) {
+        console.error("Error initiating the transaction: async initiatePayment:", error);
+    }
 };

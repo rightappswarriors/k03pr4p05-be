@@ -1,4 +1,5 @@
 import axios from "axios";
+import { decrypt } from "../lib/encrypt";
 
 const API_BASE = "https://api.paymongo.com/v1";
 const return_url =
@@ -7,24 +8,45 @@ const return_url =
 /*
  * Create a Payment Method
  */
-export async function createPaymentMethod(billing) {
+export async function createPaymentMethod(billing: any) {
+  console.log("Create payment method Billing:", billing)
   try {
-    const base64key = Buffer.from(`${billing.secret_key}`).toString();
-    const response = await axios.post(`${API_BASE}/payment_methods`, {
-      headers: {
-        accept: "application/json",
-        "Content-Type": "application/json",
-        authorization: `Basic ${base64key}`,
-      },
-      data: {
+    let attributes: any = {
+      type: billing.paymentType,
+    }
+
+    if (billing.paymentType === "card"){
+        attributes.details = {
+          card_number: decrypt(billing.customerDetails.card_number),
+          cvc: decrypt(billing.customerDetails.cvc),
+          exp_month: billing.customerDetails.exp_month,
+          exp_year: billing.customerDetails.exp_year,
+          bank_code: billing.customerDetails.bank_code,
+        }
+    } else if (billing.paymentType === "gcash" || billing.paymentType === "paymaya") {
+      attributes.billing = {
+        name: billing.customerDetails?.fullname ?? "N/A",
+        email: billing.customerDetails?.email ?? "unknown@example.com",
+        phone: billing.customerDetails?.phoneNumber ?? "0000000000",
+      }
+    }
+    console.log("Attributes:", attributes)
+    const base64key = Buffer.from(`${billing.secret_key}:`).toString("base64");
+    const response = await axios.post(
+      `${API_BASE}/payment_methods`,
+      {
         data: {
-          attributes: {
-            type: billing.paymentType, // or card, paymaya, etc.
-            billing,
-          },
+          attributes
         },
       },
-    });
+      {
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          authorization: `Basic ${base64key}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating Payment Method:", error);
@@ -36,18 +58,15 @@ export async function createPaymentMethod(billing) {
  * Create a Payment Intent
  */
 export async function createPaymentIntent(amount, description, secret_key) {
-  const base64key = Buffer.from(`${secret_key}`).toString();
+  const base64key = Buffer.from(`${secret_key}:`).toString("base64");
+
   try {
-    const response = await axios.post(`${API_BASE}/payment_intents`, {
-      headers: {
-        accept: "application/json",
-        "content-type": "application/json",
-        authorization: `Basic ${base64key}`,
-      },
-      data: {
+    const response = await axios.post(
+      `${API_BASE}/payment_intents`,
+      {
         data: {
           attributes: {
-            amount,
+            amount: Math.round(amount * 100),
             currency: "PHP",
             payment_method_allowed: ["gcash", "card", "paymaya"],
             payment_method_options: {
@@ -58,7 +77,14 @@ export async function createPaymentIntent(amount, description, secret_key) {
           },
         },
       },
-    });
+      {
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          authorization: `Basic ${base64key}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating Payment Intent", error);
@@ -75,28 +101,28 @@ export async function attachPaymentIntent(
   clientKey,
   secret_key
 ) {
-  const base64key = Buffer.from(`${secret_key}`).toString();
+  const base64key = Buffer.from(`${secret_key}:`).toString("base64");
   try {
     const response = await axios.post(
       `${API_BASE}/payment_intents/${paymentIntentId}/attach`,
+      {
+        data: {
+          attributes: {
+            payment_method: paymentMethodId,
+            client_key: clientKey,
+            return_url: return_url,
+          },
+        },
+      },
       {
         headers: {
           accept: "application/json",
           "content-type": "application/json",
           authorization: `Basic ${base64key}`,
         },
-        data: {
-          data: {
-            attributes: {
-              payment_method: paymentMethodId,
-              client_key: clientKey,
-              return_url: return_url,
-            },
-          },
-        },
       }
     );
-    return { data: response.data};
+    return { data: response.data };
   } catch (error) {
     console.error("Error attaching payment intent:", error);
     throw new Error("Error attaching payment intent.");

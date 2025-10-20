@@ -185,11 +185,23 @@ model Item {
   color          Color[]
   description    String?
   barcode        String
+  brandId        Int?
+  brandDetails   Brand?           @relation(fields: [brandId], references: [id])
   brand          String?
   categoryId     Int?
   category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   InventoryItems InventoryItems[]
   cartItems      CartItem[]
+}
+
+model Brand {
+  id          Int     @id @default(autoincrement())
+  brandName   String
+  email       String?
+  phoneNumber String?
+  webUrl      String?
+
+  Item Item[]
 }
 
 model CartItem {
@@ -221,24 +233,25 @@ enum Status {
 }
 
 model Transaction {
-  id             Int             @id @default(autoincrement())
-  outletId       Int
-  outlet         Outlet          @relation(fields: [outletId], references: [id])
-  cashierId      Int
-  cashier        User            @relation(fields: [cashierId], references: [id])
+  id                Int              @id @default(autoincrement())
+  outletId          Int
+  outlet            Outlet           @relation(fields: [outletId], references: [id])
+  cashierId         Int
+  cashier           User             @relation(fields: [cashierId], references: [id])
   //  deviceId      Int
   //  device        Device        @relation(fields: [deviceId], references: [id])
-  items          CartItem[]
-  total          Float
-  vatAmount      Float
-  subtotal       Float
-  cashReceived   Float?
-  change         Float?
-  paymentMethod  PaymentMethod
-  paymentDetails PaymentDetails?
-  status         Status
-  createdAt      DateTime
-  syncedAt       DateTime        @default(now())
+  items             CartItem[]
+  total             Float
+  vatAmount         Float
+  subtotal          Float
+  cashReceived      Float?
+  change            Float?
+  paymentMethod     PaymentMethod
+  customerDetailsId Int?
+  customerDetails   CustomerDetails?
+  status            Status
+  createdAt         DateTime
+  syncedAt          DateTime         @default(now())
   //retryCount    Int
 }
 
@@ -246,14 +259,15 @@ enum PaymentType {
   gcash
   paymaya
   card
+  qrph
 }
 
-model PaymentDetails {
+model CustomerDetails {
   id              Int         @id @default(autoincrement())
   fullname        String?
   username        String?
   email           String?
-  phoneNumber     String
+  phoneNumber     String?
   paymentType     PaymentType
   paymentMethodId String? // From PayMongo: pm_...
   paymentIntentId String? // From PayMongo: pi_...

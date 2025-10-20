@@ -50,6 +50,9 @@ import * as ItemQuery from "./graphql/resolvers/item/item.query.js";
 // Trasaction Resolvers
 import * as TransactionQuery from "./graphql/resolvers/transaction/transaction.query.js";
 import * as TransactionMutation from "./graphql/resolvers/transaction/transaction.mutation.js";
+// API keys
+import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
+import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
 import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 // Initialize Prisma Client
@@ -99,6 +102,8 @@ const schema = makeSchema({
         // ...Object.values(BranchTypes),
         // ...Object.values(BranchMutations)
         // APi
+        ...Object.values(APIMutation),
+        ...Object.values(APIQuery),
         ...Object.values(APITypes),
     ],
     outputs: {

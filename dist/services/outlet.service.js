@@ -89,6 +89,17 @@ export const addStaffToOutlet = async (outletId, userId, role) => {
  * @returns {Promise<object>} The result of the bulk insert.
  */
 export const addStaffsToOutlet = async (outletId, users) => {
+    // Validate all users exist
+    const userIds = users.map((u) => Number(u.userId));
+    const existingUsers = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true },
+    });
+    const existingIds = existingUsers.map((u) => u.id);
+    const missingIds = userIds.filter((id) => !existingIds.includes(id));
+    if (missingIds.length > 0) {
+        throw new Error(`User(s) not found: ${missingIds.join(", ")}`);
+    }
     await prisma.outletStaff.createMany({
         data: users.map((u) => ({
             outletId,
@@ -262,9 +273,9 @@ export const getOutletItemsByAssignedStaff = async (userId, role) => {
                                     barcode: true,
                                     name: true,
                                     categoryId: true,
-                                    category: true
-                                }
-                            }
+                                    category: true,
+                                },
+                            },
                         },
                     },
                 },

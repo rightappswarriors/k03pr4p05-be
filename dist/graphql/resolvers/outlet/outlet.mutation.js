@@ -5,7 +5,7 @@ export const OutletStaffInput = inputObjectType({
     name: "OutletStaffInput",
     definition(t) {
         t.nonNull.int("userId");
-        t.nonNull.string("role");
+        t.nullable.string("role");
     },
 });
 export const AddedOutletStaffs = objectType({
@@ -88,7 +88,7 @@ export const outletMutation = extendType({
                             // Use 400 for a bad request (missing data)
                             throw new Error("Missing required fields: userId and role");
                         }
-                        return await outletService.addStaffToOutlet(Number(outletId), userId, role);
+                        return await outletService.addStaffToOutlet(Number(outletId), Number(userId), role);
                     }
                 }
                 catch (error) {

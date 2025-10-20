@@ -17,7 +17,7 @@ export const OutletStaffInput = inputObjectType({
   name: "OutletStaffInput",
   definition(t) {
     t.nonNull.int("userId");
-    t.nonNull.string("role");
+    t.nullable.string("role");
   },
 });
 
@@ -124,7 +124,7 @@ export const outletMutation = extendType({
             }
             return await outletService.addStaffToOutlet(
               Number(outletId),
-              userId,
+              Number(userId),
               role
             );
           }

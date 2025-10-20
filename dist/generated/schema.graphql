@@ -75,13 +75,18 @@ input CreateItemInput {
   name: String!
 }
 
-input CustomerDertails {
+input CustomerDetails {
+  bank_code: String
+  card_number: String
   client_key: String
+  cvc: String
   email: String
+  exp_month: Int
+  exp_year: Int
   fullname: String
   paymentIntentId: String
   paymentMethodId: String
-  paymentType: PaymentType
+  paymentType: PaymentTypeEnum
   phoneNumber: String
   status: String
 }
@@ -168,6 +173,7 @@ type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
+  createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
   createBranch(address: String!, name: String!, phone: String!): Branch!
   createCategories(categories: [String!]!): [Category!]!
   createInventory(name: String, storeId: Int!): Inventory
@@ -183,12 +189,13 @@ type Mutation {
   deleteOutlet(id: ID!): Outlet!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deleteUser(id: ID!): User!
-  finalizeTransaction(createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentDetails: PaymentTypeEnum!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
-  initiatePayment(customerDetails: CustomerDertails, outletId: Int!, paymentMethod: PaymentMethod!, total: Float!): PaymentInitiation
+  finalizeTransaction(customerDetails: CustomerDetails, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  initiatePayment(customerDetails: CustomerDetails, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
   me: User!
   refreshToken(refresh_token: String!): AuthPayload!
   signup(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  updateAPIKey(public_key: String, secret_key: String): PaymongoAPIKeys!
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateCategory(id: ID!, name: String!): Category!
   updateInventory(id: Int!, name: String!): Inventory
@@ -230,7 +237,7 @@ type OutletStaff {
 }
 
 input OutletStaffInput {
-  role: String!
+  role: String
   userId: Int!
 }
 
@@ -284,7 +291,7 @@ type PaymentInitiation {
 enum PaymentMethod {
   CARD
   CASH
-  DIGITAL
+  E_WALLET
 }
 
 enum PaymentType {
@@ -309,6 +316,7 @@ type PaymongoAPIKeys {
 
 type Query {
   ME: User!
+  getAPIKeysByUserId: PaymongoAPIKeys!
   getAllCategory(orderBy: String, pageSize: Int, query: String): [Category!]!
   getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs: [User!]!

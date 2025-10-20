@@ -46,13 +46,18 @@ export interface NexusGenInputs {
     image?: string | null; // String
     name: string; // String!
   }
-  CustomerDertails: { // input type
+  CustomerDetails: { // input type
+    bank_code?: string | null; // String
+    card_number?: string | null; // String
     client_key?: string | null; // String
+    cvc?: string | null; // String
     email?: string | null; // String
+    exp_month?: number | null; // Int
+    exp_year?: number | null; // Int
     fullname?: string | null; // String
     paymentIntentId?: string | null; // String
     paymentMethodId?: string | null; // String
-    paymentType?: NexusGenEnums['PaymentType'] | null; // PaymentType
+    paymentType?: NexusGenEnums['PaymentTypeEnum'] | null; // PaymentTypeEnum
     phoneNumber?: string | null; // String
     status?: string | null; // String
   }
@@ -79,7 +84,7 @@ export interface NexusGenInputs {
     shelf?: string | null; // String
   }
   OutletStaffInput: { // input type
-    role: string; // String!
+    role?: string | null; // String
     userId: number; // Int!
   }
   UpdateItemInput: { // input type
@@ -94,7 +99,7 @@ export interface NexusGenInputs {
 
 export interface NexusGenEnums {
   OutletType: "retail" | "service" | "wholesale"
-  PaymentMethod: "CARD" | "CASH" | "DIGITAL"
+  PaymentMethod: "CARD" | "CASH" | "E_WALLET"
   PaymentType: "CARD" | "GCASH" | "PAYMAYA"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
@@ -372,6 +377,7 @@ export interface NexusGenFieldTypes {
     AddOutletStaff: NexusGenRootTypes['AddedOutletStaffs']; // AddedOutletStaffs!
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    createAPIKey: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
     createBranch: NexusGenRootTypes['Branch']; // Branch!
     createCategories: NexusGenRootTypes['Category'][]; // [Category!]!
     createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
@@ -393,6 +399,7 @@ export interface NexusGenFieldTypes {
     me: NexusGenRootTypes['User']; // User!
     refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     signup: NexusGenRootTypes['User']; // User!
+    updateAPIKey: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
     updateBranch: NexusGenRootTypes['Branch']; // Branch!
     updateCategory: NexusGenRootTypes['Category']; // Category!
     updateInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
@@ -475,6 +482,7 @@ export interface NexusGenFieldTypes {
   }
   Query: { // field return type
     ME: NexusGenRootTypes['User']; // User!
+    getAPIKeysByUserId: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
     getAllCategory: NexusGenRootTypes['Category'][]; // [Category!]!
     getAllOutletStaffs: NexusGenRootTypes['OutletsWithStaff'][]; // [OutletsWithStaff!]!
     getAllStaffs: NexusGenRootTypes['User'][]; // [User!]!
@@ -621,6 +629,7 @@ export interface NexusGenFieldTypeNames {
     AddOutletStaff: 'AddedOutletStaffs'
     addItemsToInventory: 'BatchPayload'
     bulkCreateInventoryItems: 'InventoryItems'
+    createAPIKey: 'PaymongoAPIKeys'
     createBranch: 'Branch'
     createCategories: 'Category'
     createInventory: 'Inventory'
@@ -642,6 +651,7 @@ export interface NexusGenFieldTypeNames {
     me: 'User'
     refreshToken: 'AuthPayload'
     signup: 'User'
+    updateAPIKey: 'PaymongoAPIKeys'
     updateBranch: 'Branch'
     updateCategory: 'Category'
     updateInventory: 'Inventory'
@@ -724,6 +734,7 @@ export interface NexusGenFieldTypeNames {
   }
   Query: { // field return type name
     ME: 'User'
+    getAPIKeysByUserId: 'PaymongoAPIKeys'
     getAllCategory: 'Category'
     getAllOutletStaffs: 'OutletsWithStaff'
     getAllStaffs: 'User'
@@ -791,6 +802,10 @@ export interface NexusGenArgTypes {
     }
     bulkCreateInventoryItems: { // args
       items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
+    }
+    createAPIKey: { // args
+      public_key: string; // String!
+      secret_key: string; // String!
     }
     createBranch: { // args
       address: string; // String!
@@ -864,19 +879,19 @@ export interface NexusGenArgTypes {
       id: string; // ID!
     }
     finalizeTransaction: { // args
-      createdAt: string; // String!
+      customerDetails?: NexusGenInputs['CustomerDetails'] | null; // CustomerDetails
       itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
       outletId: number; // Int!
-      paymentDetails: NexusGenEnums['PaymentTypeEnum']; // PaymentTypeEnum!
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
       subtotal: number; // Float!
       total: number; // Float!
       vatAmount: number; // Float!
     }
     initiatePayment: { // args
-      customerDetails?: NexusGenInputs['CustomerDertails'] | null; // CustomerDertails
+      customerDetails?: NexusGenInputs['CustomerDetails'] | null; // CustomerDetails
       outletId: number; // Int!
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+      paymentType: NexusGenEnums['PaymentTypeEnum']; // PaymentTypeEnum!
       total: number; // Float!
     }
     login: { // args
@@ -892,6 +907,10 @@ export interface NexusGenArgTypes {
       password: string; // String!
       role?: NexusGenEnums['Role'] | null; // Role
       username: string; // String!
+    }
+    updateAPIKey: { // args
+      public_key?: string | null; // String
+      secret_key?: string | null; // String
     }
     updateBranch: { // args
       address?: string | null; // String

@@ -1,7 +1,7 @@
 import { objectType, enumType } from "nexus";
 export const PaymentMethod = enumType({
     name: "PaymentMethod",
-    members: ["CASH", "CARD", "DIGITAL"],
+    members: ["CASH", "CARD", "E_WALLET"],
 });
 export const Status = enumType({
     name: "Status",

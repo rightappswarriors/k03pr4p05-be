@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 /**
  * Inserts multiple new items into the database in a single, efficient query.
  * @param {Array<object>} data - An array of item objects to create.
- * @returns {Promise<object>} An object containing the count of created items.
+ * @returns {Promise<int>} An object containing the count of created items.
  */
 export const bulkCreateItems = async (data) => {
     try {
@@ -15,7 +15,7 @@ export const bulkCreateItems = async (data) => {
       skipDuplicates: true,
     });
     console.log(`Successfully created ${result.count} items.`);
-    return result;
+    return result.count;
   } catch (error) {
     console.error("Error with bulk item creation:", error);
     throw new Error("Failed to create all items.");
