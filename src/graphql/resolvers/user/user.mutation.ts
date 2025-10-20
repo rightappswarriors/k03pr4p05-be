@@ -26,6 +26,7 @@ export const userMutation = extendType({
         fullname: nonNull(stringArg()),
         password: nonNull(stringArg()),
         email: nonNull(stringArg()),
+        contactNumber: nonNull(stringArg()),
         username: nonNull(arg({ type: "String" })),
         role: arg({ type: "Role" }),
       },

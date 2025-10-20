@@ -15,6 +15,7 @@ export const User = objectType({
           t.nonNull.string('username')
           t.nonNull.string('email')
           t.nonNull.field('role', { type: 'Role'})
+          t.nonNull.string('contactNumber')
           t.nullable.string('profilePhoto');
           t.nonNull.dateTime('createdAt'); 
           t.nonNull.list.nonNull.field('branchesOwned', {

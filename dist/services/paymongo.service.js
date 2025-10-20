@@ -1,5 +1,5 @@
 import axios from "axios";
-import { decrypt } from "../lib/encrypt";
+import { decrypt } from "../lib/encrypt.js";
 const API_BASE = "https://api.paymongo.com/v1";
 const return_url = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdjdncms5YnBld3JqbDZybHRvYjFzbTl4Nm5obWo0ODNpeXo1eG92bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/A5F11Cbo7b8cw/giphy.gif";
 /*
