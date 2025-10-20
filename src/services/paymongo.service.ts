@@ -1,5 +1,5 @@
 import axios from "axios";
-import { decrypt } from "../lib/encrypt";
+import { decrypt } from "../lib/encrypt.js";
 
 const API_BASE = "https://api.paymongo.com/v1";
 const return_url =
