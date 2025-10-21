@@ -63,7 +63,7 @@ export const getAllCategories = async (
   page = 1
 ) => {
   const where = query
-    ? { name: { contains: query, mode: Prisma.QueryMode.insensitive } } // search by query
+    ? { name: { contains: query, mode: Prisma.QueryMode.insensitive as any} } // search by query
     : {}; // empty means no filtering
 
   const categories = await prisma.category.findMany({

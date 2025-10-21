@@ -266,6 +266,7 @@ export interface NexusGenObjects {
     total: number; // Float!
   }
   User: { // root type
+    contactNumber: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
     fullname: string; // String!
@@ -523,6 +524,7 @@ export interface NexusGenFieldTypes {
   }
   User: { // field return type
     branchesOwned: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    contactNumber: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
     fullname: string; // String!
@@ -775,6 +777,7 @@ export interface NexusGenFieldTypeNames {
   }
   User: { // field return type name
     branchesOwned: 'Branch'
+    contactNumber: 'String'
     createdAt: 'DateTime'
     email: 'String'
     fullname: 'String'
@@ -902,6 +905,7 @@ export interface NexusGenArgTypes {
       refresh_token: string; // String!
     }
     signup: { // args
+      contactNumber: string; // String!
       email: string; // String!
       fullname: string; // String!
       password: string; // String!

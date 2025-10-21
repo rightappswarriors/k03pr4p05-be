@@ -194,7 +194,7 @@ type Mutation {
   login(email: String!, password: String!): AuthPayload!
   me: User!
   refreshToken(refresh_token: String!): AuthPayload!
-  signup(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   updateAPIKey(public_key: String, secret_key: String): PaymongoAPIKeys!
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateCategory(id: ID!, name: String!): Category!
@@ -382,6 +382,7 @@ input UpdateItemInput {
 
 type User {
   branchesOwned: [Branch!]!
+  contactNumber: String!
   createdAt: DateTime!
   email: String!
   fullname: String!
