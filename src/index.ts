@@ -3,8 +3,8 @@ import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@as-integrations/express4";
 import { makeSchema } from "nexus";
 import cors from "cors";
-import dotenv from "dotenv"
-dotenv.config()
+import dotenv from "dotenv";
+dotenv.config();
 import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
@@ -29,8 +29,8 @@ import * as CategoryTypes from "./graphql/typeDefs/category.type.js";
 import * as ColorTypes from "./graphql/typeDefs/color.type.js";
 import * as TransactionTypes from "./graphql/typeDefs/transaction.type.js";
 import * as TokenMutation from "./graphql/resolvers/token/token.mutation.js";
-import * as APITypes from "./graphql/typeDefs/paymogoAPI.type.js"
-import * as PaymentDetails from "./graphql/typeDefs/paymentDetails.type.js"
+import * as APITypes from "./graphql/typeDefs/paymogoAPI.type.js";
+import * as PaymentDetails from "./graphql/typeDefs/paymentDetails.type.js";
 
 // Branch Mutation and QUery
 import { branchMutation } from "./graphql/resolvers/branch/branch.mutation.js";
@@ -54,11 +54,20 @@ import * as ItemQuery from "./graphql/resolvers/item/item.query.js";
 import * as TransactionQuery from "./graphql/resolvers/transaction/transaction.query.js";
 import * as TransactionMutation from "./graphql/resolvers/transaction/transaction.mutation.js";
 // API keys
-import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js"
+import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
+import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
 
-import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js"
 import jwt from "jsonwebtoken";
-
+// Mode of Payment
+import * as ModeOfPaymentType from "./graphql/typeDefs/modeOfpayment.type.js";
+import * as ModeOfPaymentMutation from "./graphql/resolvers/modeOfPayment/payment.mutation.js";
+import * as ModeOfPaymentQuery from "./graphql/resolvers/modeOfPayment/payment.query.js";
+// Supplier
+import * as Supplier from "./graphql/typeDefs/supplier.type.js";
+import * as SupplierMutation from "./graphql/resolvers/supplier/supplier.mutation.js";
+import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";
+// Enums
+import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 
 // Initialize Prisma Client
@@ -106,7 +115,7 @@ const schema = makeSchema({
     // Transaction
     ...Object.values(TransactionMutation),
     ...Object.values(TransactionQuery),
-    // Payment 
+    // Payment
     ...Object.values(PaymentDetails),
     // Token
     ...Object.values(TokenMutation),
@@ -117,6 +126,16 @@ const schema = makeSchema({
     ...Object.values(APIMutation),
     ...Object.values(APIQuery),
     ...Object.values(APITypes),
+    // Mode of Payment
+    ...Object.values(ModeOfPaymentType),
+    ...Object.values(ModeOfPaymentQuery),
+    ...Object.values(ModeOfPaymentMutation),
+    // Supplier
+    ...Object.values(Supplier),
+    ...Object.values(SupplierMutation),
+    ...Object.values(SupplierQuery),
+    // Enum
+    ...Object.values(Enums),
   ],
   outputs: {
     // This will generate `schema.graphql` and `nexus-typegen.ts`

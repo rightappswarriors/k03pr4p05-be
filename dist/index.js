@@ -54,6 +54,16 @@ import * as TransactionMutation from "./graphql/resolvers/transaction/transactio
 import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
 import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
 import jwt from "jsonwebtoken";
+// Mode of Payment
+import * as ModeOfPaymentType from "./graphql/typeDefs/modeOfpayment.type.js";
+import * as ModeOfPaymentMutation from "./graphql/resolvers/modeOfPayment/payment.mutation.js";
+import * as ModeOfPaymentQuery from "./graphql/resolvers/modeOfPayment/payment.query.js";
+// Supplier
+import * as Supplier from "./graphql/typeDefs/supplier.type.js";
+import * as SupplierMutation from "./graphql/resolvers/supplier/supplier.mutation.js";
+import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";
+// Enums
+import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 // Initialize Prisma Client
 const prisma = new PrismaClient();
@@ -94,7 +104,7 @@ const schema = makeSchema({
         // Transaction
         ...Object.values(TransactionMutation),
         ...Object.values(TransactionQuery),
-        // Payment 
+        // Payment
         ...Object.values(PaymentDetails),
         // Token
         ...Object.values(TokenMutation),
@@ -105,6 +115,16 @@ const schema = makeSchema({
         ...Object.values(APIMutation),
         ...Object.values(APIQuery),
         ...Object.values(APITypes),
+        // Mode of Payment
+        ...Object.values(ModeOfPaymentType),
+        ...Object.values(ModeOfPaymentQuery),
+        ...Object.values(ModeOfPaymentMutation),
+        // Supplier
+        ...Object.values(Supplier),
+        ...Object.values(SupplierMutation),
+        ...Object.values(SupplierQuery),
+        // Enum
+        ...Object.values(Enums),
     ],
     outputs: {
         // This will generate `schema.graphql` and `nexus-typegen.ts`

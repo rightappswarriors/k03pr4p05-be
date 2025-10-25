@@ -168,9 +168,14 @@ model InventoryItems {
 }
 
 model Category {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  items Item[]
+  id           Int     @id @default(autoincrement())
+  name         String  @unique
+  description  String?
+  groupType    String?
+  stocks       String?
+  sales        String?
+  cost_of_sale String?
+  items        Item[]
 }
 
 model Color {
@@ -185,7 +190,6 @@ model Item {
   id             Int              @id @default(autoincrement())
   name           String           @unique
   itemCode       String?
-  purchase_unit  Unit?
   image          String?
   skuNumber      String?
   color          Color[]
@@ -194,39 +198,15 @@ model Item {
   brandId        Int?
   assembly       Boolean          @default(false)
   vatExempt      Boolean          @default(false)
-  ServiceCharge  Boolean 
+  ServiceCharge  Boolean          @default(false)
   brandDetails   Brand?           @relation(fields: [brandId], references: [id])
   brand          String?
   categoryId     Int?
   category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   InventoryItems InventoryItems[]
   cartItems      CartItem[]
-}
 
-enum Unit {
-  BAG
-  BOX
-  CAN
-  CARTON
-  DRUMS
-  GALLON
-  GRAMS
-  HANKS
-  KILOGRAM
-  LITERS
-  METERS
-  MILLILITER
-  PACK
-  PAILS
-  PAIRS
-  PIECE
-  QRTZ
-  ROLE
-  SACK
-  SET
-  SHEET
-  TRUCK_LOAD
-  UNIT
+  purchaseUnit ItemUnit[]
 }
 
 model StockLocation {
@@ -236,11 +216,19 @@ model StockLocation {
 }
 
 model Brand {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  email         String?
+  contactNumber String?
+  webUrl        String?
+
+  Item Item[]
+}
+
+model ItemUnit {
   id          Int     @id @default(autoincrement())
-  brandName   String
-  email       String?
-  phoneNumber String?
-  webUrl      String?
+  unitName    String  @unique
+  description String?
 
   Item Item[]
 }
@@ -316,4 +304,87 @@ model CustomerDetails {
   status          String? // succeeded, failed, etc.
   transactionId   Int         @unique
   transaction     Transaction @relation(fields: [transactionId], references: [id])
+}
+
+// inventory
+model Supplier {
+  id            Int     @id @default(autoincrement())
+  name          String
+  address       String?
+  zipCode       String?
+  contactNumber String
+  contactName   String
+  faxNumber     String?
+  tinNumber     String?
+
+  // One-to-many relation
+  modesOfPayment ModeOfPayment[]
+}
+
+model ModeOfPayment {
+  id          Int         @id @default(autoincrement())
+  name        String
+  accountLink AccountLink?
+  supplier    Supplier    @relation(fields: [supplierId], references: [id])
+  supplierId  Int
+}
+
+enum AccountLink {
+  CASH_ON_HAND                               @map("Cash on Hand")
+  CASH_IN_BANK_BDO                           @map("Cash in Bank - BDO")
+  CASH_IN_BANK_CHINABANK                     @map("Cash in Bank - Chinabank")
+  CASH_IN_BANK_SECURITY_BANK                 @map("Cash in Bank - Security Bank")
+  ACCOUNTS_RECEIVABLE_TRADE                  @map("Accounts Receivable - Trade")
+  ACCOUNTS_RECEIVABLE_NON_TRADE              @map("Accounts Receivable - Non-Trade")
+  ADVANCES_TO_AFFILIATES                     @map("Advances to Affiliates")
+  ADVANCES_TO_EMPLOYEES                      @map("Advances to Employees")
+  ADVANCES_TO_OFFICERS_STOCKHOLDERS          @map("Advances to Officers/Stockholders")
+  ADVANCES_TO_OUTSIDE_PERSONNEL              @map("Advances to Outside Personnel")
+  INVENTORY_ALL_STOCKS                       @map("Inventory - All Stocks")
+  PREPAID_INSURANCE                          @map("Prepaid Insurance")
+  PETTY_CASH_FUND                            @map("Petty Cash Fund")
+  OFFICE_EQUIPMENT                           @map("Office Equipment")
+  OFFICE_FURNITURES_FIXTURES                 @map("Office Furnitures & Fixtures")
+  OFFICE_SUPPLIES                            @map("Office Supplies")
+  UNUSED_OFFICE_SUPPLIES                     @map("Unused Office Supplies")
+  DELIVERY_VEHICLE                           @map("Delivery Vehicle")
+  SERVICE_VEHICLE                            @map("Service Vehicle")
+  LAND                                       @map("Land")
+  LEASEHOLD_IMPROVEMENTS                     @map("Leasehold Improvements")
+  SUBSCRIPTION_RECEIVABLE                    @map("Subscription Receivable")
+  VAT_INPUT                                  @map("VAT Input")
+  ACCUMULATED_DEP_DELIVERY_VEHICLE           @map("Accumulated Depreciation - Delivery Vehicle")
+  ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS     @map("Accumulated Depreciation - Leasehold Improvements")
+  ACCUMULATED_DEP_OFFICE_EQUIPMENT           @map("Accumulated Depreciation - Office Equipment")
+  ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES @map("Accumulated Depreciation - Office Furnitures & Fixtures")
+  ACCUMULATED_DEP_SERVICE_VEHICLE            @map("Accumulated Depreciation - Service Vehicle")
+  ACCOUNTS_PAYABLE_TRADE                     @map("Accounts Payable - Trade")
+  ACCOUNTS_PAYABLE_NON_TRADE                 @map("Accounts Payable - Non-Trade")
+  ACCRUED_EXPENSES                           @map("Accrued Expenses")
+  INCOME_TAX_PAYABLE                         @map("Income Tax Payable")
+  VAT_PAYABLE                                @map("VAT Payable")
+  WITHHOLDING_TAX_PAYABLE                    @map("Withholding Tax Payable")
+  SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS       @map("SSS, PhilHealth & Pag-IBIG Contributions")
+  ORDINARY_SHARES                            @map("Ordinary Shares")
+  SUBSCRIBED_ORDINARY_SHARES                 @map("Subscribed Ordinary Shares")
+  RETAINED_EARNINGS                          @map("Retained Earnings")
+  INTEREST_INCOME                            @map("Interest Income")
+  MISCELLANEOUS_INCOME                       @map("Miscellaneous Income")
+  OUTPUT_VAT                                 @map("Output VAT")
+  COST_OF_SALES_ALL_STOCKS                   @map("Cost of Sales - All Stocks")
+  DEPRECIATION                               @map("Depreciation")
+  ELECTRICITY                                @map("Electricity")
+  COMMUNICATION                              @map("Communication")
+  EMPLOYEE_BENEFITS                          @map("Employee Benefits")
+  FUEL_OIL                                   @map("Fuel & Oil")
+  INSURANCE                                  @map("Insurance")
+  PROFESSIONAL_FEE                           @map("Professional Fee")
+  RENT                                       @map("Rent")
+  REPAIRS_MAINTENANCE                        @map("Repairs & Maintenance")
+  REPRESENTATION                             @map("Representation")
+  SALARIES_WAGES                             @map("Salaries & Wages")
+  TAXES_LICENSES                             @map("Taxes & Licenses")
+  TRANSPORTATION_TRAVEL                      @map("Transportation & Travel")
+  WATER                                      @map("Water")
+  INCOME_TAX                                 @map("Income Tax")
 }
