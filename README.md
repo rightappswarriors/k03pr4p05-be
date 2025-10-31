@@ -12,7 +12,7 @@ It provides a robust GraphQL-based API built with **Node.js**, **Express**, **Ap
 - **Nexus** (for schema & resolver definitions)
 - **Prisma ORM** (database layer)
 - **JWT Authentication**
-- **Dotenv**, **Cors**, **Cookie-parser**
+- **Dotenv**, **Cors**, **Cookie-parser**               
 
 ---
 
@@ -96,8 +96,7 @@ Create a Pull Request (PR) to merge your changes into main.
 Your code will be reviewed before merging.
 
 📁 Folder Structure
-pgsql
-Copy code
+```pgsql
 rai-pos-backend/
 │
 ├── prisma/
@@ -115,6 +114,7 @@ rai-pos-backend/
 ├── package.json
 ├── .env (not committed)
 └── README.md
+```
 📘 Detailed Directory Explanation
 🧠 prisma/schema.prisma
 Defines your database schema, models, and relationships using Prisma ORM.
