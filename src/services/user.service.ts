@@ -1,6 +1,6 @@
 // services/user.service.js
 // This file acts as the 'cook'. It contains the core business logic and interacts directly with the database.
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma';
 
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
-const prisma = new PrismaClient();
+
 
 /**
  * @description

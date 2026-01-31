@@ -1,6 +1,7 @@
 import { arg, extendType, nonNull } from "nexus";
 import * as branchService from "../../../services/branch.service.js";
 import * as middleware from "../../../middleware/auth.middleware.js";
+
 export const branchQuery = extendType({
   type: "Query",
   definition(t) {

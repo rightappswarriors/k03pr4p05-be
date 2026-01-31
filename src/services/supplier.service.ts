@@ -1,7 +1,5 @@
 // services/supplier.service.js
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export const createSupplier = async (data) => {
   const supplier = await prisma.supplier.create({

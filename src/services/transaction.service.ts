@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma';
 import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
 
-const prisma = new PrismaClient();
 
 /**
  * @description

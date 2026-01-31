@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 export const createModeOfPayment = async (data) => {
   const newPayment = await prisma.modeOfPayment.create({
