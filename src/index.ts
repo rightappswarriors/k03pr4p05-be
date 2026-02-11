@@ -56,7 +56,7 @@ import * as TransactionMutation from "./graphql/resolvers/transaction/transactio
 // API keys
 import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
 import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
-
+import { prisma } from "./lib/prisma.js"
 import jwt from "jsonwebtoken";
 // Mode of Payment
 import * as ModeOfPaymentType from "./graphql/typeDefs/modeOfpayment.type.js";
@@ -71,7 +71,7 @@ import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 
 // Initialize Prisma Client
-const prisma = new PrismaClient();
+
 
 // 2. Use `makeSchema` to stitch all your types and mutations together
 const schema = makeSchema({

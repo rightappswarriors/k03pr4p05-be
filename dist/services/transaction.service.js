@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../lib/prisma.js';
 import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
-const prisma = new PrismaClient();
 /**
  * @description
  * Processes a new transaction by creating a transaction record, creating

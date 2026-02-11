@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 /**
  * @description Creates a new inventory record for a given store.
  * This is typically a one-to-one relationship.

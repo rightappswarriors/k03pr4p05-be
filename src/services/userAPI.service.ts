@@ -1,6 +1,6 @@
 
 import { decrypt, encrypt } from "../lib/encrypt.js";
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma.js';
 
 /**
  * @description

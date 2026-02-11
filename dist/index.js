@@ -5,7 +5,6 @@ import { makeSchema } from "nexus";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
-import { PrismaClient } from "@prisma/client";
 import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
 import { fileURLToPath } from "url";
@@ -53,6 +52,7 @@ import * as TransactionMutation from "./graphql/resolvers/transaction/transactio
 // API keys
 import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
 import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
+import { prisma } from "./lib/prisma.js";
 import jwt from "jsonwebtoken";
 // Mode of Payment
 import * as ModeOfPaymentType from "./graphql/typeDefs/modeOfpayment.type.js";
@@ -66,7 +66,6 @@ import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";
 import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 // Initialize Prisma Client
-const prisma = new PrismaClient();
 // 2. Use `makeSchema` to stitch all your types and mutations together
 const schema = makeSchema({
     types: [

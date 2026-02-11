@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { decrypt, encrypt } from "../lib/encrypt.js";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 /**
  * @description
  * Creates a new user in the database.

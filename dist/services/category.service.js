@@ -1,6 +1,5 @@
 // services/category.service.js
-import { Prisma, PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 /**
  * @description
  * Creates a new category record.
@@ -53,7 +52,7 @@ export const getCategoryById = async (id) => {
 };
 export const getAllCategories = async (query, orderBy = "asc", pageSize = 20, page = 1) => {
     const where = query
-        ? { name: { contains: query, mode: Prisma.QueryMode.insensitive } } // search by query
+        ? { name: { contains: query, mode: prisma.QueryMode.insensitive } } // search by query
         : {}; // empty means no filtering
     const categories = await prisma.category.findMany({
         where,

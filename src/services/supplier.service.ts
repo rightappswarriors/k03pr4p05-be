@@ -1,5 +1,5 @@
 // services/supplier.service.js
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma.js';
 
 export const createSupplier = async (data) => {
   const supplier = await prisma.supplier.create({
