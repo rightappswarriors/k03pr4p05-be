@@ -25,7 +25,8 @@ export const categoryMutation = extendType({
                     if (error.code === "P2002") {
                         throw new Error("One or more categories already exist.");
                     }
-                    console.error("Error creating categories:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error creating categories:", error);
                     throw new Error("Error creating categories.");
                 }
             },
@@ -48,7 +49,8 @@ export const categoryMutation = extendType({
                     return category;
                 }
                 catch (error) {
-                    console.error("Error updating Category", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error updating Category", error);
                     throw new Error("Error updating Category");
                 }
             },
@@ -70,7 +72,8 @@ export const categoryMutation = extendType({
                     return category;
                 }
                 catch (error) {
-                    console.error("Error Deleting Category:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error Deleting Category:", error);
                     throw new Error("Error Deleting Category");
                 }
             },

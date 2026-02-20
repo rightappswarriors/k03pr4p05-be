@@ -39,7 +39,7 @@ export const InventoryMutation = extendType({
         try {
           return await inventoryService.createInventory(name ?? "", outletId);
         } catch (error) {
-          console.error("Error creating Inventory:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error creating Inventory:", error);
           throw new Error("Failed to create inventory.");
         }
       },
@@ -59,7 +59,7 @@ export const InventoryMutation = extendType({
         try {
           return await inventoryService.updateInventory(id, name);
         } catch (error) {
-          console.error("Error updating Inventory:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating Inventory:", error);
           throw new Error("Failed to update inventory.");
         }
       },
@@ -81,7 +81,7 @@ export const InventoryMutation = extendType({
           if (error.code === "P2025") {
             throw new Error("Inventory not found.");
           }
-          console.error("Error deleting Inventory:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error deleting Inventory:", error);
           throw new Error("Failed to delete inventory.");
         }
       },
@@ -91,7 +91,7 @@ export const InventoryMutation = extendType({
     t.field("addItemsToInventory", {
       type: "BatchPayload", // Prisma createMany returns { count }
       args: {
-        inventoryId: nonNull(arg({ type: "ID"})),
+        inventoryId: nonNull(arg({ type: "ID" })),
         items: nonNull(
           list(
             nonNull(
@@ -107,10 +107,10 @@ export const InventoryMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER"]);
         inventoryId = Number(inventoryId)
         const inventory = await ctx.prisma.inventory.findFirst({
-          where : {id: inventoryId},
+          where: { id: inventoryId },
           select: {
             outlet: {
-              select: { id : true}
+              select: { id: true }
             }
           }
         })
@@ -121,7 +121,7 @@ export const InventoryMutation = extendType({
         try {
           return await inventoryService.createInventoryItem(items, inventoryId);
         } catch (error) {
-          console.error("Error creating Inventory Items:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error creating Inventory Items:", error);
           throw new Error("Failed to create inventory items.");
         }
       },

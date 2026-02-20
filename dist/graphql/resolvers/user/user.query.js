@@ -21,7 +21,8 @@ export const userQuery = extendType({
                     return await userService.getAllUsers();
                 }
                 catch (error) {
-                    console.error("Error getting all user data:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting all user data:", error);
                     throw new Error("Error getting all user data:", error.message);
                 }
             },
@@ -36,7 +37,8 @@ export const userQuery = extendType({
                     return await userService.getAllStaffs(Number(managerId));
                 }
                 catch (error) {
-                    console.error("Error getting all staff data:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting all staff data:", error);
                     throw new Error("Error getting all staff data:", error.message);
                 }
             },
@@ -53,7 +55,8 @@ export const userQuery = extendType({
                     return await userService.getUserById(userId);
                 }
                 catch (error) {
-                    console.error("Error getting all user data:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting all user data:", error);
                     throw new Error("Error getting all user data:", error.message);
                 }
             },
@@ -68,7 +71,8 @@ export const userQuery = extendType({
                     return await userService.getAllOutletStaffs(Number(userId));
                 }
                 catch (error) {
-                    console.error("Error getting all your staffs:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting all your staffs:", error);
                     throw new Error("Error getting all your staffs");
                 }
             },
@@ -82,8 +86,27 @@ export const userQuery = extendType({
                     return await userService.getUserById(userId);
                 }
                 catch (error) {
-                    console.log("Error getting current user:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.log("Error getting current user:", error);
                     throw new Error("Error getting current user");
+                }
+            }
+        });
+        t.nonNull.list.nonNull.field("getStaffByOutletId", {
+            type: "User",
+            args: {
+                outletId: nonNull(arg({ type: "ID" }))
+            },
+            async resolve(_, { outletId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                try {
+                    return await userService.getStaffByOutletId(Number(outletId));
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting all your staffs by outlet Id:", error);
+                    throw new Error("Error getting all your staffs");
                 }
             }
         });

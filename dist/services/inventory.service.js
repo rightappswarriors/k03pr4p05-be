@@ -14,7 +14,8 @@ export const createInventory = async (name, outletId) => {
     });
     // If an inventory already exists, return it immediately to prevent the error
     if (existingInventory) {
-        console.log(`Inventory already exists for storeId ${outletId}, returning existing record.`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Inventory already exists for storeId ${outletId}, returning existing record.`);
         return existingInventory;
     }
     // Step 2: If no inventory exists, proceed with the creation logic
@@ -150,7 +151,8 @@ export const createInventoryItem = async (itemsData, inventoryId) => {
  * @returns {Promise<InventoryItems[]>} List of inventory items.
  */
 export const getInventoryByOutletId = async (outletId) => {
-    console.log("Outlet ID received in resolver:", outletId);
+    if (process.env.NODE_ENV === "development")
+        console.log("Outlet ID received in resolver:", outletId);
     const storeInventory = await prisma.inventory.findFirst({
         where: { outletId: Number(outletId) },
         include: {

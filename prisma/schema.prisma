@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,44 +6,25 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  ADMIN
-  OWNER
-  MANAGER
-  STAFF
-  CASHIER
-}
-
-enum OutletType {
-  retail
-  wholesale
-  service
-}
-
 model User {
-  id            Int           @id @default(autoincrement())
-  fullname      String
-  username      String        @unique
-  email         String        @unique
-  contactNumber String?
-  role          Role          @default(CASHIER) // This is a user's global role
-  password      String // bcrypt hash only, never plain text
-  createdAt     DateTime      @default(now())
-  profilePhoto  String?
-  managerId     Int? // This is the ID of the user's manager
-  manager       User?         @relation("ManagerToStaff", fields: [managerId], references: [id])
-  staff         User[]        @relation("ManagerToStaff")
-  // Relationships
-  branchesOwned Branch[]      @relation("UserBranches") // One user can own multiple branches
-  outletOwned   Outlet[]      @relation("UserOutlets") // One user can own multiple outlet
-  outletStaff   OutletStaff[] // A user can be staff at multiple outlets
-
-  Transaction Transaction[]
-
-  //Paymentmethod
-  enabledPaymentMethod Boolean @default(false)
-
-  paymongoAPIKeys PaymongoAPIKeys?
+  id                   Int              @id @default(autoincrement())
+  fullname             String
+  username             String           @unique
+  email                String           @unique
+  role                 Role             @default(CASHIER)
+  password             String
+  createdAt            DateTime         @default(now())
+  profilePhoto         String?
+  managerId            Int?
+  enabledPaymentMethod Boolean          @default(false)
+  contactNumber        String?
+  branchesOwned        Branch[]         @relation("UserBranches")
+  outletOwned          Outlet[]         @relation("UserOutlets")
+  outletStaff          OutletStaff[]
+  paymongoAPIKeys      PaymongoAPIKeys?
+  Transaction          Transaction[]
+  manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
+  staff                User[]           @relation("ManagerToStaff")
 }
 
 model PaymongoAPIKeys {
@@ -67,67 +42,43 @@ model Branch {
   phone     String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-
-  // Relationship to User (Owner)
-  ownerId Int
-  owner   User @relation("UserBranches", fields: [ownerId], references: [id])
-
-  // Relationship to outlet (A branch can have one or more outlets)
-  outlets Outlet[]
+  ownerId   Int
+  owner     User     @relation("UserBranches", fields: [ownerId], references: [id])
+  outlets   Outlet[]
 }
 
 model Outlet {
-  id                    Int        @id @default(autoincrement())
+  id                    Int           @id @default(autoincrement())
   name                  String
   address               String
   phone                 String?
-  code                  String     @unique // Added unique constraint for clarity
-  nextTransactionNumber Int?       @default(1)
+  code                  String        @unique
+  nextTransactionNumber Int?          @default(1)
   governmentTax         Float?
   serviceCharge         Float?
   outletType            OutletType
-  isActive              Boolean    @default(true)
-  wifiSSID              String? // Made optional, as not all outlets might have it
-  createdAt             DateTime   @default(now())
-  // Relationship to Branch
+  isActive              Boolean       @default(true)
+  wifiSSID              String?
+  createdAt             DateTime      @default(now())
   branchId              Int
-  branch                Branch     @relation(fields: [branchId], references: [id])
-
-  // Relationship to User (Owner)
-  ownerId Int
-  owner   User @relation("UserOutlets", fields: [ownerId], references: [id])
-
-  // Relationship to Staff (A outlet can have one or more staff)
-  staff OutletStaff[]
-
-  // Other relationships (if needed)
-  //  devices   Device[]
-  inventory Inventory? // This is a one-to-one relationship
-
-  Transaction Transaction[]
+  ownerId               Int
+  inventory             Inventory?
+  branch                Branch        @relation(fields: [branchId], references: [id])
+  owner                 User          @relation("UserOutlets", fields: [ownerId], references: [id])
+  staff                 OutletStaff[]
+  Transaction           Transaction[]
 }
 
 model OutletStaff {
-  id       Int  @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   outletId Int
   userId   Int
-  role     Role // This is a outlet-specific role
+  role     Role
+  outlet   Outlet @relation(fields: [outletId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
 
-  // Relationships
-  outlet Outlet @relation(fields: [outletId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
-
-  @@unique([outletId, userId]) // Ensures a user can't be added to the same outlet twice
+  @@unique([outletId, userId])
 }
-
-//model Device {
-//`  id       Int    @id @default(autoincrement())
-//`  deviceId String @unique
-//  outlet   Outlet @relation(fields: [outletId], references: [id])
-//  outletId Int
-
-//  Transaction Transaction[]
-//}
 
 model UnauthorizedAttempt {
   id                Int      @id @default(autoincrement())
@@ -140,7 +91,7 @@ model Inventory {
   id       Int              @id @default(autoincrement())
   name     String?
   outletId Int              @unique
-  outlet   Outlet?          @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  outlet   Outlet           @relation(fields: [outletId], references: [id], onDelete: Cascade)
   items    InventoryItems[]
 }
 
@@ -155,12 +106,12 @@ model Location {
 model InventoryItems {
   id          Int       @id @default(autoincrement())
   inventoryId Int
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
   itemId      Int
-  item        Item      @relation(fields: [itemId], references: [id])
   price       Float
   quantity    Int       @default(0)
   locationId  Int?      @unique
+  inventory   Inventory @relation(fields: [inventoryId], references: [id])
+  item        Item      @relation(fields: [itemId], references: [id])
   location    Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
   @@unique([inventoryId, itemId])
@@ -169,11 +120,11 @@ model InventoryItems {
 model Category {
   id           Int     @id @default(autoincrement())
   name         String  @unique
+  cost_of_sale String?
   description  String?
   groupType    String?
-  stocks       String?
   sales        String?
-  cost_of_sale String?
+  stocks       String?
   items        Item[]
 }
 
@@ -181,31 +132,29 @@ model Color {
   id      Int     @id @default(autoincrement())
   name    String  @unique
   hexCode String?
-  items   Item[] // A color can be associated with many items
+  items   Item[]  @relation("ColorToItem")
 }
 
-//! UPDATED PLEASE UPDATE THE TYPEDEFS
 model Item {
   id             Int              @id @default(autoincrement())
   name           String           @unique
-  itemCode       String?
   image          String?
-  skuNumber      String?
-  color          Color[]
   description    String?
   barcode        String
-  brandId        Int?
-  assembly       Boolean          @default(false)
-  vatExempt      Boolean          @default(false)
-  ServiceCharge  Boolean          @default(false)
-  brandDetails   Brand?           @relation(fields: [brandId], references: [id])
   brand          String?
   categoryId     Int?
-  category       Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  InventoryItems InventoryItems[]
+  brandId        Int?
+  ServiceCharge  Boolean          @default(false)
+  assembly       Boolean          @default(false)
+  itemCode       String?
+  skuNumber      String?
+  vatExempt      Boolean          @default(false)
   cartItems      CartItem[]
-
-  purchaseUnit ItemUnit[]
+  InventoryItems InventoryItems[]
+  brandDetails   Brand?           @relation(fields: [brandId], references: [id])
+  category       Category?        @relation(fields: [categoryId], references: [id])
+  color          Color[]          @relation("ColorToItem")
+  purchaseUnit   ItemUnit[]       @relation("ItemToItemUnit")
 }
 
 model StockLocation {
@@ -216,34 +165,97 @@ model StockLocation {
 
 model Brand {
   id            Int     @id @default(autoincrement())
-  name          String  @unique
   email         String?
-  contactNumber String?
   webUrl        String?
-
-  Item Item[]
+  contactNumber String?
+  name          String  @unique
+  Item          Item[]
 }
 
 model ItemUnit {
   id          Int     @id @default(autoincrement())
   unitName    String  @unique
   description String?
-
-  Item Item[]
+  Item        Item[]  @relation("ItemToItemUnit")
 }
 
 model CartItem {
-  // A transaction can have many items, and an item can be in many transactions.
-  // This model links them and outlet the quantity for each.
   transactionId Int
   itemId        Int
   quantity      Int
+  item          Item        @relation(fields: [itemId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
 
-  transaction Transaction @relation(fields: [transactionId], references: [id])
-  item        Item        @relation(fields: [itemId], references: [id])
-
-  // A composite primary key ensures each item appears only once per transaction.
   @@id([transactionId, itemId])
+}
+
+model Transaction {
+  id                Int              @id @default(autoincrement())
+  outletId          Int
+  cashierId         Int
+  total             Float
+  vatAmount         Float
+  subtotal          Float
+  cashReceived      Float?
+  change            Float?
+  paymentMethod     PaymentMethod
+  status            Status
+  createdAt         DateTime
+  syncedAt          DateTime         @default(now())
+  customerDetailsId Int?
+  items             CartItem[]
+  customerDetails   CustomerDetails?
+  cashier           User             @relation(fields: [cashierId], references: [id])
+  outlet            Outlet           @relation(fields: [outletId], references: [id])
+}
+
+model CustomerDetails {
+  id              Int         @id @default(autoincrement())
+  fullname        String?
+  username        String?
+  email           String?
+  phoneNumber     String?
+  paymentType     PaymentType
+  paymentMethodId String?
+  paymentIntentId String?
+  client_key      String?
+  status          String?
+  transactionId   Int         @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+}
+
+model Supplier {
+  id             Int             @id @default(autoincrement())
+  name           String
+  address        String?
+  zipCode        String?
+  contactNumber  String
+  contactName    String
+  faxNumber      String?
+  tinNumber      String?
+  modesOfPayment ModeOfPayment[]
+}
+
+model ModeOfPayment {
+  id          Int          @id @default(autoincrement())
+  name        String
+  supplierId  Int
+  accountLink AccountLink?
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  CASHIER
+  OWNER
+}
+
+enum OutletType {
+  retail
+  wholesale
+  service
 }
 
 enum PaymentMethod {
@@ -260,72 +272,11 @@ enum Status {
   CANCELED
 }
 
-model Transaction {
-  id                Int              @id @default(autoincrement())
-  outletId          Int
-  outlet            Outlet           @relation(fields: [outletId], references: [id])
-  cashierId         Int
-  cashier           User             @relation(fields: [cashierId], references: [id])
-  //  deviceId      Int
-  //  device        Device        @relation(fields: [deviceId], references: [id])
-  items             CartItem[]
-  total             Float
-  vatAmount         Float
-  subtotal          Float
-  cashReceived      Float?
-  change            Float?
-  paymentMethod     PaymentMethod
-  customerDetailsId Int?
-  customerDetails   CustomerDetails?
-  status            Status
-  createdAt         DateTime
-  syncedAt          DateTime         @default(now())
-  //retryCount    Int
-}
-
 enum PaymentType {
   gcash
   paymaya
   card
   qrph
-}
-
-model CustomerDetails {
-  id              Int         @id @default(autoincrement())
-  fullname        String?
-  username        String?
-  email           String?
-  phoneNumber     String?
-  paymentType     PaymentType
-  paymentMethodId String? // From PayMongo: pm_...
-  paymentIntentId String? // From PayMongo: pi_...
-  client_key      String?
-  status          String? // succeeded, failed, etc.
-  transactionId   Int         @unique
-  transaction     Transaction @relation(fields: [transactionId], references: [id])
-}
-
-// inventory
-model Supplier {
-  id            Int     @id @default(autoincrement())
-  name          String
-  address       String?
-  zipCode       String?
-  contactNumber String
-  contactName   String
-  faxNumber     String?
-  tinNumber     String?
-
-  // One-to-many relation
-  modesOfPayment ModeOfPayment[]
-}
-
-model ModeOfPayment {
-  id          Int         @id @default(autoincrement())
-  name        String
-  accountLink AccountLink?
-  supplier    Supplier    @relation(fields: [supplierId], references: [id])
-  supplierId  Int
 }
 
 enum AccountLink {

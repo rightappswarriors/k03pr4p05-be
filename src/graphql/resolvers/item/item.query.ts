@@ -18,50 +18,50 @@ export const ItemQuery = extendType({
   type: "Query",
   definition(t) {
     t.nonNull.list.nonNull.field("getItems", {
-      type:"Item",
+      type: "Item",
       args: {
         query: nullable(stringArg()),
         size: nullable(intArg()),
-        orderBy: nullable(arg({type: "orderBy"}))
+        orderBy: nullable(arg({ type: "orderBy" }))
       },
-      async resolve(_, {query, size, orderBy}, ctx){
-        size = size ? size: 20;
-        orderBy = orderBy? orderBy : "asc"
+      async resolve(_, { query, size, orderBy }, ctx) {
+        size = size ? size : 20;
+        orderBy = orderBy ? orderBy : "asc"
         requireAuth(ctx),
-        requireRole(ctx, ["ADMIN", "MANAGER"])
+          requireRole(ctx, ["ADMIN", "MANAGER"])
         try {
           const items = await itemService.getItems(query, size, orderBy)
-          
+
           if (!items) {
             throw new Error("No items found")
           }
           return items
         } catch (error) {
-          console.error("Error querying items", error)
+          if (process.env.NODE_ENV === "development") console.error("Error querying items", error)
           throw new Error("Error getting items")
         }
       }
     }),
-    t.nonNull.field("getItemById", {
-      type: "Item",
-      args: {
-        id: nonNull(arg({type: "ID"}))
-      },
-      async resolve(_, {id}, ctx) {
-        requireAuth(ctx)
-        requireRole(ctx, ["ADMIN", "MANAGER"])
-        try {
-          const item = await itemService.getItemById(Number(id))
-          if (!item) {
-            throw new Error("Item not found")
+      t.nonNull.field("getItemById", {
+        type: "Item",
+        args: {
+          id: nonNull(arg({ type: "ID" }))
+        },
+        async resolve(_, { id }, ctx) {
+          requireAuth(ctx)
+          requireRole(ctx, ["ADMIN", "MANAGER"])
+          try {
+            const item = await itemService.getItemById(Number(id))
+            if (!item) {
+              throw new Error("Item not found")
+            }
+            return item
+          } catch (error) {
+            if (process.env.NODE_ENV === "development") console.error("Error getting Item:", error)
+            throw new Error("Error getting Item.")
           }
-          return item
-        }catch(error) {
-          console.error("Error getting Item:", error)
-          throw new Error("Error getting Item.")
         }
-      }
-    })
+      })
     t.nonNull.list.nonNull.field("getInventoryItemsByRack", {
       type: "ItemsByRack",
       args: {

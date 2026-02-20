@@ -45,7 +45,7 @@ export const ModeOfPaymentMutation = extendType({
             supplier: { connect: { id: data.supplierId } },
           });
         } catch (error) {
-          console.error("Error creating Mode of Payment:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error creating Mode of Payment:", error);
           throw new Error("Failed to create Mode of Payment.");
         }
       },
@@ -65,7 +65,7 @@ export const ModeOfPaymentMutation = extendType({
         try {
           return await modeOfPaymentService.updateModeOfPayment(id, data);
         } catch (error) {
-          console.error("Error updating Mode of Payment:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating Mode of Payment:", error);
           throw new Error("Failed to update Mode of Payment.");
         }
       },
@@ -85,7 +85,7 @@ export const ModeOfPaymentMutation = extendType({
           if (error.code === "P2025") {
             throw new Error("Mode of Payment not found.");
           }
-          console.error("Error deleting Mode of Payment:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error deleting Mode of Payment:", error);
           throw new Error("Failed to delete Mode of Payment.");
         }
       },

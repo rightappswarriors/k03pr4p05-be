@@ -93,7 +93,7 @@ export const outletMutation = extendType({
             }
             throw new Error("A unique constraint failed");
           }
-          console.error("Error creating outlet", error);
+          if (process.env.NODE_ENV === "development") console.error("Error creating outlet", error);
           throw new Error("Error creating outlet");
         }
       },
@@ -129,7 +129,7 @@ export const outletMutation = extendType({
             );
           }
         } catch (error) {
-          console.error(
+          if (process.env.NODE_ENV === "development") console.error(
             "An unexpected error occurred while adding staff:",
             error
           );
@@ -161,12 +161,12 @@ export const outletMutation = extendType({
             userIds
           );
         } catch (error) {
-          console.error(
-            "An unexpected error has occured while deleteing staffs: ",
+          if (process.env.NODE_ENV === "development") console.error(
+            "An unexpected error has occured while deleting staffs: ",
             error
           );
           throw new Error(
-            "An unexpected error has occured while deleteing staffs"
+            "An unexpected error has occured while deleting staffs"
           );
         }
       },
@@ -242,7 +242,7 @@ export const outletMutation = extendType({
             }
             throw new Error("A unique constraint failed");
           }
-          console.error("Error updating outlet", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating outlet", error);
           throw new Error("Error updating outlet");
         }
       },
@@ -265,7 +265,7 @@ export const outletMutation = extendType({
           if (error.code === "P2025") {
             throw new Error("Outlet not found.");
           }
-          console.error("Error deleting Outlet", error);
+          if (process.env.NODE_ENV === "development") console.error("Error deleting Outlet", error);
           throw new Error("Error deleting Outlet");
         }
       },

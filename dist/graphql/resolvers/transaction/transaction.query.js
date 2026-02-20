@@ -19,7 +19,8 @@ export const TransactionQuery = extendType({
                     return await transactionService.getTransactionsByOutletId(outletId, startDate, endDate);
                 }
                 catch (error) {
-                    console.error("Error retrieving transactions:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error retrieving transactions:", error);
                     throw new Error("Failed to fetch transactions.");
                 }
             },

@@ -46,7 +46,8 @@ export const OutletQuery = extendType({
                     return await outletService.getOutletsByBranchId(Number(branchId));
                 }
                 catch (error) {
-                    console.error("Error getting outlet by branch:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting outlet by branch:", error);
                     throw new Error("Error getting outlet by branch");
                 }
             },
@@ -64,7 +65,8 @@ export const OutletQuery = extendType({
                     return await outletService.getOutletStaffs(Number(outletId));
                 }
                 catch (error) {
-                    console.error("Error getting outlet staffs:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting outlet staffs:", error);
                     throw new Error("Error getting outlet staffs");
                 }
             },
@@ -83,8 +85,27 @@ export const OutletQuery = extendType({
                     return items;
                 }
                 catch (error) {
-                    console.error("Error getting outlet items:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting outlet items:", error);
                     throw new Error("Error getting outlet items");
+                }
+            },
+        });
+        t.nonNull.list.nonNull.field("getOutletTransactions", {
+            type: "Transaction",
+            args: {
+                outletId: nonNull(arg({ type: "ID" })),
+            },
+            async resolve(_, { outletId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+                try {
+                    return await outletService.getOutletTransactions(Number(outletId));
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting outlet transactions:", error);
+                    throw new Error("Error getting outlet transactions");
                 }
             },
         });

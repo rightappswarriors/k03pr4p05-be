@@ -407,6 +407,7 @@ export interface NexusGenFieldTypes {
   }
   Mutation: { // field return type
     AddOutletStaff: NexusGenRootTypes['AddedOutletStaffs']; // AddedOutletStaffs!
+    StaffLogout: boolean; // Boolean!
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     createAPIKey: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
@@ -526,6 +527,7 @@ export interface NexusGenFieldTypes {
     getAllStaffs: NexusGenRootTypes['User'][]; // [User!]!
     getAllUsers: NexusGenRootTypes['User'][]; // [User!]!
     getBranchById: NexusGenRootTypes['Branch']; // Branch!
+    getBranchTransactions: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getCategoryById: NexusGenRootTypes['Category']; // Category!
     getCategoryItems: NexusGenRootTypes['Item'][]; // [Item!]!
     getInventoryByOutletId: NexusGenRootTypes['Inventory'] | null; // Inventory
@@ -536,8 +538,10 @@ export interface NexusGenFieldTypes {
     getOutletById: NexusGenRootTypes['Outlet'] | null; // Outlet
     getOutletItems: NexusGenRootTypes['OutletWithItems']; // OutletWithItems!
     getOutletStaff: NexusGenRootTypes['User'][]; // [User!]!
+    getOutletTransactions: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getOutletsByBranch: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     getOwnedBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    getStaffByOutletId: NexusGenRootTypes['User'][]; // [User!]!
     getSupplierById: NexusGenRootTypes['Supplier'] | null; // Supplier
     getSuppliers: Array<NexusGenRootTypes['Supplier'] | null> | null; // [Supplier]
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
@@ -686,6 +690,7 @@ export interface NexusGenFieldTypeNames {
   }
   Mutation: { // field return type name
     AddOutletStaff: 'AddedOutletStaffs'
+    StaffLogout: 'Boolean'
     addItemsToInventory: 'BatchPayload'
     bulkCreateInventoryItems: 'InventoryItems'
     createAPIKey: 'PaymongoAPIKeys'
@@ -805,6 +810,7 @@ export interface NexusGenFieldTypeNames {
     getAllStaffs: 'User'
     getAllUsers: 'User'
     getBranchById: 'Branch'
+    getBranchTransactions: 'Transaction'
     getCategoryById: 'Category'
     getCategoryItems: 'Item'
     getInventoryByOutletId: 'Inventory'
@@ -815,8 +821,10 @@ export interface NexusGenFieldTypeNames {
     getOutletById: 'Outlet'
     getOutletItems: 'OutletWithItems'
     getOutletStaff: 'User'
+    getOutletTransactions: 'Transaction'
     getOutletsByBranch: 'Outlet'
     getOwnedBranches: 'Branch'
+    getStaffByOutletId: 'User'
     getSupplierById: 'Supplier'
     getSuppliers: 'Supplier'
     getTransactionsByStoreId: 'Transaction'
@@ -1072,6 +1080,9 @@ export interface NexusGenArgTypes {
     getBranchById: { // args
       id: string; // ID!
     }
+    getBranchTransactions: { // args
+      id: string; // ID!
+    }
     getCategoryById: { // args
       id: string; // ID!
     }
@@ -1101,8 +1112,14 @@ export interface NexusGenArgTypes {
     getOutletStaff: { // args
       outletId: string; // ID!
     }
+    getOutletTransactions: { // args
+      outletId: string; // ID!
+    }
     getOutletsByBranch: { // args
       branchId: string; // ID!
+    }
+    getStaffByOutletId: { // args
+      outletId: string; // ID!
     }
     getSupplierById: { // args
       id: number; // Int!

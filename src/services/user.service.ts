@@ -72,9 +72,19 @@ export const loginUser = async (email: any, password: any, res: any) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     return null;
   }
-  console.log("User: ", user.username);
-  console.log("User Role: ", user.role);
-  console.log("User fullname: ", user.fullname);
+  if (process.env.NODE_ENV === "development") console.log("User: ", user.username);
+  if (process.env.NODE_ENV === "development") console.log("User Role: ", user.role);
+  if (process.env.NODE_ENV === "development") console.log("User fullname: ", user.fullname);
+  const staffexists = await prisma.outletStaff.findFirst({
+    where: { userId: user.id}
+  })
+  if (process.env.NODE_ENV === "development") console.log("Staff exists: ", staffexists);
+  if (staffexists) {
+    await prisma.outletStaff.update({
+      where: { id: staffexists.id },
+      data: { isPresent: true,}
+    })
+  }
   const token = jwt.sign(
     {
       userId: user.id,
@@ -93,7 +103,7 @@ export const loginUser = async (email: any, password: any, res: any) => {
   );
   res.cookie("jid", refresh_token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV ==="production",
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax", // or "none" if frontend is on a different port
     path: "/graphql"
   })
@@ -122,8 +132,8 @@ export const getAllStaffs = async (managerId: number) => {
       createdAt: true
     },
   });
-  console.log("Manager Id:", managerId)
-  console.log("Users:", users)
+  if (process.env.NODE_ENV === "development") console.log("Manager Id:", managerId)
+  if (process.env.NODE_ENV === "development") console.log("Users:", users)
   return users;
 };
 
@@ -233,3 +243,31 @@ export const deleteUser = async (id) => {
     where: { id },
   });
 };
+
+
+
+export const getStaffByOutletId = async (outletId: number) => {
+  const outlet = await prisma.outlet.findMany({
+    where: { id: outletId },
+    select: {
+      staff: {
+        select: {
+          user: {
+            select: {
+              fullname: true,
+              email: true,
+              role: true,
+              contactNumber: true,
+            }
+          }
+        }
+      }
+    }
+  })
+  if (!outlet || outlet.length === 0) {
+    return []
+  }
+  const users = outlet[0].staff.map(s => s.user)
+  console.log("Users by outlet id:", users)
+  return users
+}

@@ -18,7 +18,8 @@ export const CategoryQuery = extendType({
                     return await categoryService.getItemsByCategoryId(Number(id));
                 }
                 catch (error) {
-                    console.error("Error getting Category items:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting Category items:", error);
                     throw new Error("Error getting Category items.");
                 }
             },
@@ -36,7 +37,8 @@ export const CategoryQuery = extendType({
                     return await categoryService.getCategoryById(Number(id));
                 }
                 catch (error) {
-                    console.error("Error getting category data", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting category data", error);
                     throw new Error("Error getting category data");
                 }
             },
@@ -63,7 +65,8 @@ export const CategoryQuery = extendType({
                     return await categoryService.getAllCategories(query, orderBy, pageSize);
                 }
                 catch (error) {
-                    console.log("Error getting all Categories:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.log("Error getting all Categories:", error);
                     throw new Error("Error getting all Categories.");
                 }
             },

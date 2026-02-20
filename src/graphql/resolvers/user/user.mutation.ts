@@ -15,7 +15,7 @@ export const AuthPayload = objectType({
     t.nonNull.string("refresh_token");
   },
 });
-
+import { prisma } from "../../../lib/prisma.js";
 
 export const userMutation = extendType({
   type: "Mutation",
@@ -83,7 +83,7 @@ export const userMutation = extendType({
         if (!role) {
           role = "STAFF";
         }
-        console.log(role)
+        if (process.env.NODE_ENV === "development") console.log(role)
         if (!fullname || !username || !email || !password) {
           throw new Error(
             "Full name, username, email, and password cannot be empty."
@@ -113,7 +113,7 @@ export const userMutation = extendType({
           });
           return newStaff;
         } catch (error) {
-          console.log("Error creating Staff:", error);
+          if (process.env.NODE_ENV === "development") console.log("Error creating Staff:", error);
           throw new Error("Error Creating staff", error);
         }
       },
@@ -128,7 +128,7 @@ export const userMutation = extendType({
       },
       async resolve(_, { id, fullname, username }, ctx) {
         if (!ctx.user) {
-          console.error("Authentication required");
+          if (process.env.NODE_ENV === "development") console.error("Authentication required");
           throw new Error("Authentication required");
         }
 
@@ -157,7 +157,7 @@ export const userMutation = extendType({
       },
       async resolve(_, { id }, ctx) {
         if (!ctx.user) {
-          console.error("Authentication required");
+          if (process.env.NODE_ENV === "development") console.error("Authentication required");
           throw new Error("Authentication required");
         }
         const userId = parseInt(id);
@@ -176,7 +176,7 @@ export const userMutation = extendType({
         email: nonNull(stringArg()),
         password: nonNull(stringArg()),
       },
-      async resolve(_, { email, password }, {res}) {
+      async resolve(_, { email, password }, { res }) {
         if (!email || !password) {
           throw new Error("Email and Password is Required");
         }
@@ -187,9 +187,27 @@ export const userMutation = extendType({
           }
           return user
         } catch (error) {
-          console.error("Error upon Sign in:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
           throw new Error("Error upon Sign in:", error);
         }
+      },
+    });
+    t.nonNull.field("StaffLogout", {
+      type: "Boolean",
+      async resolve(_, __, ctx) {
+        requireAuth(ctx);
+        const userId = Number(ctx.user.userId);
+        if (process.env.NODE_ENV === "development") console.log("Logging out user with ID:", userId);
+        const exists = await prisma.outletStaff.findFirst({
+          where: { userId }
+        })
+        if (exists) {
+          await prisma.outletStaff.update({
+            where: { userId },
+            data: { isPresent: false },
+          });
+        }
+        return true;
       },
     });
   },

@@ -22,7 +22,7 @@ export const CategoryQuery = extendType({
         try {
           return await categoryService.getItemsByCategoryId(Number(id));
         } catch (error) {
-          console.error("Error getting Category items:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error getting Category items:", error);
           throw new Error("Error getting Category items.");
         }
       },
@@ -40,7 +40,7 @@ export const CategoryQuery = extendType({
         try {
           return await categoryService.getCategoryById(Number(id));
         } catch (error) {
-          console.error("Error getting category data", error);
+          if (process.env.NODE_ENV === "development") console.error("Error getting category data", error);
           throw new Error("Error getting category data");
         }
       },
@@ -49,24 +49,24 @@ export const CategoryQuery = extendType({
     t.nonNull.list.nonNull.field("getAllCategory", {
       type: "Category",
       args: {
-        pageSize: nullable(arg({ type: "Int"})),
+        pageSize: nullable(arg({ type: "Int" })),
         query: nullable(stringArg()),
         orderBy: nullable(stringArg())
       },
-      async resolve(_, { pageSize, query, orderBy}, ctx) {
+      async resolve(_, { pageSize, query, orderBy }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["MANAGER", "ADMIN"]);
         if (!orderBy) {
           orderBy = "desc"
-        if (orderBy !== "asc" && orderBy !=="desc") {
-          throw new Error("Order not valid")
-        }
-        pageSize = pageSize ? pageSize : 50 
+          if (orderBy !== "asc" && orderBy !== "desc") {
+            throw new Error("Order not valid")
+          }
+          pageSize = pageSize ? pageSize : 50
         }
         try {
           return await categoryService.getAllCategories(query, orderBy, pageSize);
         } catch (error) {
-          console.log("Error getting all Categories:", error);
+          if (process.env.NODE_ENV === "development") console.log("Error getting all Categories:", error);
           throw new Error("Error getting all Categories.");
         }
       },

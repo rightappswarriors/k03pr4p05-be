@@ -6,7 +6,8 @@ const return_url = "https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExdjdncms5Yn
  * Create a Payment Method
  */
 export async function createPaymentMethod(billing) {
-    console.log("Create payment method Billing:", billing);
+    if (process.env.NODE_ENV === "development")
+        console.log("Create payment method Billing:", billing);
     try {
         let attributes = {
             type: billing.paymentType,
@@ -27,7 +28,8 @@ export async function createPaymentMethod(billing) {
                 phone: billing.customerDetails?.phoneNumber ?? "0000000000",
             };
         }
-        console.log("Attributes:", attributes);
+        if (process.env.NODE_ENV === "development")
+            console.log("Attributes:", attributes);
         const base64key = Buffer.from(`${billing.secret_key}:`).toString("base64");
         const response = await axios.post(`${API_BASE}/payment_methods`, {
             data: {
@@ -43,7 +45,8 @@ export async function createPaymentMethod(billing) {
         return response.data;
     }
     catch (error) {
-        console.error("Error creating Payment Method:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error creating Payment Method:", error);
         throw new Error("Error creating Payment method.");
     }
 }
@@ -76,7 +79,8 @@ export async function createPaymentIntent(amount, description, secret_key) {
         return response.data;
     }
     catch (error) {
-        console.error("Error creating Payment Intent", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error creating Payment Intent", error);
         throw new Error("Error creating payment Intent");
     }
 }
@@ -104,7 +108,8 @@ export async function attachPaymentIntent(paymentIntentId, paymentMethodId, clie
         return { data: response.data };
     }
     catch (error) {
-        console.error("Error attaching payment intent:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error attaching payment intent:", error);
         throw new Error("Error attaching payment intent.");
     }
 }

@@ -93,7 +93,7 @@ export const TransactionMutation = extendType({
             itemsSold
           );
         } catch (error) {
-          console.error("Error processing transaction:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error processing transaction:", error);
           if (error.message.includes("Insufficient stock")) {
             throw new Error(error.message);
           }
@@ -122,7 +122,7 @@ export const TransactionMutation = extendType({
         try {
           return await transactionService.initiatePayment(fullTransactionData);
         } catch (error) {
-          console.error(`Error upon making transaction through: ${error}`);
+          if (process.env.NODE_ENV === "development") console.error(`Error upon making transaction through: ${error}`);
           throw new Error("Error upon initiating transaction");
         }
       },
@@ -154,11 +154,11 @@ export const TransactionMutation = extendType({
             itemsSold
           );
         } catch (error) {
-          console.error(
-            `Error upon making transaction through ${error}`
+          if (process.env.NODE_ENV === "development") console.error(
+            `Error upon finalizing transaction: ${error}`
           );
           throw new Error(
-            `Error upon making transaction through`
+            `Error upon finalizing transaction: ${error.message || error}`
           );
         }
       },

@@ -22,7 +22,8 @@ export const InventoryQuery = extendType({
                     return inventory;
                 }
                 catch (error) {
-                    console.error("Error getting Inventory:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting Inventory:", error);
                     throw new Error("Failed to get inventory.");
                 }
             },
@@ -45,7 +46,8 @@ export const InventoryQuery = extendType({
                     return inventoryItems;
                 }
                 catch (error) {
-                    console.error("Error getting Inventory Items:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting Inventory Items:", error);
                     throw new Error("Failed to get inventory Items.");
                 }
             }
@@ -64,7 +66,8 @@ export const InventoryQuery = extendType({
                     return await inventoryService.getInventoryItemsByRack(inventoryId, rackName);
                 }
                 catch (error) {
-                    console.error("Error retrieving Inventory:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error retrieving Inventory:", error);
                     throw new Error("Failed to fetch inventory items by rack.");
                 }
             },

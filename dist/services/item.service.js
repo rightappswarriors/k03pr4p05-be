@@ -11,11 +11,13 @@ export const bulkCreateItems = async (data) => {
             data: data,
             skipDuplicates: true,
         });
-        console.log(`Successfully created ${result.count} items.`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Successfully created ${result.count} items.`);
         return result.count;
     }
     catch (error) {
-        console.error("Error with bulk item creation:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error with bulk item creation:", error);
         throw new Error("Failed to create all items.");
     }
 };
@@ -94,7 +96,8 @@ export const updateInventoryItem = async (id, data) => {
         return updated;
     }
     catch (error) {
-        console.error("Error updating inventory item:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error updating inventory item:", error);
         throw new Error("Failed to update inventory item.");
     }
 };
@@ -115,7 +118,8 @@ export const deleteInventoryItem = async (id) => {
         return deleted;
     }
     catch (error) {
-        console.error("Error deleting inventory item:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error deleting inventory item:", error);
         throw new Error("Failed to delete inventory item.");
     }
 };
@@ -151,7 +155,8 @@ export const getInventoryItemsByRack = async (inventoryId) => {
         return groupedByRack;
     }
     catch (error) {
-        console.error("Error fetching inventory items by rack:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error fetching inventory items by rack:", error);
         throw new Error("Failed to fetch inventory items by rack.");
     }
 };

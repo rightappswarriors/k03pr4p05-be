@@ -20,7 +20,7 @@ export const RefreshMutation = extendType({
             where: { id: payload.userId },
           });
         } catch (error) {
-          console.error("Invalid token in me query:", error);
+          if (process.env.NODE_ENV === "development") console.error("Invalid token in me query:", error);
           return null;
         }
       },
@@ -68,7 +68,7 @@ export const RefreshMutation = extendType({
             refresh_token: newRefreshToken,
           };
         } catch (error) {
-          console.error("Error refreshing token", error);
+          if (process.env.NODE_ENV === "development") console.error("Error refreshing token", error);
           throw new Error("Error refreshing token.");
         }
       },

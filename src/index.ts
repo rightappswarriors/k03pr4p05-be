@@ -185,11 +185,12 @@ async function startApolloServer() {
           try {
             user = jwt.verify(token, JWT_SECRET);
           } catch (error) {
+            if (process.env.NODE_ENV === "development") {
             if (error.name === "TokenExpiredError") {
               console.warn("Access token expired");
             } else {
               console.error("JWT verification failed:", error.message);
-            }
+            }}
           }
         }
         // Pass the Prisma Client to the context so it's available in your resolvers
@@ -205,7 +206,7 @@ async function startApolloServer() {
 
   const PORT = 4000;
   app.listen(PORT, () => {
-    console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
+     if (process.env.NODE_ENV === "development") console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
   });
 }
 

@@ -24,14 +24,17 @@ export const processTransaction = async (transactionData, itemsSold) => {
                 id: true,
             },
         });
-        console.log("Inventory Id:", inventory.id);
+        if (process.env.NODE_ENV === "development")
+            console.log("Inventory Id:", inventory.id);
         if (!inventory) {
             throw new Error(`No inventory found for outlet ID: ${transactionData.outletId}`);
         }
         for (const item of itemsSold) {
             // Find the specific InventoryItems record for this item and store.
-            console.log("Inventory Id:", inventory.id);
-            console.log("Item:", item.itemId);
+            if (process.env.NODE_ENV === "development")
+                console.log("Inventory Id:", inventory.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("Item:", item.itemId);
             const inventoryItem = await tx.inventoryItems.findUnique({
                 where: {
                     inventoryId_itemId: {
@@ -47,12 +50,14 @@ export const processTransaction = async (transactionData, itemsSold) => {
             if (!inventoryItem) {
                 throw new Error(`No inventory item found for item ID: ${item.itemId} in inventory ID: ${inventory.id}`);
             }
-            console.log("InventoryItems Id:", inventoryItem.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("InventoryItems Id:", inventoryItem.id);
             //if (!inventoryItem || inventoryItem.quantity < item.quantity) {
             //  throw new Error(`Insufficient stock for item ID: ${item.itemId}`);
             //}
             // Decrement the quantity.
-            console.log("InventoryItems Id:", inventoryItem.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("InventoryItems Id:", inventoryItem.id);
             if (!inventory) {
                 throw new Error(`No Inventory Item found: ${item.id}`);
             }
@@ -85,7 +90,8 @@ export const processTransaction = async (transactionData, itemsSold) => {
                 items: true, // Include the CartItems in the response
             },
         });
-        console.log(newTransaction);
+        if (process.env.NODE_ENV === "development")
+            console.log(newTransaction);
         return newTransaction;
     });
 };
@@ -129,7 +135,8 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
     return prisma.$transaction(async (tx) => {
         // 1. Deduct items from the inventory.
         // We'll iterate through each item and decrement the quantity.
-        console.log("Transaction data", transactionDatas);
+        if (process.env.NODE_ENV === "development")
+            console.log("Transaction data", transactionDatas);
         const inventory = await tx.inventory.findUnique({
             where: {
                 outletId: transactionDatas.transactionData.outletId,
@@ -138,14 +145,17 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
                 id: true,
             },
         });
-        console.log("Inventory Id:", inventory.id);
+        if (process.env.NODE_ENV === "development")
+            console.log("Inventory Id:", inventory.id);
         if (!inventory) {
             throw new Error(`No inventory found for outlet ID: ${transactionDatas.transactionData.outletId}`);
         }
         for (const item of itemsSold) {
             // Find the specific InventoryItems record for this item and store.
-            console.log("Inventory Id:", inventory.id);
-            console.log("Item:", item.itemId);
+            if (process.env.NODE_ENV === "development")
+                console.log("Inventory Id:", inventory.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("Item:", item.itemId);
             const inventoryItem = await tx.inventoryItems.findUnique({
                 where: {
                     inventoryId_itemId: {
@@ -161,12 +171,14 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
             if (!inventoryItem) {
                 throw new Error(`No inventory item found for item ID: ${item.itemId} in inventory ID: ${inventory.id}`);
             }
-            console.log("InventoryItems Id:", inventoryItem.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("InventoryItems Id:", inventoryItem.id);
             //if (!inventoryItem || inventoryItem.quantity < item.quantity) {
             //  throw new Error(`Insufficient stock for item ID: ${item.itemId}`);
             //}
             // Decrement the quantity.
-            console.log("InventoryItems Id:", inventoryItem.id);
+            if (process.env.NODE_ENV === "development")
+                console.log("InventoryItems Id:", inventoryItem.id);
             if (!inventory) {
                 throw new Error(`No Inventory Item found: ${item.id}`);
             } /*
@@ -213,7 +225,8 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
                 items: true, // Include the CartItems in the response
             },
         });
-        console.log(newTransaction);
+        if (process.env.NODE_ENV === "development")
+            console.log(newTransaction);
         return newTransaction;
     });
 };
@@ -262,6 +275,7 @@ export const initiatePayment = async (transactionData) => {
         };
     }
     catch (error) {
-        console.error("Error initiating the transaction: async initiatePayment:", error);
+        if (process.env.NODE_ENV === "development")
+            console.error("Error initiating the transaction: async initiatePayment:", error);
     }
 };

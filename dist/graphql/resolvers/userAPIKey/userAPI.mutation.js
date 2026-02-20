@@ -21,7 +21,8 @@ export const ApiMutation = extendType({
                     return await userAPIKey.createPaymongoAPIKey(Number(userId), { public_key, secret_key });
                 }
                 catch (error) {
-                    console.error("Error saving your API keys");
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error saving your API keys");
                     throw new Error("Error saving your API keys");
                 }
             }
@@ -43,7 +44,8 @@ export const ApiMutation = extendType({
                     return await userAPIKey.updateAPIKeyByUserId(Number(userId), { public_key, secret_key });
                 }
                 catch (error) {
-                    console.error("Error updating your API keys");
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error updating your API keys");
                     throw new Error("Error updating your API keys");
                 }
             }

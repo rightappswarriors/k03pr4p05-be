@@ -96,3 +96,22 @@ export const deleteBranch = async (id) => {
     where: { id },
   });
 };
+
+
+
+export const getBranchTransactions = async (branchId: number) => {
+
+  return await prisma.transaction.findMany({
+    where: {
+      outlet: {
+        branchId: branchId
+      }
+    },
+    select : {
+      id: true,
+      createdAt: true,
+      total: true,
+      status: true,
+    }
+  })
+}

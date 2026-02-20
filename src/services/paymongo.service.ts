@@ -9,20 +9,20 @@ const return_url =
  * Create a Payment Method
  */
 export async function createPaymentMethod(billing: any) {
-  console.log("Create payment method Billing:", billing)
+  if (process.env.NODE_ENV === "development") console.log("Create payment method Billing:", billing)
   try {
     let attributes: any = {
       type: billing.paymentType,
     }
 
-    if (billing.paymentType === "card"){
-        attributes.details = {
-          card_number: decrypt(billing.customerDetails.card_number),
-          cvc: decrypt(billing.customerDetails.cvc),
-          exp_month: billing.customerDetails.exp_month,
-          exp_year: billing.customerDetails.exp_year,
-          bank_code: billing.customerDetails.bank_code,
-        }
+    if (billing.paymentType === "card") {
+      attributes.details = {
+        card_number: decrypt(billing.customerDetails.card_number),
+        cvc: decrypt(billing.customerDetails.cvc),
+        exp_month: billing.customerDetails.exp_month,
+        exp_year: billing.customerDetails.exp_year,
+        bank_code: billing.customerDetails.bank_code,
+      }
     } else if (billing.paymentType === "gcash" || billing.paymentType === "paymaya") {
       attributes.billing = {
         name: billing.customerDetails?.fullname ?? "N/A",
@@ -30,7 +30,7 @@ export async function createPaymentMethod(billing: any) {
         phone: billing.customerDetails?.phoneNumber ?? "0000000000",
       }
     }
-    console.log("Attributes:", attributes)
+    if (process.env.NODE_ENV === "development") console.log("Attributes:", attributes)
     const base64key = Buffer.from(`${billing.secret_key}:`).toString("base64");
     const response = await axios.post(
       `${API_BASE}/payment_methods`,
@@ -49,7 +49,7 @@ export async function createPaymentMethod(billing: any) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error creating Payment Method:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error creating Payment Method:", error);
     throw new Error("Error creating Payment method.");
   }
 }
@@ -87,7 +87,7 @@ export async function createPaymentIntent(amount, description, secret_key) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error creating Payment Intent", error);
+     if (process.env.NODE_ENV === "development") console.error("Error creating Payment Intent", error);
     throw new Error("Error creating payment Intent");
   }
 }
@@ -124,7 +124,7 @@ export async function attachPaymentIntent(
     );
     return { data: response.data };
   } catch (error) {
-    console.error("Error attaching payment intent:", error);
+     if (process.env.NODE_ENV === "development") console.error("Error attaching payment intent:", error);
     throw new Error("Error attaching payment intent.");
   }
 }

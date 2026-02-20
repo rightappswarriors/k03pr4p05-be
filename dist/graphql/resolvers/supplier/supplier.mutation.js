@@ -24,7 +24,8 @@ export const SupplierMutation = extendType({
                     return await supplierService.createSupplier(args);
                 }
                 catch (error) {
-                    console.error("Error creating supplier:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error creating supplier:", error);
                     throw new Error("Failed to create supplier.");
                 }
             },
@@ -49,7 +50,8 @@ export const SupplierMutation = extendType({
                     return await supplierService.updateSupplier(id, data);
                 }
                 catch (error) {
-                    console.error("Error updating supplier:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error updating supplier:", error);
                     throw new Error("Failed to update supplier.");
                 }
             },
@@ -68,7 +70,8 @@ export const SupplierMutation = extendType({
                     if (error.code === "P2025") {
                         throw new Error("Supplier not found.");
                     }
-                    console.error("Error deleting supplier:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error deleting supplier:", error);
                     throw new Error("Failed to delete supplier.");
                 }
             },

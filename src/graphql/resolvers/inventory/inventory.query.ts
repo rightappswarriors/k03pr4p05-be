@@ -1,5 +1,5 @@
 import { extendType, nonNull, intArg, stringArg, arg } from "nexus";
-import { requireAuth,requireOwnership, requireRole } from "../../../middleware/auth.middleware.js";
+import { requireAuth, requireOwnership, requireRole } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
 
 export const InventoryQuery = extendType({
@@ -9,20 +9,20 @@ export const InventoryQuery = extendType({
     t.field("getInventoryByOutletId", {
       type: "Inventory",
       args: {
-          outletId: nonNull(intArg()),
+        outletId: nonNull(intArg()),
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER"]);
         await requireOwnership(ctx, "Outlet", outletId)
         try {
-          const inventory= await inventoryService.getInventoryByOutletId(Number(outletId));
+          const inventory = await inventoryService.getInventoryByOutletId(Number(outletId));
           if (!inventory) {
             throw new Error("Error getting inventory by Outlet")
           }
           return inventory
         } catch (error) {
-          console.error("Error getting Inventory:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error getting Inventory:", error);
           throw new Error("Failed to get inventory.");
         }
       },
@@ -31,9 +31,9 @@ export const InventoryQuery = extendType({
     t.nonNull.list.nullable.field("getInventoryItemByOutletId", {
       type: "InventoryItems",
       args: {
-        outletId: nonNull(arg({type: "ID"}))
+        outletId: nonNull(arg({ type: "ID" }))
       },
-      async resolve(_, { outletId}, ctx) {
+      async resolve(_, { outletId }, ctx) {
         requireAuth(ctx)
         requireRole(ctx, ["ADMIN", "MANAGER"])
         await requireOwnership(ctx, "outlet", outletId)
@@ -44,8 +44,8 @@ export const InventoryQuery = extendType({
           }
           return inventoryItems
         } catch (error) {
-          console.error("Error getting Inventory Items:", error);
-          throw new Error("Failed to get inventory Items.");  
+          if (process.env.NODE_ENV === "development") console.error("Error getting Inventory Items:", error);
+          throw new Error("Failed to get inventory Items.");
         }
       }
     })
@@ -67,7 +67,7 @@ export const InventoryQuery = extendType({
             rackName
           );
         } catch (error) {
-          console.error("Error retrieving Inventory:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error retrieving Inventory:", error);
           throw new Error("Failed to fetch inventory items by rack.");
         }
       },

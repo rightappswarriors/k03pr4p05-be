@@ -87,7 +87,7 @@ export const ItemMutation = extendType({
           const createdItems = await itemService.bulkCreateItems(items);
           return createdItems;
         } catch (error) {
-          console.error("❌ Error creating items:", error);
+          if (process.env.NODE_ENV === "development") console.error("❌ Error creating items:", error);
           throw new Error(
             "An internal server error occurred while creating items."
           );
@@ -113,12 +113,12 @@ export const ItemMutation = extendType({
         }
         try {
           const updatedItem = await itemService.updateItem(Number(id), item);
-          if(!updatedItem) {
+          if (!updatedItem) {
             throw new Error("Item not found")
           }
           return updatedItem
         } catch (error) {
-          console.error("Error updating item", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating item", error);
           throw new Error("Error updating item");
         }
       },
@@ -138,7 +138,7 @@ export const ItemMutation = extendType({
             }
             return deletedItem
           } catch (error) {
-            console.error("Error deleting item", error);
+            if (process.env.NODE_ENV === "development") console.error("Error deleting item", error);
             throw new Error("Error deleting item");
           }
         },
@@ -168,7 +168,7 @@ export const ItemMutation = extendType({
         try {
           return await itemService.createOrUpdateMultipleInventoryItems(items);
         } catch (error) {
-          console.error("Error in bulkCreateInventoryItems:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error in bulkCreateInventoryItems:", error);
           throw new Error("An internal server error occurred.");
         }
       },
@@ -192,7 +192,7 @@ export const ItemMutation = extendType({
         try {
           return await itemService.updateInventoryItem(id, data);
         } catch (error) {
-          console.error("Error updating inventory item:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating inventory item:", error);
           throw new Error("Error updating inventory item.");
         }
       },
@@ -211,7 +211,7 @@ export const ItemMutation = extendType({
         try {
           return await itemService.deleteInventoryItem(id);
         } catch (error) {
-          console.error("Error deleting inventory item:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error deleting inventory item:", error);
           throw new Error("Error deleting inventory item.");
         }
       },

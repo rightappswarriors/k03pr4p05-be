@@ -244,6 +244,7 @@ type ModeOfPayment {
 
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
+  StaffLogout: Boolean!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
@@ -401,6 +402,7 @@ type Query {
   getAllStaffs: [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
+  getBranchTransactions(id: ID!): [Transaction!]!
   getCategoryById(id: ID!): Category!
   getCategoryItems(id: ID!): [Item!]!
   getInventoryByOutletId(outletId: Int!): Inventory
@@ -411,8 +413,10 @@ type Query {
   getOutletById(id: ID!): Outlet
   getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
+  getOutletTransactions(outletId: ID!): [Transaction!]!
   getOutletsByBranch(branchId: ID!): [Outlet!]!
   getOwnedBranches: [Branch!]!
+  getStaffByOutletId(outletId: ID!): [User!]!
   getSupplierById(id: Int!): Supplier
   getSuppliers: [Supplier]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!

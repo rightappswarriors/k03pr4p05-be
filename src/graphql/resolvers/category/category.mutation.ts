@@ -33,7 +33,7 @@ export const categoryMutation = extendType({
           if (error.code === "P2002") {
             throw new Error("One or more categories already exist.");
           }
-          console.error("Error creating categories:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error creating categories:", error);
           throw new Error("Error creating categories.");
         }
       },
@@ -55,7 +55,7 @@ export const categoryMutation = extendType({
           }
           return category
         } catch (error) {
-          console.error("Error updating Category", error);
+          if (process.env.NODE_ENV === "development") console.error("Error updating Category", error);
           throw new Error("Error updating Category")
         }
       },
@@ -71,12 +71,12 @@ export const categoryMutation = extendType({
         requireRole(ctx, ["ADMIN"]);
         try {
           const category = await categoryService.deleteCategory(Number(id));
-          if (!category){ 
+          if (!category) {
             throw new Error("Error Deleting Category: Category not found")
           }
           return category
         } catch (error) {
-          console.error("Error Deleting Category:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error Deleting Category:", error);
           throw new Error("Error Deleting Category");
         }
       },

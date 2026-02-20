@@ -8,14 +8,14 @@ import {
 
 export const ApiMutation = extendType({
   type: "Mutation",
-  definition(t){
+  definition(t) {
     t.nonNull.field("createAPIKey", {
       type: "PaymongoAPIKeys",
       args: {
         public_key: nonNull(stringArg()),
         secret_key: nonNull(stringArg())
       },
-      resolve: async (_, {public_key, secret_key}, ctx)=>{
+      resolve: async (_, { public_key, secret_key }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ["ADMIN"])
         if (!public_key || !secret_key) {
@@ -23,21 +23,21 @@ export const ApiMutation = extendType({
         }
         try {
           const userId = ctx.user.userId
-          return await userAPIKey.createPaymongoAPIKey(Number(userId), {public_key, secret_key})
+          return await userAPIKey.createPaymongoAPIKey(Number(userId), { public_key, secret_key })
         } catch (error) {
-          console.error("Error saving your API keys")
+          if (process.env.NODE_ENV === "development") console.error("Error saving your API keys")
           throw new Error("Error saving your API keys")
         }
       }
     })
-    
+
     t.nonNull.field("updateAPIKey", {
       type: "PaymongoAPIKeys",
       args: {
         public_key: nullable(stringArg()),
         secret_key: nullable(stringArg())
       },
-      resolve: async (_, {public_key, secret_key}, ctx)=>{
+      resolve: async (_, { public_key, secret_key }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ["ADMIN"])
         if (!public_key && !secret_key) {
@@ -45,9 +45,9 @@ export const ApiMutation = extendType({
         }
         try {
           const userId = ctx.user.userId
-          return await userAPIKey.updateAPIKeyByUserId(Number(userId), {public_key, secret_key})
+          return await userAPIKey.updateAPIKeyByUserId(Number(userId), { public_key, secret_key })
         } catch (error) {
-          console.error("Error updating your API keys")
+          if (process.env.NODE_ENV === "development") console.error("Error updating your API keys")
           throw new Error("Error updating your API keys")
         }
       }

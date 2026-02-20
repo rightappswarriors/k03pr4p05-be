@@ -1,4 +1,6 @@
+import { PaymentMethod } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { InventoryItems } from '../graphql/typeDefs/inventoryItems.type.js';
 
 /**
  * @description
@@ -56,7 +58,7 @@ export const addStaffToOutlet = async (outletId, userId, role) => {
       },
     });
 
-    const newOutletStaff = await prisma.outlet.findFirst({
+    const outletWithStaff = await prisma.outlet.findFirst({
       where: { id: outletId },
       select: {
         id: true,
@@ -77,10 +79,10 @@ export const addStaffToOutlet = async (outletId, userId, role) => {
       },
     });
 
-    return newOutletStaff;
+    return { ...outletWithStaff, staff: outletWithStaff.staff.map(s => s.user), };
   } catch (error) {
     // You should add more specific error handling here, e.g., for duplicate entries.
-    console.error("Error adding staff to outlet:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error adding staff to outlet:", error);
     throw error;
   }
 };
@@ -135,7 +137,7 @@ export const addStaffsToOutlet = async (outletId, users) => {
     },
   });
 
-  return newOutletStaffs;
+  return { ...newOutletStaffs, staff: newOutletStaffs.staff.map(s => s.user), };;
 };
 
 /**
@@ -155,7 +157,7 @@ export const removeStaffsFromOutlet = async (outletId, userIds) => {
     });
     return result;
   } catch (error) {
-    console.error("Error removing staff from outlet:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error removing staff from outlet:", error);
     throw new Error("Failed to remove staff from the outlet.");
   }
 };
@@ -244,7 +246,7 @@ export const getOutletStaffs = async (outletId: number) => {
     return staffs.map((staff) => staff.user);
   } catch (error) {
     // Log the error for internal debugging
-    console.error("Error fetching outlet staffs:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error fetching outlet staffs:", error);
     // Rethrow the error to be handled by the controller
     throw new Error("Failed to retrieve outlet staff.");
   }
@@ -317,7 +319,7 @@ export const updateOutlet = async (id, outletData) => {
     where: { id }, // Corrected to use a unique 'id'
     data: outletData,
   });
-  console.log("Updated Data:", updatedOutlet);
+  if (process.env.NODE_ENV === "development") console.log("Updated Data:", updatedOutlet);
   return updatedOutlet;
 };
 
@@ -332,3 +334,47 @@ export const deleteOutlet = async (id) => {
     where: { id },
   });
 };
+
+
+export const getOutletTransactions = async (outletId: number) => {
+
+  return await prisma.transaction.findMany({
+    where: {
+      outletId: outletId
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      total: true,
+      status: true,
+      subtotal: true,
+      cashierId: true,
+      paymentMethod: true,
+      cashReceived: true,
+      items: {
+        select: {
+          quantity: true,
+          item: {
+            select: {
+              name: true,
+              InventoryItems: {
+                select: {
+                  price: true,
+                }
+              }
+            }
+          },
+
+        }
+      },
+      cashier: {
+        select: {
+          id: true,
+          fullname: true,
+          email: true,
+          role: true,
+        }
+      }
+    }
+  })
+}

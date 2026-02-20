@@ -168,11 +168,13 @@ async function startApolloServer() {
                     user = jwt.verify(token, JWT_SECRET);
                 }
                 catch (error) {
-                    if (error.name === "TokenExpiredError") {
-                        console.warn("Access token expired");
-                    }
-                    else {
-                        console.error("JWT verification failed:", error.message);
+                    if (process.env.NODE_ENV === "development") {
+                        if (error.name === "TokenExpiredError") {
+                            console.warn("Access token expired");
+                        }
+                        else {
+                            console.error("JWT verification failed:", error.message);
+                        }
                     }
                 }
             }
@@ -187,7 +189,8 @@ async function startApolloServer() {
     }));
     const PORT = 4000;
     app.listen(PORT, () => {
-        console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
     });
 }
 startApolloServer();

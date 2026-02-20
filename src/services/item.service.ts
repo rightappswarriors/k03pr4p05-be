@@ -7,16 +7,16 @@ import { prisma } from '../lib/prisma.js';
  * @param {Array<object>} data - An array of item objects to create.
  * @returns {Promise<int>} An object containing the count of created items.
  */
-export const bulkCreateItems = async (data) => {
-    try {
+export const bulkCreateItems = async (data: any) => {
+  try {
     const result = await prisma.item.createMany({
       data: data,
       skipDuplicates: true,
     });
-    console.log(`Successfully created ${result.count} items.`);
+    if (process.env.NODE_ENV === "development") console.log(`Successfully created ${result.count} items.`);
     return result.count;
   } catch (error) {
-    console.error("Error with bulk item creation:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error with bulk item creation:", error);
     throw new Error("Failed to create all items.");
   }
 };
@@ -99,7 +99,7 @@ export const updateInventoryItem = async (id, data) => {
     });
     return updated;
   } catch (error) {
-    console.error("Error updating inventory item:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error updating inventory item:", error);
     throw new Error("Failed to update inventory item.");
   }
 };
@@ -120,7 +120,7 @@ export const deleteInventoryItem = async (id) => {
     });
     return deleted;
   } catch (error) {
-    console.error("Error deleting inventory item:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error deleting inventory item:", error);
     throw new Error("Failed to delete inventory item.");
   }
 };
@@ -157,32 +157,32 @@ export const getInventoryItemsByRack = async (inventoryId) => {
 
     return groupedByRack;
   } catch (error) {
-    console.error("Error fetching inventory items by rack:", error);
+    if (process.env.NODE_ENV === "development") console.error("Error fetching inventory items by rack:", error);
     throw new Error("Failed to fetch inventory items by rack.");
   }
 };
-export const getItemById = async(id) => {
+export const getItemById = async (id) => {
   return prisma.item.findUnique({
-    where: { id: id}
+    where: { id: id }
   })
 }
 export const updateItem = async (id, data) => {
   return prisma.item.update({
-    where: {id},
+    where: { id },
     data: data
   })
 }
 export const deleteItem = async (id) => {
   return prisma.item.delete({
-    where: {id: id}
+    where: { id: id }
   })
 }
-export const getItems = async(query, size, orderBy) => {
+export const getItems = async (query, size, orderBy) => {
 
   return prisma.item.findMany({
-    where: query ? { name: { contains: query, mode: "insensitive"}}: {},
+    where: query ? { name: { contains: query, mode: "insensitive" } } : {},
     take: size,
-    orderBy: { name: orderBy}
-  }) 
+    orderBy: { name: orderBy }
+  })
 
 }

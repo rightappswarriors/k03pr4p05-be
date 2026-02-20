@@ -36,7 +36,8 @@ export const ItemQuery = extendType({
                     return items;
                 }
                 catch (error) {
-                    console.error("Error querying items", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error querying items", error);
                     throw new Error("Error getting items");
                 }
             }
@@ -57,7 +58,8 @@ export const ItemQuery = extendType({
                         return item;
                     }
                     catch (error) {
-                        console.error("Error getting Item:", error);
+                        if (process.env.NODE_ENV === "development")
+                            console.error("Error getting Item:", error);
                         throw new Error("Error getting Item.");
                     }
                 }
