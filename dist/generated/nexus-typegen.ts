@@ -240,6 +240,7 @@ export interface NexusGenObjects {
     branchId: number; // Int!
     code?: string | null; // String
     governmentTax?: number | null; // Float
+    hasKey?: boolean | null; // Boolean
     id: number; // Int!
     isActive?: boolean | null; // Boolean
     items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
@@ -438,6 +439,7 @@ export interface NexusGenFieldTypes {
     createStaff: NexusGenRootTypes['User']; // User!
     createSupplier: NexusGenRootTypes['Supplier'] | null; // Supplier
     createTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
+    deleteAPIKEY: boolean; // Boolean!
     deleteBranch: NexusGenRootTypes['Branch']; // Branch!
     deleteCategory: NexusGenRootTypes['Category']; // Category!
     deleteInventory: boolean | null; // Boolean
@@ -510,6 +512,7 @@ export interface NexusGenFieldTypes {
     branchId: number; // Int!
     code: string | null; // String
     governmentTax: number | null; // Float
+    hasKey: boolean | null; // Boolean
     id: number; // Int!
     isActive: boolean | null; // Boolean
     items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
@@ -741,6 +744,7 @@ export interface NexusGenFieldTypeNames {
     createStaff: 'User'
     createSupplier: 'Supplier'
     createTransaction: 'Transaction'
+    deleteAPIKEY: 'Boolean'
     deleteBranch: 'Branch'
     deleteCategory: 'Category'
     deleteInventory: 'Boolean'
@@ -813,6 +817,7 @@ export interface NexusGenFieldTypeNames {
     branchId: 'Int'
     code: 'String'
     governmentTax: 'Float'
+    hasKey: 'Boolean'
     id: 'Int'
     isActive: 'Boolean'
     items: 'InventoryItems'
@@ -1015,6 +1020,9 @@ export interface NexusGenArgTypes {
       subtotal: number; // Float!
       total: number; // Float!
       vatAmount: number; // Float!
+    }
+    deleteAPIKEY: { // args
+      apiKeyId: string; // ID!
     }
     deleteBranch: { // args
       id: string; // ID!

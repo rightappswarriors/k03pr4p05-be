@@ -247,31 +247,33 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
 export const initiatePayment = async (transactionData) => {
   try {
 
-    const outletOwner = await prisma.outlet.findUnique({
-      where: { id: transactionData.outletId },
+    const outlet = await prisma.outlet.findUnique({
+      where: {
+        id: transactionData.outletId
+      },
       select: {
         name: true,
-        branch: {
-          select: {
-            owner: {
-              select: {
-                paymongoAPIKeys: {
-                  select: {
-                    secret_key: true,
-                    public_key: true,
-                  },
-                },
-              },
-            },
-          },
-        },
+        id: true,
+        apiKeyId: true,
+      }
+    })
+    if (!outlet) {
+      throw new Error("Outlet not found")
+    }
+    const APIKEYS = await prisma.PaymongoAPIKeys.findUnique({
+      where: {
+        id: outlet.apiKeyId
       },
-    });
+      select: {
+        public_key: true,
+        secret_key: true
+      }
+    })
     const secret_key = decrypt(
-      outletOwner.branch.owner.paymongoAPIKeys.secret_key
+      APIKEYS.secret_key
     );
     const public_key = decrypt(
-      outletOwner.branch.owner.paymongoAPIKeys.secret_key
+      APIKEYS.secret_key
     );
     const paymentMethodData = await paymongoService.createPaymentMethod({
       paymentType: transactionData.paymentType,
@@ -279,7 +281,7 @@ export const initiatePayment = async (transactionData) => {
       customerDetails: transactionData.customerDetails,
     });
 
-    const description = `${outletOwner.name} - POS ${transactionData.paymentType
+    const description = `${outlet.name} - POS ${transactionData.paymentType
       } Payment (${new Date().toLocaleDateString()})`;
 
     const paymentIntentData = await paymongoService.createPaymentIntent(

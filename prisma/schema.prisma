@@ -76,7 +76,7 @@ model Outlet {
   branchId              Int
   ownerId               Int
   apiKeyId              Int?
-  apiKey                PaymongoAPIKeys? @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
+  apiKey                PaymongoAPIKeys? @relation("OutletApiKeys", fields: [apiKeyId], references: [id], onDelete: SetNull)
   hasKey                Boolean          @default(false)
   inventory             Inventory?
   branch                Branch           @relation(fields: [branchId], references: [id])

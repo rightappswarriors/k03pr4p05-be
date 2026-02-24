@@ -1,6 +1,6 @@
 import { extendType, nonNull, stringArg, nullable, arg } from "nexus";
 import * as userAPIKey from "../../../services/userAPI.service.js";
-import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+import { requireAuth, requireOwnership, requireRole, } from "../../../middleware/auth.middleware.js";
 export const ApiMutation = extendType({
     type: "Mutation",
     definition(t) {
@@ -50,6 +50,28 @@ export const ApiMutation = extendType({
                 }
             }
         });
+        t.nonNull.field("deleteAPIKEY", {
+            type: "Boolean",
+            args: {
+                apiKeyId: nonNull(arg({ type: "ID" }))
+            },
+            resolve: async (_, { apiKeyId }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
+                if (!apiKeyId) {
+                    throw new Error("Required fields at least APIKEYID field");
+                }
+                requireOwnership(ctx, "PaymongoAPIKeys", apiKeyId);
+                try {
+                    return await userAPIKey.deleteAPI(Number(apiKeyId));
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error deleting your API keys");
+                    throw new Error("Error deleting your API keys");
+                }
+            }
+        });
         t.nonNull.field("addAPIKeysToOutlet", {
             type: "Boolean",
             args: {
@@ -84,6 +106,7 @@ export const ApiMutation = extendType({
                     throw new Error("Please select an outlet");
                 }
                 try {
+                    await userAPIKey.clearApiToOutlet(Number(outletId));
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")

@@ -62,6 +62,28 @@ export const getUserAPIKeyByUserId = async (id) => {
         secret_key: decrypt(userKey.secret_key)
     };
 };
+export const deleteAPI = async (id) => {
+    return await prisma.$transaction(async (tx) => {
+        const apiKey = await prisma.paymongoAPIKeys.findFirst({
+            where: { id: id },
+        });
+        if (!apiKey) {
+            throw new Error("APIKEY not found");
+        }
+        await prisma.outlet.findMany({
+            where: {
+                apiKeyId: id
+            },
+            data: {
+                haskey: false
+            }
+        });
+        await prisma.paymongoAPIKeys.delete({
+            where: { id: id }
+        });
+        return true;
+    });
+};
 export const addingAPIKeyToOutlet = async (outletId, apiKeyId) => {
     const outlet = prisma.outletId.findFirst({
         where: { id: outletId },
@@ -82,7 +104,7 @@ export const addingAPIKeyToOutlet = async (outletId, apiKeyId) => {
     return true;
 };
 export const clearApiToOutlet = async (outletId) => {
-    const outlet = prisma.outletId.findFirst({
+    const outlet = await prisma.outlet.findFirst({
         where: { id: outletId },
         select: {
             id: true
@@ -94,8 +116,8 @@ export const clearApiToOutlet = async (outletId) => {
     await prisma.outlet.update({
         where: { id: outletId },
         data: {
-            apiKeyId: "",
-            haskeyFalse: false
+            apiKeyId: null,
+            haskey: false
         }
     });
     return true;

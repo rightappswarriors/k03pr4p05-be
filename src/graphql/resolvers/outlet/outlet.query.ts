@@ -18,6 +18,7 @@ export const OutletWithItems = objectType({
     t.float("governmentTax");
     t.float("serviceCharge");
     t.boolean("isActive");
+    t.boolean("hasKey")
     t.string("outletType");
     t.nonNull.list.nonNull.field("items", { type: "InventoryItems" });
   },

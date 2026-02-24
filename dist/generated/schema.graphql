@@ -259,6 +259,7 @@ type Mutation {
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   createSupplier(address: String, contactName: String!, contactNumber: String!, faxNumber: String, name: String!, tinNumber: String, zipCode: String): Supplier
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  deleteAPIKEY(apiKeyId: ID!): Boolean!
   deleteBranch(id: ID!): Branch!
   deleteCategory(id: ID!): Category!
   deleteInventory(id: Int!): Boolean
@@ -352,6 +353,7 @@ type OutletWithItems {
   branchId: Int!
   code: String
   governmentTax: Float
+  hasKey: Boolean
   id: Int!
   isActive: Boolean
   items: [InventoryItems!]!
