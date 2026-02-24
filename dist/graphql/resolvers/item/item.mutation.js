@@ -61,7 +61,7 @@ export const update = inputObjectType({
 export const ItemMutation = extendType({
     type: "Mutation",
     definition(t) {
-        t.nonNull.list.nonNull.field("createItems", {
+        t.nonNull.field("createItems", {
             type: "BatchPayload",
             args: {
                 items: nonNull(list(nonNull(arg({ type: "CreateItemInput" })))),
@@ -74,7 +74,7 @@ export const ItemMutation = extendType({
                 }
                 try {
                     const createdItems = await itemService.bulkCreateItems(items);
-                    return createdItems;
+                    return { count: createdItems };
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")

@@ -5,6 +5,10 @@ export const OutletType = enumType({
   members: ["retail", "wholesale", "service"],
 });
 
+export const OutletStatus = enumType({
+  name: "OutletStatus",
+  members: ["open", "closed", "maintainance"]
+})
 export const Outlet = objectType({
   name: "Outlet",
   definition(t) {
@@ -14,6 +18,7 @@ export const Outlet = objectType({
     t.nonNull.string("code");
     t.nonNull.string("phone");
     t.nullable.int("nextTransactionNumber");
+    t.nullable.field("status", { type: "OutletStatus" })
     t.nullable.float("governmentTax");
     t.nullable.float("serviceCharge");
     t.nonNull.field("outletType", { type: "OutletType" });
@@ -21,6 +26,7 @@ export const Outlet = objectType({
     t.nullable.string("wifiSSID");
     t.nonNull.boolean("isActive");
     t.nonNull.int("ownerId");
+    t.nullable.boolean("hasKey");
     t.nonNull.field("owner", {
       type: "User",
       resolve: (parent, _, ctx) => {
@@ -38,12 +44,12 @@ export const Outlet = objectType({
           .branch();
       },
     });
-    t.nonNull.list.nonNull.field("staffs", {
+    t.nonNull.list.nonNull.field("staff", {
       type: "OutletStaff",
       resolve: (parent, _, ctx) => {
         return ctx.prisma.outlet
           .findUnique({ where: { id: parent.id } })
-          .staffs();
+          .staff();
       },
     });
     t.nullable.field("inventory", {
@@ -57,9 +63,16 @@ export const Outlet = objectType({
     t.nonNull.list.nonNull.field("transactions", {
       type: "Transaction",
       resolve: (parent, _, ctx) => {
-        return ctx.prisma.outlet
-          .findMany({ where: { id: parent.id } });
+        return ctx.prisma.outlet //findMany -> unique
+          .findUnique({ where: { id: parent.id } }).transactions();
       },
     });
+    t.nullable.int("apiKeyId"),
+      t.nullable.field("apiKey", {
+        type: "PaymongoAPIKeys",
+        resolve: (parent, _, ctx) => {
+          return ctx.prisma.outlet.findUnique({ where: parent.id }).apiKeyId()
+        }
+      })
   },
 });

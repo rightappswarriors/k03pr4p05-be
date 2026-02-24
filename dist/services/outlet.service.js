@@ -175,6 +175,7 @@ export const getOutletsByBranchId = async (branchId) => {
             outletType: true,
             wifiSSID: true,
             branchId: true,
+            createdAt: true,
             owner: {
                 select: {
                     fullname: true,
@@ -183,6 +184,7 @@ export const getOutletsByBranchId = async (branchId) => {
                     role: true,
                 },
             },
+            staff: true,
             branch: true,
             //devices: true,
             //      inventory: true,
@@ -359,4 +361,23 @@ export const getOutletTransactions = async (outletId) => {
             }
         }
     });
+};
+export const getPresentStaffs = async (outletId) => {
+    const staffs = await prisma.outletStaff.findMany({
+        where: { outletId: outletId, isPresent: true },
+        select: {
+            outletId: true,
+            id: true,
+            outlet: true,
+            user: {
+                select: {
+                    id: true,
+                    fullname: true,
+                    email: true,
+                    role: true,
+                }
+            }
+        }
+    });
+    return staffs;
 };

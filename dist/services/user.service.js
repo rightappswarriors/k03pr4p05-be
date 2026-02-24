@@ -225,27 +225,20 @@ export const deleteUser = async (id) => {
     });
 };
 export const getStaffByOutletId = async (outletId) => {
-    const outlet = await prisma.outlet.findMany({
-        where: { id: outletId },
-        select: {
-            staff: {
-                select: {
-                    user: {
-                        select: {
-                            fullname: true,
-                            email: true,
-                            role: true,
-                            contactNumber: true,
-                        }
-                    }
-                }
-            }
-        }
+    const staffs = await prisma.outletStaff.findMany({
+        where: { outletId },
+        include: { user: true }
     });
-    if (!outlet || outlet.length === 0) {
+    if (!staffs || staffs.length === 0) {
         return [];
     }
-    const users = outlet[0].staff.map(s => s.user);
-    console.log("Users by outlet id:", users);
-    return users;
+    console.log("Users staff by outlet id:", staffs);
+    return staffs
+        .filter(s => s.user) // make sure user is not null
+        .map(s => ({
+        id: s.id,
+        outletId: s.outletId,
+        isPresent: s.isPresent,
+        user: s.user
+    }));
 };

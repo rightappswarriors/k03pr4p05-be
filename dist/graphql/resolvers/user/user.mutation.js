@@ -187,11 +187,13 @@ export const userMutation = extendType({
                 if (process.env.NODE_ENV === "development")
                     console.log("Logging out user with ID:", userId);
                 const exists = await prisma.outletStaff.findFirst({
-                    where: { userId }
+                    where: { userId: userId }
                 });
                 if (exists) {
+                    if (process.env.NODE_ENV === "development")
+                        console.log("User is Staff setIsPresent to false:", userId);
                     await prisma.outletStaff.update({
-                        where: { userId },
+                        where: { userId: userId },
                         data: { isPresent: false },
                     });
                 }

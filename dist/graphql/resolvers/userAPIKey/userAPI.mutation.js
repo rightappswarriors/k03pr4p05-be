@@ -1,4 +1,4 @@
-import { extendType, nonNull, stringArg, nullable } from "nexus";
+import { extendType, nonNull, stringArg, nullable, arg } from "nexus";
 import * as userAPIKey from "../../../services/userAPI.service.js";
 import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
 export const ApiMutation = extendType({
@@ -47,6 +47,48 @@ export const ApiMutation = extendType({
                     if (process.env.NODE_ENV === "development")
                         console.error("Error updating your API keys");
                     throw new Error("Error updating your API keys");
+                }
+            }
+        });
+        t.nonNull.field("addAPIKeysToOutlet", {
+            type: "Boolean",
+            args: {
+                outletId: nonNull(arg({ type: "ID" })),
+                apiKeyId: nonNull(arg({ type: "ID" }))
+            },
+            resolve: async (_, { outletId, apiKeyId }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
+                if (!outletId && !apiKeyId) {
+                    throw new Error("Required fields outletId and apiKeyId");
+                }
+                try {
+                    return await userAPIKey.addingAPIKeyToOutlet(Number(outletId), Number(apiKeyId));
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error adding API keys to your outlet");
+                    throw new Error("Error adding your API keys to the outlet");
+                }
+            }
+        });
+        t.nonNull.field("clearAPIToOutlet", {
+            type: "Boolean",
+            args: {
+                outletId: nonNull(arg({ type: "ID" }))
+            },
+            resolve: async (_, { outletId }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
+                if (!outletId) {
+                    throw new Error("Please select an outlet");
+                }
+                try {
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error Clearing API keys your outlet");
+                    throw new Error("Error Clearing your API keys to the outlet");
                 }
             }
         });

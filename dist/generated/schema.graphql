@@ -245,13 +245,15 @@ type ModeOfPayment {
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout: Boolean!
+  addAPIKeysToOutlet(apiKeyId: ID!, outletId: ID!): Boolean!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
+  clearAPIToOutlet(outletId: ID!): Boolean!
   createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
   createBranch(address: String!, name: String!, phone: String!): Branch!
   createCategories(categories: [String!]!): [Category!]!
   createInventory(name: String, storeId: Int!): Inventory
-  createItems(items: [CreateItemInput!]!): [BatchPayload!]!
+  createItems(items: [CreateItemInput!]!): BatchPayload!
   createModeOfPayment(data: CreateModeOfPaymentInput!): ModeOfPayment
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
@@ -287,11 +289,14 @@ type Mutation {
 
 type Outlet {
   address: String!
+  apiKey: PaymongoAPIKeys
+  apiKeyId: Int
   branch: Branch!
   branchId: Int!
   code: String!
   createdAt: DateTime!
   governmentTax: Float
+  hasKey: Boolean
   id: Int!
   inventory: Inventory
   isActive: Boolean!
@@ -302,13 +307,22 @@ type Outlet {
   ownerId: Int!
   phone: String!
   serviceCharge: Float
-  staffs: [OutletStaff!]!
+  staff: [OutletStaff!]!
+  status: OutletStatus
   transactions: [Transaction!]!
   wifiSSID: String
 }
 
+type OutletPresentStaffs {
+  id: Int!
+  isPresent: Boolean!
+  outletId: Int!
+  user: User!
+}
+
 type OutletStaff {
   id: Int!
+  isPresent: Boolean!
   outlet: Outlet!
   outletId: Int!
   role: Role!
@@ -319,6 +333,12 @@ type OutletStaff {
 input OutletStaffInput {
   role: String
   userId: Int!
+}
+
+enum OutletStatus {
+  closed
+  maintainance
+  open
 }
 
 enum OutletType {
@@ -389,9 +409,9 @@ enum PaymentTypeEnum {
 
 type PaymongoAPIKeys {
   id: Int!
+  outlets: [Outlet!]!
   owner: User!
   public_key: String!
-  secret_key: String!
 }
 
 type Query {
@@ -416,7 +436,8 @@ type Query {
   getOutletTransactions(outletId: ID!): [Transaction!]!
   getOutletsByBranch(branchId: ID!): [Outlet!]!
   getOwnedBranches: [Branch!]!
-  getStaffByOutletId(outletId: ID!): [User!]!
+  getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
+  getStaffByOutletId(outletId: ID!): [UserStaff!]!
   getSupplierById(id: Int!): Supplier
   getSuppliers: [Supplier]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
@@ -498,6 +519,13 @@ type User {
   staff: [OutletStaff]!
   transaction: [Transaction]!
   username: String!
+}
+
+type UserStaff {
+  id: Int!
+  isPresent: Boolean!
+  outletId: Int!
+  user: User!
 }
 
 enum orderBy {

@@ -1,6 +1,17 @@
 import { extendType, arg, nonNull, objectType } from "nexus";
 import * as userService from "../../../services/user.service.js";
 import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+export const UserStaff = objectType({
+    name: "UserStaff",
+    definition(t) {
+        t.nonNull.field("user", {
+            type: "User"
+        });
+        t.nonNull.int("id");
+        t.nonNull.int("outletId");
+        t.nonNull.boolean("isPresent");
+    }
+});
 export const outletsWithStaffs = objectType({
     name: "OutletsWithStaff",
     definition(t) {
@@ -93,7 +104,7 @@ export const userQuery = extendType({
             }
         });
         t.nonNull.list.nonNull.field("getStaffByOutletId", {
-            type: "User",
+            type: "UserStaff",
             args: {
                 outletId: nonNull(arg({ type: "ID" }))
             },

@@ -80,7 +80,7 @@ export const TransactionMutation = extendType({
       async resolve(_, args, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
-
+        console.log("Creating Transaction")
         const { itemsSold, ...transactionData } = args;
 
         if (!itemsSold || itemsSold.length === 0) {

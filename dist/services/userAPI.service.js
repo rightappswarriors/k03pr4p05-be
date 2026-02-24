@@ -37,7 +37,6 @@ export const updateAPIKeyByUserId = async (ownerId, data) => {
         where: { ownerId },
         data: updateData,
     });
-    // Optionally mask sensitive info before returning
     return {
         ...updated,
         public_key: data.public_key
@@ -62,4 +61,42 @@ export const getUserAPIKeyByUserId = async (id) => {
         public_key: decrypt(userKey.public_key),
         secret_key: decrypt(userKey.secret_key)
     };
+};
+export const addingAPIKeyToOutlet = async (outletId, apiKeyId) => {
+    const outlet = prisma.outletId.findFirst({
+        where: { id: outletId },
+        select: {
+            id: true
+        }
+    });
+    if (!outlet) {
+        throw new Error("Outlet not found.");
+    }
+    await prisma.outlet.update({
+        where: { id: outletId },
+        data: {
+            apiKeyId: apiKeyId,
+            hasKey: true,
+        }
+    });
+    return true;
+};
+export const clearApiToOutlet = async (outletId) => {
+    const outlet = prisma.outletId.findFirst({
+        where: { id: outletId },
+        select: {
+            id: true
+        }
+    });
+    if (!outlet) {
+        throw new Error("Outlet not found.");
+    }
+    await prisma.outlet.update({
+        where: { id: outletId },
+        data: {
+            apiKeyId: "",
+            haskeyFalse: false
+        }
+    });
+    return true;
 };

@@ -28,54 +28,77 @@ model User {
 }
 
 model PaymongoAPIKeys {
-  id         Int    @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   public_key String
   secret_key String
-  ownerId    Int    @unique
-  owner      User   @relation(fields: [ownerId], references: [id])
+  ownerId    Int      @unique
+  owner      User     @relation(fields: [ownerId], references: [id])
+  outlets    Outlet[] @relation("OutletApiKeys")
 }
 
 model Branch {
-  id        Int      @id @default(autoincrement())
-  name      String
+  id         Int            @id @default(autoincrement())
+  name       String
+  address    String
+  phone      String?
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  location   PlaceLocation?
+  ownerId    Int
+  owner      User           @relation("UserBranches", fields: [ownerId], references: [id])
+  outlets    Outlet[]
+  locationId Int?
+}
+
+model PlaceLocation {
+  id        Int    @id @default(autoincrement())
   address   String
-  phone     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  ownerId   Int
-  owner     User     @relation("UserBranches", fields: [ownerId], references: [id])
-  outlets   Outlet[]
+  latitude  Float
+  longitude Float
+  branchId  Int    @unique
+  branch    Branch @relation(fields: [branchId], references: [id])
 }
 
 model Outlet {
-  id                    Int           @id @default(autoincrement())
+  id                    Int              @id @default(autoincrement())
   name                  String
   address               String
   phone                 String?
-  code                  String        @unique
-  nextTransactionNumber Int?          @default(1)
+  code                  String           @unique
+  nextTransactionNumber Int?             @default(1)
+  status                OutletStatus     @default(open)
   governmentTax         Float?
   serviceCharge         Float?
   outletType            OutletType
-  isActive              Boolean       @default(true)
+  isActive              Boolean          @default(true)
   wifiSSID              String?
-  createdAt             DateTime      @default(now())
+  createdAt             DateTime         @default(now())
   branchId              Int
   ownerId               Int
+  apiKeyId              Int?
+  apiKey                PaymongoAPIKeys? @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
+  hasKey                Boolean          @default(false)
   inventory             Inventory?
-  branch                Branch        @relation(fields: [branchId], references: [id])
-  owner                 User          @relation("UserOutlets", fields: [ownerId], references: [id])
+  branch                Branch           @relation(fields: [branchId], references: [id])
+  owner                 User             @relation("UserOutlets", fields: [ownerId], references: [id])
   staff                 OutletStaff[]
   Transaction           Transaction[]
 }
 
+enum OutletStatus {
+  open
+  closed
+  maintainance
+}
+
 model OutletStaff {
-  id       Int    @id @default(autoincrement())
-  outletId Int
-  userId   Int
-  role     Role
-  outlet   Outlet @relation(fields: [outletId], references: [id])
-  user     User   @relation(fields: [userId], references: [id])
+  id        Int     @id @default(autoincrement())
+  outletId  Int
+  userId    Int
+  role      Role
+  isPresent Boolean @default(false)
+  outlet    Outlet  @relation(fields: [outletId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
 
   @@unique([outletId, userId])
 }

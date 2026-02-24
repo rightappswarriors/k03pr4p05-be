@@ -4,6 +4,17 @@ import {
   requireAuth,
   requireRole,
 } from "../../../middleware/auth.middleware.js";
+export const UserStaff = objectType({
+  name: "UserStaff",
+  definition(t) {
+    t.nonNull.field("user", {
+      type: "User"
+    })
+    t.nonNull.int("id")
+    t.nonNull.int("outletId")
+    t.nonNull.boolean("isPresent")
+  }
+})
 
 export const outletsWithStaffs = objectType({
   name: "OutletsWithStaff",
@@ -13,6 +24,7 @@ export const outletsWithStaffs = objectType({
     t.nonNull.list.nonNull.field("staff", { type: "User" });
   },
 });
+
 export const userQuery = extendType({
   type: "Query",
   definition(t) {
@@ -89,7 +101,7 @@ export const userQuery = extendType({
       }
     });
     t.nonNull.list.nonNull.field("getStaffByOutletId", {
-      type: "User",
+      type: "UserStaff",
       args: {
         outletId: nonNull(arg({ type: "ID" }))
       },
@@ -101,10 +113,8 @@ export const userQuery = extendType({
         } catch (error) {
           if (process.env.NODE_ENV === "development") console.error("Error getting all your staffs by outlet Id:", error);
           throw new Error("Error getting all your staffs");
-
         }
       }
     });
- 
   },
 });

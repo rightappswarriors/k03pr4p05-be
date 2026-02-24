@@ -17,6 +17,20 @@ export const OutletWithItems = objectType({
         t.nonNull.list.nonNull.field("items", { type: "InventoryItems" });
     },
 });
+export const OutletPresentStaffs = objectType({
+    name: "OutletPresentStaffs",
+    definition(t) {
+        t.nonNull.field("user", {
+            type: "User"
+        });
+        //t.nonNull.field("outlet", {
+        //  type: "Outlet"
+        // })
+        t.nonNull.int("id");
+        t.nonNull.boolean("isPresent");
+        t.nonNull.int("outletId");
+    }
+});
 export const OutletQuery = extendType({
     type: "Query",
     definition(t) {
@@ -103,11 +117,31 @@ export const OutletQuery = extendType({
                     return await outletService.getOutletTransactions(Number(outletId));
                 }
                 catch (error) {
-                    if (process.env.NODE_ENV === "development")
+                    if (process.env.NODE_ENV === "development") {
                         console.error("Error getting outlet transactions:", error);
+                    }
                     throw new Error("Error getting outlet transactions");
                 }
             },
+        });
+        t.nonNull.list.nonNull.field("getPresentStaffs", {
+            type: "OutletPresentStaffs",
+            args: {
+                outletId: nonNull(arg({ type: "ID" }))
+            },
+            async resolve(_, { outletId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+                try {
+                    return await outletService.getPresentStaffs(Number(outletId));
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development") {
+                        console.error("Error getting outlet transactions:", error);
+                    }
+                    throw new Error("Error getting outlet transactions");
+                }
+            }
         });
     },
 });

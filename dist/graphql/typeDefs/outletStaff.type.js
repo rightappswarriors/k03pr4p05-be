@@ -6,6 +6,7 @@ export const OuteltStaff = objectType({
         t.nonNull.int("outletId");
         t.nonNull.int("userId");
         t.nonNull.field("role", { type: "Role" });
+        t.nonNull.boolean("isPresent");
         t.nonNull.field("outlet", {
             type: "Outlet",
             resolve: (parent, _, ctx) => {
