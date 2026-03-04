@@ -90,6 +90,7 @@ export const deleteBranch = async (id) => {
     });
 };
 export const getBranchTransactions = async (branchId, startDate, endDate) => {
+    console.log(startDate, endDate);
     return await prisma.transaction.findMany({
         where: {
             outlet: {

@@ -1,4 +1,4 @@
-import { objectType, extendType, arg, nonNull } from "nexus";
+import { objectType, extendType, arg, nonNull, nullable } from "nexus";
 import * as outletService from "../../../services/outlet.service.js";
 import { requireAuth, requireRole, requireOwnership, } from "../../../middleware/auth.middleware.js";
 export const OutletWithItems = objectType({
@@ -110,12 +110,14 @@ export const OutletQuery = extendType({
             type: "Transaction",
             args: {
                 outletId: nonNull(arg({ type: "ID" })),
+                startDate: nullable(arg({ type: "DateTime" })),
+                endDate: nullable(arg({ type: "DateTime" })),
             },
-            async resolve(_, { outletId }, ctx) {
+            async resolve(_, { outletId, startDate, endDate }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
                 try {
-                    return await outletService.getOutletTransactions(Number(outletId));
+                    return await outletService.getOutletTransactions(Number(outletId), startDate, endDate);
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development") {

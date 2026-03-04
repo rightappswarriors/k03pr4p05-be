@@ -455,7 +455,7 @@ type Query {
   getOutletById(id: ID!): Outlet
   getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
-  getOutletTransactions(outletId: ID!): [Transaction!]!
+  getOutletTransactions(endDate: DateTime, outletId: ID!, startDate: DateTime): [Transaction!]!
   getOutletsByBranch(branchId: ID!): [Outlet!]!
   getOwnedBranches: [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!

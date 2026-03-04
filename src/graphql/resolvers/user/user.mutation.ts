@@ -197,19 +197,27 @@ export const userMutation = extendType({
       args: {
         outletId: nonNull(arg({ type: "ID" }))
       },
-      async resolve(_, __, ctx) {
+      async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
+
+        const outletID = Number(outletId)
         const userId = Number(ctx.user.userId);
         if (process.env.NODE_ENV === "development") console.log("Logging out user with ID:", userId);
         const exists = await prisma.outletStaff.findFirst({
-          where: { userId: userId }
+          where: { userId, outletId: outletID }
         })
         if (exists) {
           if (process.env.NODE_ENV === "development") console.log("User is Staff setIsPresent to false:", userId);
-          await prisma.outletStaff.update({
-            where: { userId: userId },
+          const data = await prisma.outletStaff.update({
+            where: {
+              outletId_userId: {   // ✅ use compound unique key
+                outletId: outletID,
+                userId,
+              }
+            },
             data: { isPresent: false },
           });
+          console.log(data)
         }
         return true;
       },

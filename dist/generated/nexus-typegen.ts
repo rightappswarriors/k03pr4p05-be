@@ -1249,7 +1249,9 @@ export interface NexusGenArgTypes {
       outletId: string; // ID!
     }
     getOutletTransactions: { // args
+      endDate?: NexusGenScalars['DateTime'] | null; // DateTime
       outletId: string; // ID!
+      startDate?: NexusGenScalars['DateTime'] | null; // DateTime
     }
     getOutletsByBranch: { // args
       branchId: string; // ID!

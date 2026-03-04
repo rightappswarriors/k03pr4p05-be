@@ -338,11 +338,14 @@ export const deleteOutlet = async (id) => {
 };
 
 
-export const getOutletTransactions = async (outletId: number) => {
+export const getOutletTransactions = async (outletId: number, startDate?: Date, endDate?: Date) => {
 
   return await prisma.transaction.findMany({
     where: {
-      outletId: outletId
+      outletId: outletId,
+      ...(startDate && endDate && {
+        createdAt: { gte: startDate, lte: endDate }  // ✅ apply filter only if provided
+      })
     },
     select: {
       id: true,
