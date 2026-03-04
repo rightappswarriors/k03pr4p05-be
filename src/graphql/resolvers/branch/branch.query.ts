@@ -1,4 +1,4 @@
-import { arg, extendType, nonNull } from "nexus";
+import { arg, extendType, nonNull, nullable, stringArg } from "nexus";
 import * as branchService from "../../../services/branch.service.js";
 import * as middleware from "../../../middleware/auth.middleware.js";
 
@@ -38,15 +38,16 @@ export const branchQuery = extendType({
     t.nonNull.list.nonNull.field("getBranchTransactions", {
       type: "Transaction",
       args: {
-        id: nonNull(arg({ type: "ID"})),
-
+        id: nonNull(arg({ type: "ID" })),
+        startDate: nullable(arg({ type: "DateTime" })),
+        endDate: nullable(arg({ type: "DateTime" })),
       },
-      resolve: async (parent, { id }, ctx) => {
+      resolve: async (parent, { id, startDate, endDate }, ctx) => {
         middleware.requireAuth(ctx);
-        middleware.requireRole(ctx, ["ADMIN", "OWNER", ]);
+        middleware.requireRole(ctx, ["ADMIN", "OWNER",]);
         try {
           const branchId = parseInt(id);
-          return await branchService.getBranchTransactions(branchId)
+          return await branchService.getBranchTransactions(branchId, startDate, endDate)
         }
         catch (error) {
           if (process.env.NODE_ENV === "development") console.error("Error Failed to fetch branch transactions:", error);

@@ -194,6 +194,9 @@ export const userMutation = extendType({
     });
     t.nonNull.field("StaffLogout", {
       type: "Boolean",
+      args: {
+        outletId: nonNull(arg({ type: "ID" }))
+      },
       async resolve(_, __, ctx) {
         requireAuth(ctx);
         const userId = Number(ctx.user.userId);

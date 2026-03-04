@@ -1,5 +1,5 @@
 // src/graphql/typeDefs/user.type.ts    
-import {objectType, enumType } from 'nexus'
+import { objectType, enumType } from 'nexus'
 
 export const Role = enumType({
      name: 'Role',
@@ -14,15 +14,15 @@ export const User = objectType({
           t.nonNull.string('fullname')
           t.nonNull.string('username')
           t.nonNull.string('email')
-          t.nonNull.field('role', { type: 'Role'})
+          t.nonNull.field('role', { type: 'Role' })
           t.nonNull.string('contactNumber')
           t.nullable.string('profilePhoto');
-          t.nonNull.dateTime('createdAt'); 
+          t.nonNull.dateTime('createdAt');
           t.nonNull.list.nonNull.field('branchesOwned', {
                type: 'Branch',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                         .findUnique({ where: { id: parent.id}})
+                         .findUnique({ where: { id: parent.id } })
                          .branchesOwned()
                }
           })
@@ -30,41 +30,63 @@ export const User = objectType({
                type: 'Outlet',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                    .findUnique({where: { id: parent.id}})
-                    .outletOwned()
+                         .findUnique({ where: { id: parent.id } })
+                         .outletOwned()
                }
           })
-          t.nonNull.list.field('staff',{ 
+          t.nonNull.list.field('staff', {
                type: 'OutletStaff',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                    .findUnique({where: { id: parent.id}})
-                    .staff()
-               }}
+                         .findUnique({ where: { id: parent.id } })
+                         .staff()
+               }
+          }
           )
-          
-          t.nonNull.list.field('transaction',{ 
+
+          t.nonNull.list.field('transaction', {
                type: 'Transaction',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                    .findUnique({where: { id: parent.id}})
-                    .transaction()
-               }}
+                         .findUnique({ where: { id: parent.id } })
+                         .transaction()
+               }
+          }
           )
           t.nullable.field('manager', {
                type: 'User',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                    .findUnique({ where: { id: parent.id}})
-                    .manager()
+                         .findUnique({ where: { id: parent.id } })
+                         .manager()
                }
           })
           t.nullable.field('paymongoAPIKeys', {
                type: 'PaymongoAPIKeys',
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.user
-                    .findUnique({ where: { id: parent.id}})
-                    .paymongoAPIKeys()
+                         .findUnique({ where: { id: parent.id } })
+                         .paymongoAPIKeys()
+               }
+          })
+          t.nonNull.list.field("promoType", {
+               type: "PromoType",
+               resolve: (parent, _, ctx) => {
+                    return ctx.prisma.promoType({
+                         where: {  
+                              id: parent.id
+                         }
+                    }).promoType()
+               }
+          })
+          t.nonNull.list.field("outletPromo", {
+               type: "OutletPromo",
+               resolve: (parent, _, ctx) => {
+                    return ctx.prisma.outletPromo({
+                         where: {
+                              id: parent.id
+                         }
+                    }).outletPromo()
                }
           })
      }

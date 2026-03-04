@@ -63,5 +63,25 @@ export const User = objectType({
                     .paymongoAPIKeys();
             }
         });
+        t.nonNull.list.field("promoType", {
+            type: "PromoType",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.promoType({
+                    where: {
+                        id: parent.id
+                    }
+                }).promoType();
+            }
+        });
+        t.nonNull.list.field("outletPromo", {
+            type: "OutletPromo",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.outletPromo({
+                    where: {
+                        id: parent.id
+                    }
+                }).outletPromo();
+            }
+        });
     }
 });

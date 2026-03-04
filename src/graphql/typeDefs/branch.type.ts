@@ -1,8 +1,5 @@
 import { objectType, asNexusMethod } from "nexus";
 
-import { GraphQLDateTime } from "graphql-scalars";
-
-export const DateTime = asNexusMethod(GraphQLDateTime, "dateTime");
 
 export const Branch = objectType({
   name: "Branch",

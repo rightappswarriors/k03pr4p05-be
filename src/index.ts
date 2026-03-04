@@ -69,6 +69,12 @@ import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";
 // Enums
 import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
+import { DateTimeScalar } from './lib/scalars.js'
+// OutletPromo
+import * as OutletPromo from "./graphql/typeDefs/outletPromo.type.js"
+
+// PromoType 
+import * as PromoType from "./graphql/typeDefs/promo.type.js"
 
 // Initialize Prisma Client
 
@@ -77,6 +83,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "token";
 const schema = makeSchema({
   types: [
     // Correctly unpack the individual types from the imported modules
+    DateTimeScalar,
     ...Object.values(TransactionTypes),
     ...Object.values(OutletStaffTypes),
     ...Object.values(InventoryTypes),
@@ -136,6 +143,10 @@ const schema = makeSchema({
     ...Object.values(SupplierQuery),
     // Enum
     ...Object.values(Enums),
+    // OutletPromo
+    ...Object.values(OutletPromo),
+    // PromoType
+    ...Object.values(PromoType)
   ],
   outputs: {
     // This will generate `schema.graphql` and `nexus-typegen.ts`
@@ -186,11 +197,12 @@ async function startApolloServer() {
             user = jwt.verify(token, JWT_SECRET);
           } catch (error) {
             if (process.env.NODE_ENV === "development") {
-            if (error.name === "TokenExpiredError") {
-              console.warn("Access token expired");
-            } else {
-              console.error("JWT verification failed:", error.message);
-            }}
+              if (error.name === "TokenExpiredError") {
+                console.warn("Access token expired");
+              } else {
+                console.error("JWT verification failed:", error.message);
+              }
+            }
           }
         }
         // Pass the Prisma Client to the context so it's available in your resolvers
@@ -206,7 +218,7 @@ async function startApolloServer() {
 
   const PORT = 4000;
   app.listen(PORT, () => {
-     if (process.env.NODE_ENV === "development") console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
+    if (process.env.NODE_ENV === "development") console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
   });
 }
 

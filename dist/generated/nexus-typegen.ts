@@ -8,7 +8,7 @@ import type { core } from "nexus"
 declare global {
   interface NexusGenCustomInputMethods<TypeName extends string> {
     /**
-     * A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+     * ISO 8601 DateTime string
      */
     dateTime<FieldName extends string>(fieldName: FieldName, opts?: core.CommonInputFieldConfig<TypeName, FieldName>): void // "DateTime";
   }
@@ -16,7 +16,7 @@ declare global {
 declare global {
   interface NexusGenCustomOutputMethods<TypeName extends string> {
     /**
-     * A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+     * ISO 8601 DateTime string
      */
     dateTime<FieldName extends string>(fieldName: FieldName, ...opts: core.ScalarOutSpread<TypeName, FieldName>): void // "DateTime";
   }
@@ -228,6 +228,15 @@ export interface NexusGenObjects {
     outletId: number; // Int!
     user: NexusGenRootTypes['User']; // User!
   }
+  OutletPromo: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    discount: number; // Float!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    outletId: number; // Int!
+    promoTypeId: number; // Int!
+    userId: number; // Int!
+  }
   OutletStaff: { // root type
     id: number; // Int!
     isPresent: boolean; // Boolean!
@@ -275,6 +284,13 @@ export interface NexusGenObjects {
   PaymongoAPIKeys: { // root type
     id: number; // Int!
     public_key: string; // String!
+  }
+  PromoType: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description?: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
   }
   Query: {};
   Supplier: { // root type
@@ -498,6 +514,18 @@ export interface NexusGenFieldTypes {
     outletId: number; // Int!
     user: NexusGenRootTypes['User']; // User!
   }
+  OutletPromo: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    discount: number; // Float!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    outlet: NexusGenRootTypes['Outlet']; // Outlet!
+    outletId: number; // Int!
+    promoType: NexusGenRootTypes['PromoType']; // PromoType!
+    promoTypeId: number; // Int!
+    user: NexusGenRootTypes['User']; // User!
+    userId: number; // Int!
+  }
   OutletStaff: { // field return type
     id: number; // Int!
     isPresent: boolean; // Boolean!
@@ -550,6 +578,14 @@ export interface NexusGenFieldTypes {
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     owner: NexusGenRootTypes['User']; // User!
     public_key: string; // String!
+  }
+  PromoType: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+    outletPromos: NexusGenRootTypes['OutletPromo'][]; // [OutletPromo!]!
   }
   Query: { // field return type
     ME: NexusGenRootTypes['User']; // User!
@@ -619,8 +655,10 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     manager: NexusGenRootTypes['User'] | null; // User
     outletOwned: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
+    outletPromo: Array<NexusGenRootTypes['OutletPromo'] | null>; // [OutletPromo]!
     paymongoAPIKeys: NexusGenRootTypes['PaymongoAPIKeys'] | null; // PaymongoAPIKeys
     profilePhoto: string | null; // String
+    promoType: Array<NexusGenRootTypes['PromoType'] | null>; // [PromoType]!
     role: NexusGenEnums['Role']; // Role!
     staff: Array<NexusGenRootTypes['OutletStaff'] | null>; // [OutletStaff]!
     transaction: Array<NexusGenRootTypes['Transaction'] | null>; // [Transaction]!
@@ -803,6 +841,18 @@ export interface NexusGenFieldTypeNames {
     outletId: 'Int'
     user: 'User'
   }
+  OutletPromo: { // field return type name
+    createdAt: 'DateTime'
+    discount: 'Float'
+    id: 'Int'
+    isActive: 'Boolean'
+    outlet: 'Outlet'
+    outletId: 'Int'
+    promoType: 'PromoType'
+    promoTypeId: 'Int'
+    user: 'User'
+    userId: 'Int'
+  }
   OutletStaff: { // field return type name
     id: 'Int'
     isPresent: 'Boolean'
@@ -855,6 +905,14 @@ export interface NexusGenFieldTypeNames {
     outlets: 'Outlet'
     owner: 'User'
     public_key: 'String'
+  }
+  PromoType: { // field return type name
+    createdAt: 'DateTime'
+    description: 'String'
+    id: 'Int'
+    isActive: 'Boolean'
+    name: 'String'
+    outletPromos: 'OutletPromo'
   }
   Query: { // field return type name
     ME: 'User'
@@ -924,8 +982,10 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     manager: 'User'
     outletOwned: 'Outlet'
+    outletPromo: 'OutletPromo'
     paymongoAPIKeys: 'PaymongoAPIKeys'
     profilePhoto: 'String'
+    promoType: 'PromoType'
     role: 'Role'
     staff: 'OutletStaff'
     transaction: 'Transaction'
@@ -944,6 +1004,9 @@ export interface NexusGenArgTypes {
     AddOutletStaff: { // args
       outletId: string; // ID!
       users: NexusGenInputs['OutletStaffInput'][]; // [OutletStaffInput!]!
+    }
+    StaffLogout: { // args
+      outletId: string; // ID!
     }
     addAPIKeysToOutlet: { // args
       apiKeyId: string; // ID!
@@ -1152,7 +1215,9 @@ export interface NexusGenArgTypes {
       id: string; // ID!
     }
     getBranchTransactions: { // args
+      endDate?: NexusGenScalars['DateTime'] | null; // DateTime
       id: string; // ID!
+      startDate?: NexusGenScalars['DateTime'] | null; // DateTime
     }
     getCategoryById: { // args
       id: string; // ID!

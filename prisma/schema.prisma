@@ -25,6 +25,9 @@ model User {
   Transaction          Transaction[]
   manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]           @relation("ManagerToStaff")
+  promoType           PromoType[]      @relation("UserPromoTypes")
+  outletPromo         OutletPromo[]    @relation("UserOutletPromos")
+
 }
 
 model PaymongoAPIKeys {
@@ -71,6 +74,7 @@ model Outlet {
   serviceCharge         Float?
   outletType            OutletType
   isActive              Boolean          @default(true)
+  outletPromos          OutletPromo[]
   wifiSSID              String?
   createdAt             DateTime         @default(now())
   branchId              Int
@@ -83,6 +87,34 @@ model Outlet {
   owner                 User             @relation("UserOutlets", fields: [ownerId], references: [id])
   staff                 OutletStaff[]
   Transaction           Transaction[]
+}
+
+model PromoType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  outletPromos OutletPromo[]
+  userId       Int?
+  user         User?         @relation("UserPromoTypes", fields: [userId], references: [id])
+}
+
+model OutletPromo {
+  id          Int      @id @default(autoincrement())
+  outletId    Int
+  promoTypeId Int
+  discount    Float // percentage, e.g. 20.0 for 20%
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  userId      Int
+  user        User     @relation("UserOutletPromos",fields: [userId], references: [id])
+
+  outlet    Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  promoType PromoType @relation(fields: [promoTypeId], references: [id], onDelete: Cascade)
+  
+  @@unique([outletId, promoTypeId]) // prevent duplicate promo per outlet
 }
 
 enum OutletStatus {

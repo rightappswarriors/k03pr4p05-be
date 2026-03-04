@@ -157,9 +157,7 @@ input CustomerDetails {
   status: String
 }
 
-"""
-A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
-"""
+"""ISO 8601 DateTime string"""
 scalar DateTime
 
 type Inventory {
@@ -244,7 +242,7 @@ type ModeOfPayment {
 
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
-  StaffLogout: Boolean!
+  StaffLogout(outletId: ID!): Boolean!
   addAPIKeysToOutlet(apiKeyId: ID!, outletId: ID!): Boolean!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
@@ -319,6 +317,19 @@ type OutletPresentStaffs {
   isPresent: Boolean!
   outletId: Int!
   user: User!
+}
+
+type OutletPromo {
+  createdAt: DateTime!
+  discount: Float!
+  id: Int!
+  isActive: Boolean!
+  outlet: Outlet!
+  outletId: Int!
+  promoType: PromoType!
+  promoTypeId: Int!
+  user: User!
+  userId: Int!
 }
 
 type OutletStaff {
@@ -416,6 +427,15 @@ type PaymongoAPIKeys {
   public_key: String!
 }
 
+type PromoType {
+  createdAt: DateTime!
+  description: String
+  id: Int!
+  isActive: Boolean!
+  name: String!
+  outletPromos: [OutletPromo!]!
+}
+
 type Query {
   ME: User!
   getAPIKeysByUserId: PaymongoAPIKeys!
@@ -424,7 +444,7 @@ type Query {
   getAllStaffs: [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
-  getBranchTransactions(id: ID!): [Transaction!]!
+  getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
   getCategoryById(id: ID!): Category!
   getCategoryItems(id: ID!): [Item!]!
   getInventoryByOutletId(outletId: Int!): Inventory
@@ -515,8 +535,10 @@ type User {
   id: Int!
   manager: User
   outletOwned: [Outlet!]!
+  outletPromo: [OutletPromo]!
   paymongoAPIKeys: PaymongoAPIKeys
   profilePhoto: String
+  promoType: [PromoType]!
   role: Role!
   staff: [OutletStaff]!
   transaction: [Transaction]!
