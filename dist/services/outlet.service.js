@@ -371,6 +371,7 @@ export const getPresentStaffs = async (outletId) => {
         select: {
             outletId: true,
             id: true,
+            isPresent: true,
             outlet: true,
             user: {
                 select: {

@@ -6,6 +6,7 @@ export function initWebSocket(server) {
         ws.on("message", (message) => {
             const data = JSON.parse(message);
             if (data.type === "AUTH") {
+                console.log('Hello someone is here', data.userId, data.role)
                 ws.userId = data.userId;
                 ws.type = data.role;
                 clients.set(String(data.userId), {

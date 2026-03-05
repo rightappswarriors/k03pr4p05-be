@@ -101,13 +101,24 @@ export const processTransaction = async (transactionData, itemsSold) => {
         id: Number(transactionData.outletId)
       },
       select: {
-        ownerId: true
+        id: true,
+        ownerId: true,
+        branchId: true
       }
     })
     sendToUser(manager?.ownerId, {
       type: "NEW_TRANSACTION",
-      payload: newTransaction
+      payload: {
+        outletId: manager.id,
+        branchId: manager.branchId,
+        cashierId: transactionData.cahierId ?? "",
+        items: transactionData.orderItem ?? [],
+        subtotal: transactionData.subtotal ?? 0,
+        paymentMethod: transactionData.method,
+        total: transactionData.total,
+      }
     })
+
     if (process.env.NODE_ENV === "development") console.log(newTransaction);
     return newTransaction;
   });

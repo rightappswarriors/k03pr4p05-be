@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
+import { sendToUser } from "../lib/ws.js";
 /**
  * @description
  * Processes a new transaction by creating a transaction record, creating
@@ -89,6 +90,28 @@ export const processTransaction = async (transactionData, itemsSold) => {
             include: {
                 items: true, // Include the CartItems in the response
             },
+        });
+        const manager = await tx.outlet.findUnique({
+            where: {
+                id: Number(transactionData.outletId)
+            },
+            select: {
+                id: true,
+                ownerId: true,
+                branchId: true
+            }
+        });
+        sendToUser(manager?.ownerId, {
+            type: "NEW_TRANSACTION",
+            payload: {
+                outletId: manager.id,
+                branchId: manager.branchId,
+                cashierId: transactionData.cahierId ?? "",
+                items: transactionData.orderItem ?? [],
+                subtotal: transactionData.subtotal ?? 0,
+                paymentMethod: transactionData.method,
+                total: transactionData.total,
+            }
         });
         if (process.env.NODE_ENV === "development")
             console.log(newTransaction);

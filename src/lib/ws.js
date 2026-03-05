@@ -13,6 +13,7 @@ export function initWebSocket(server) {
         ws.on("message", (message) => {
             const data = JSON.parse(message)
 
+                console.log('Hello someone is here', data.userId, data.role)
             if (data.type === "AUTH") {
                 ws.userId = data.userId
                 ws.type = data.role
@@ -24,6 +25,8 @@ export function initWebSocket(server) {
                 if (process.env.NODE_ENV === "development") {
                     console.log(`User ${data.userId} connected as ${data.role}`)
                 }
+                
+                console.log('Hello someone is here', data.userId, data.role)
             }
 
         })
