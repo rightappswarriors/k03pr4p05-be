@@ -3,10 +3,9 @@
   "version": "1.0.3",
   "main": "./src/index.ts",
   "scripts": {
-    "compile": "tsc",
-    "start": "npm run compile && node ./dist/index.js",
     "build": "tsc && npx prisma generate",
-    "dev": "nodemon --watch src --exec \"npm run compile && node ./dist/index.js\""
+    "start": "node ./dist/index.js",
+    "dev": "nodemon --watch src --exec \"tsc && node ./dist/index.js\""
   },
   "keywords": [],
   "author": "",
