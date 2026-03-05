@@ -5,6 +5,7 @@
   "scripts": {
     "compile": "tsc",
     "start": "npm run compile && node ./dist/index.js",
+    "build": "tsc && npx prisma generate",
     "dev": "nodemon --watch src --exec \"npm run compile && node ./dist/index.js\""
   },
   "keywords": [],
