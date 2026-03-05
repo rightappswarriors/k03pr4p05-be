@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
-
+import { sendToUser } from "../lib/ws.js"
 
 /**
  * @description
@@ -96,6 +96,18 @@ export const processTransaction = async (transactionData, itemsSold) => {
         items: true, // Include the CartItems in the response
       },
     });
+    const manager = await tx.outlet.findUnique({
+      where: {
+        id: Number(transactionData.outletId)
+      },
+      select: {
+        ownerId: true
+      }
+    })
+    sendToUser(manager?.ownerId, {
+      type: "NEW_TRANSACTION",
+      payload: newTransaction
+    })
     if (process.env.NODE_ENV === "development") console.log(newTransaction);
     return newTransaction;
   });

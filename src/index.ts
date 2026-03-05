@@ -72,7 +72,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "token";
 import { DateTimeScalar } from './lib/scalars.js'
 // OutletPromo
 import * as OutletPromo from "./graphql/typeDefs/outletPromo.type.js"
-
+import http from "http"
+import { initWebSocket } from "./lib/ws.js"
 // PromoType 
 import * as PromoType from "./graphql/typeDefs/promo.type.js"
 
@@ -216,10 +217,17 @@ async function startApolloServer() {
     })
   );
 
-  const PORT = 4000;
-  app.listen(PORT, () => {
-    if (process.env.NODE_ENV === "development") console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`);
-  });
+  const PORT = 4000
+  const httpServer = http.createServer(app)
+  // initialize websocket
+  initWebSocket(httpServer)
+
+  httpServer.listen(PORT, () => {
+    if (process.env.NODE_ENV === "development") {
+      console.log(`🚀 Server ready at http://localhost:${PORT}/graphql`)
+      console.log(`🔌 WebSocket server ready`)
+    }
+  })
 }
 
 startApolloServer();

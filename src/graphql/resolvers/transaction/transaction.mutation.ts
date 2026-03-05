@@ -90,7 +90,7 @@ export const TransactionMutation = extendType({
         try {
           return await transactionService.processTransaction(
             transactionData,
-            itemsSold
+            itemsSold,
           );
         } catch (error) {
           if (process.env.NODE_ENV === "development") console.error("Error processing transaction:", error);
