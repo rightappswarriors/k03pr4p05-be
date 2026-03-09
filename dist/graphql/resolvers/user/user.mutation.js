@@ -175,6 +175,7 @@ export const userMutation = extendType({
                 catch (error) {
                     if (process.env.NODE_ENV === "development")
                         console.error("Error upon Sign in:", error);
+                    console.error('Real login error:', error); // ← add this
                     throw new Error("Error upon Sign in:", error);
                 }
             },
