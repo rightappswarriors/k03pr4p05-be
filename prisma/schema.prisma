@@ -77,13 +77,13 @@ model Outlet {
   outletPromos          OutletPromo[]
   wifiSSID              String?
   createdAt             DateTime         @default(now())
-  branchId              Int
+  branchId              Int?
   ownerId               Int
   apiKeyId              Int?
   apiKey                PaymongoAPIKeys? @relation("OutletApiKeys", fields: [apiKeyId], references: [id], onDelete: SetNull)
   hasKey                Boolean          @default(false)
   inventory             Inventory?
-  branch                Branch           @relation(fields: [branchId], references: [id])
+  branch                Branch?           @relation(fields: [branchId], references: [id],onDelete: SetNull)
   owner                 User             @relation("UserOutlets", fields: [ownerId], references: [id])
   staff                 OutletStaff[]
   Transaction           Transaction[]
