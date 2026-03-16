@@ -6,6 +6,8 @@ import {
   list,
   inputObjectType,
   objectType,
+  floatArg,
+  booleanArg
 } from "nexus";
 import {
   requireRole,
@@ -37,14 +39,19 @@ export const outletMutation = extendType({
     t.nonNull.field("createOutlet", {
       type: "Outlet",
       args: {
-        branchId: nonNull(arg({ type: "ID" })),
+
         name: nonNull(arg({ type: "String" })),
         address: nonNull(arg({ type: "String" })),
+        branchId: nonNull(arg({ type: "ID" })),
         phone: nonNull(arg({ type: "String" })),
         code: nonNull(arg({ type: "String" })),
+        isActive: nullable(booleanArg()),
+        status: nullable(arg({ type: "OutletStatus" })),
         governmentTax: nonNull(arg({ type: "Float" })),
         serviceCharge: nonNull(arg({ type: "Float" })),
         outletType: nonNull(arg({ type: "OutletType" })),
+        longitude: nullable(arg({ type: "Float" })),
+        latitude: nullable(floatArg()),
       },
       async resolve(
         _,
@@ -57,6 +64,10 @@ export const outletMutation = extendType({
           governmentTax,
           serviceCharge,
           outletType,
+          longitude,
+          latitude,
+          status,
+          isActive
         },
         ctx
       ) {
@@ -73,11 +84,15 @@ export const outletMutation = extendType({
             {
               name,
               address,
+              isActive,
               phone,
               code,
               governmentTax,
               serviceCharge,
               outletType,
+              longitude,
+              latitude,
+              status
             },
             Number(branchId),
             Number(userId)
@@ -174,14 +189,19 @@ export const outletMutation = extendType({
     t.nonNull.field("updateOutlet", {
       type: "Outlet",
       args: {
-        outletId: nonNull(arg({ type: "ID" })),
-        name: nullable(arg({ type: "String" })),
-        address: nullable(arg({ type: "String" })),
-        phone: nullable(arg({ type: "String" })),
-        code: nullable(arg({ type: "String" })),
-        governmentTax: nullable(arg({ type: "Float" })),
-        serviceCharge: nullable(arg({ type: "Float" })),
-        outletType: nullable(arg({ type: "OutletType" })),
+        outletId: nonNull(arg({ type: "ID"})),
+        name: nonNull(arg({ type: "String" })),
+        address: nonNull(arg({ type: "String" })),
+        branchId: nonNull(arg({ type: "ID" })),
+        phone: nonNull(arg({ type: "String" })),
+        code: nonNull(arg({ type: "String" })),
+        status: nullable(arg({ type: "OutletStatus" })),
+        isActive: nullable(booleanArg()),
+        governmentTax: nonNull(arg({ type: "Float" })),
+        serviceCharge: nonNull(arg({ type: "Float" })),
+        outletType: nonNull(arg({ type: "OutletType" })),
+        longitude: nullable(arg({ type: "Float" })),
+        latitude: nullable(floatArg()),
       },
       async resolve(
         _,
@@ -194,6 +214,10 @@ export const outletMutation = extendType({
           governmentTax,
           serviceCharge,
           outletType,
+          status,
+          latitude,
+          longitude,
+          isActive
         },
         ctx
       ) {
@@ -229,7 +253,13 @@ export const outletMutation = extendType({
           if (outletType !== undefined && outletType !== null)
             updateData.outletType = outletType;
           return await outletService.updateOutlet(Number(outletId),
-            updateData
+            {
+              ...updateData,
+              status,
+              latitude,
+              longitude,
+              isActive
+            }
           );
         } catch (error) {
           if (error.code === "P2002") {

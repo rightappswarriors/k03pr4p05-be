@@ -1320,10 +1320,14 @@ export interface NexusGenArgTypes {
       branchId: string; // ID!
       code: string; // String!
       governmentTax: number; // Float!
+      isActive?: boolean | null; // Boolean
+      latitude?: number | null; // Float
+      longitude?: number | null; // Float
       name: string; // String!
       outletType: NexusGenEnums['OutletType']; // OutletType!
       phone: string; // String!
       serviceCharge: number; // Float!
+      status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     }
     createStaff: { // args
       email: string; // String!
@@ -1469,14 +1473,19 @@ export interface NexusGenArgTypes {
       id: number; // Int!
     }
     updateOutlet: { // args
-      address?: string | null; // String
-      code?: string | null; // String
-      governmentTax?: number | null; // Float
-      name?: string | null; // String
+      address: string; // String!
+      branchId: string; // ID!
+      code: string; // String!
+      governmentTax: number; // Float!
+      isActive?: boolean | null; // Boolean
+      latitude?: number | null; // Float
+      longitude?: number | null; // Float
+      name: string; // String!
       outletId: string; // ID!
-      outletType?: NexusGenEnums['OutletType'] | null; // OutletType
-      phone?: string | null; // String
-      serviceCharge?: number | null; // Float
+      outletType: NexusGenEnums['OutletType']; // OutletType!
+      phone: string; // String!
+      serviceCharge: number; // Float!
+      status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     }
     updateSupplier: { // args
       address?: string | null; // String

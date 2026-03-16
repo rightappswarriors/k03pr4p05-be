@@ -362,7 +362,7 @@ type Mutation {
   createInventory(name: String, outletId: Int!): Inventory
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createModeOfPayment(data: CreateModeOfPaymentInput!): ModeOfPayment
-  createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
+  createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   createSupplier(address: String, contactName: String!, contactNumber: String!, faxNumber: String, name: String!, tinNumber: String, zipCode: String): Supplier
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
@@ -395,7 +395,7 @@ type Mutation {
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(id: ID!, item: UpdateItemInput!): Item!
   updateModeOfPayment(data: UpdateModeOfPaymentInput!, id: Int!): ModeOfPayment
-  updateOutlet(address: String, code: String, governmentTax: Float, name: String, outletId: ID!, outletType: OutletType, phone: String, serviceCharge: Float): Outlet!
+  updateOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletId: ID!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
   updateSupplier(address: String, contactName: String, contactNumber: String, faxNumber: String, id: Int!, name: String, tinNumber: String, zipCode: String): Supplier
   updateUser(fullname: String, id: ID!, username: String): User!
 }

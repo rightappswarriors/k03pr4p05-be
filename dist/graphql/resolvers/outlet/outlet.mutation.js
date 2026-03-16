@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, nullable, list, inputObjectType, objectType, } from "nexus";
+import { extendType, arg, nonNull, nullable, list, inputObjectType, objectType, floatArg, booleanArg } from "nexus";
 import { requireRole, requireAuth, requireOwnership, } from "../../../middleware/auth.middleware.js";
 import * as outletService from "../../../services/outlet.service.js";
 export const OutletStaffInput = inputObjectType({
@@ -22,16 +22,20 @@ export const outletMutation = extendType({
         t.nonNull.field("createOutlet", {
             type: "Outlet",
             args: {
-                branchId: nonNull(arg({ type: "ID" })),
                 name: nonNull(arg({ type: "String" })),
                 address: nonNull(arg({ type: "String" })),
+                branchId: nonNull(arg({ type: "ID" })),
                 phone: nonNull(arg({ type: "String" })),
                 code: nonNull(arg({ type: "String" })),
+                isActive: nullable(booleanArg()),
+                status: nullable(arg({ type: "OutletStatus" })),
                 governmentTax: nonNull(arg({ type: "Float" })),
                 serviceCharge: nonNull(arg({ type: "Float" })),
                 outletType: nonNull(arg({ type: "OutletType" })),
+                longitude: nullable(arg({ type: "Float" })),
+                latitude: nullable(floatArg()),
             },
-            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, }, ctx) {
+            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN"]);
                 const userId = ctx.user.userId;
@@ -42,11 +46,15 @@ export const outletMutation = extendType({
                     return await outletService.createOutlet({
                         name,
                         address,
+                        isActive,
                         phone,
                         code,
                         governmentTax,
                         serviceCharge,
                         outletType,
+                        longitude,
+                        latitude,
+                        status
                     }, Number(branchId), Number(userId));
                 }
                 catch (error) {
@@ -129,15 +137,20 @@ export const outletMutation = extendType({
             type: "Outlet",
             args: {
                 outletId: nonNull(arg({ type: "ID" })),
-                name: nullable(arg({ type: "String" })),
-                address: nullable(arg({ type: "String" })),
-                phone: nullable(arg({ type: "String" })),
-                code: nullable(arg({ type: "String" })),
-                governmentTax: nullable(arg({ type: "Float" })),
-                serviceCharge: nullable(arg({ type: "Float" })),
-                outletType: nullable(arg({ type: "OutletType" })),
+                name: nonNull(arg({ type: "String" })),
+                address: nonNull(arg({ type: "String" })),
+                branchId: nonNull(arg({ type: "ID" })),
+                phone: nonNull(arg({ type: "String" })),
+                code: nonNull(arg({ type: "String" })),
+                status: nullable(arg({ type: "OutletStatus" })),
+                isActive: nullable(booleanArg()),
+                governmentTax: nonNull(arg({ type: "Float" })),
+                serviceCharge: nonNull(arg({ type: "Float" })),
+                outletType: nonNull(arg({ type: "OutletType" })),
+                longitude: nullable(arg({ type: "Float" })),
+                latitude: nullable(floatArg()),
             },
-            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, }, ctx) {
+            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN"]);
                 await requireOwnership(ctx, "Outlet", outletId);
@@ -167,7 +180,13 @@ export const outletMutation = extendType({
                         updateData.serviceCharge = serviceCharge;
                     if (outletType !== undefined && outletType !== null)
                         updateData.outletType = outletType;
-                    return await outletService.updateOutlet(Number(outletId), updateData);
+                    return await outletService.updateOutlet(Number(outletId), {
+                        ...updateData,
+                        status,
+                        latitude,
+                        longitude,
+                        isActive
+                    });
                 }
                 catch (error) {
                     if (error.code === "P2002") {

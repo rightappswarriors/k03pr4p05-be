@@ -154,6 +154,7 @@ model PlaceLocation {
 model Outlet {
   id                    Int                     @id @default(autoincrement())
   name                  String
+  imageBanner           String? //!AADD soon
   address               String
   phone                 String?
   latitude              Float?
