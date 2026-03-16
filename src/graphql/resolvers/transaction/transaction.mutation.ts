@@ -16,7 +16,7 @@ import {
 } from "../../../middleware/auth.middleware.js";
 import * as transactionService from "../../../services/transaction.service.js";
 export const CustomerDetails = inputObjectType({
-  name: "CustomerDetails",
+  name: "CustomerDetailsInput",
   definition(t) {
     t.nullable.string("fullname");
     t.nullable.string("phoneNumber");
@@ -108,7 +108,7 @@ export const TransactionMutation = extendType({
         total: nonNull(arg({ type: "Float" })),
         paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
         paymentType: nonNull(arg({ type: "PaymentTypeEnum" })),
-        customerDetails: nullable(arg({ type: "CustomerDetails" })),
+        customerDetails: nullable(arg({ type: "CustomerDetailsInput" })),
       },
       resolve: async (_, transactionData, ctx) => {
         requireAuth(ctx);
@@ -135,7 +135,7 @@ export const TransactionMutation = extendType({
         subtotal: nonNull(arg({ type: "Float" })),
         vatAmount: nonNull(arg({ type: "Float" })),
         paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
-        customerDetails: nullable(arg({ type: "CustomerDetails" })),
+        customerDetails: nullable(arg({ type: "CustomerDetailsInput" })),
         itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
       },
       resolve: async (_, args, ctx) => {

@@ -1,26 +1,33 @@
-import { enumType, objectType } from 'nexus';
+import { enumType, objectType } from "nexus";
+// ─── PaymentType enum — must match schema exactly (lowercase members) ─────────
 export const PaymentType = enumType({
     name: "PaymentType",
-    members: ["GCASH", "PAYMAYA", "CARD"]
+    members: ["gcash", "paymaya", "card", "qrph"], // ← lowercase, matches schema
 });
-export const PaymentDetails = objectType({
-    name: "PaymentDetails",
+// ─── CustomerDetails objectType ───────────────────────────────────────────────
+export const CustomerDetails = objectType({
+    name: "CustomerDetails",
     definition(t) {
-        t.nullable.int("id");
+        t.nonNull.int("id");
         t.nullable.string("fullname");
         t.nullable.string("username");
         t.nullable.string("email");
-        t.nullable.field('type', { type: "PaymentType" });
+        t.nullable.string("phoneNumber"); // ← was missing
+        t.nullable.field("paymentType", {
+            type: "PaymentType",
+        });
         t.nullable.string("paymentMethodId");
         t.nullable.string("paymentIntentId");
+        t.nullable.string("client_key"); // ← was missing
         t.nullable.string("status");
+        t.nonNull.int("transactionId"); // ← was missing
         t.nonNull.field("transaction", {
             type: "Transaction",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.paymentDetails
+                return ctx.prisma.customerDetails // ← was prisma.paymentDetails (wrong model)
                     .findUnique({ where: { id: parent.id } })
                     .transaction();
-            }
+            },
         });
-    }
+    },
 });

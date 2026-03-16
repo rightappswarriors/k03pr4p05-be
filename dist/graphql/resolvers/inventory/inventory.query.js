@@ -27,6 +27,21 @@ export const InventoryQuery = extendType({
                 });
             },
         });
+        // inventory.query.ts  — add inside the extendType definition(t) block
+        t.nullable.field("inventoryItemByKeys", {
+            type: "InventoryItems",
+            args: {
+                inventoryId: nonNull(intArg()),
+                itemId: nonNull(intArg()),
+            },
+            async resolve(_, { inventoryId, itemId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                return ctx.prisma.inventoryItems.findUnique({
+                    where: { inventoryId_itemId: { inventoryId, itemId } },
+                });
+            },
+        });
         t.field("getInventoryByOutletId", {
             type: "Outlet",
             args: {

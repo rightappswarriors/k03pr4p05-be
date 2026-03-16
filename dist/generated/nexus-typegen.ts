@@ -75,7 +75,7 @@ export interface NexusGenInputs {
     name: string; // String!
     supplierId: number; // Int!
   }
-  CustomerDetails: { // input type
+  CustomerDetailsInput: { // input type
     bank_code?: string | null; // String
     card_number?: string | null; // String
     client_key?: string | null; // String
@@ -154,10 +154,10 @@ export interface NexusGenEnums {
   OutletStatus: "closed" | "maintainance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
-  PaymentType: "CARD" | "GCASH" | "PAYMAYA"
+  PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
-  Status: "CANCELED" | "FAILED" | "PENDING" | "SYNCED"
+  Status: "CANCELED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   orderBy: "asc" | "desc"
 }
 
@@ -216,6 +216,19 @@ export interface NexusGenObjects {
     hexCode?: string | null; // String
     id: number; // Int!
     name: string; // String!
+  }
+  CustomerDetails: { // root type
+    client_key?: string | null; // String
+    email?: string | null; // String
+    fullname?: string | null; // String
+    id: number; // Int!
+    paymentIntentId?: string | null; // String
+    paymentMethodId?: string | null; // String
+    paymentType?: NexusGenEnums['PaymentType'] | null; // PaymentType
+    phoneNumber?: string | null; // String
+    status?: string | null; // String
+    transactionId: number; // Int!
+    username?: string | null; // String
   }
   Inventory: { // root type
     id: number; // Int!
@@ -361,16 +374,6 @@ export interface NexusGenObjects {
     name: string; // String!
     staff: NexusGenRootTypes['User'][]; // [User!]!
   }
-  PaymentDetails: { // root type
-    email?: string | null; // String
-    fullname?: string | null; // String
-    id?: number | null; // Int
-    paymentIntentId?: string | null; // String
-    paymentMethodId?: string | null; // String
-    status?: string | null; // String
-    type?: NexusGenEnums['PaymentType'] | null; // PaymentType
-    username?: string | null; // String
-  }
   PaymentInitiation: { // root type
     client_key: string; // String!
     paymentIntentId: string; // String!
@@ -412,8 +415,8 @@ export interface NexusGenObjects {
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
-    tax: number; // Float!
     total: number; // Float!
+    vatAmount: number; // Float!
   }
   User: { // root type
     contactNumber: string; // String!
@@ -497,6 +500,20 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     name: string; // String!
+  }
+  CustomerDetails: { // field return type
+    client_key: string | null; // String
+    email: string | null; // String
+    fullname: string | null; // String
+    id: number; // Int!
+    paymentIntentId: string | null; // String
+    paymentMethodId: string | null; // String
+    paymentType: NexusGenEnums['PaymentType'] | null; // PaymentType
+    phoneNumber: string | null; // String
+    status: string | null; // String
+    transaction: NexusGenRootTypes['Transaction']; // Transaction!
+    transactionId: number; // Int!
+    username: string | null; // String
   }
   Inventory: { // field return type
     id: number; // Int!
@@ -725,17 +742,6 @@ export interface NexusGenFieldTypes {
     name: string; // String!
     staff: NexusGenRootTypes['User'][]; // [User!]!
   }
-  PaymentDetails: { // field return type
-    email: string | null; // String
-    fullname: string | null; // String
-    id: number | null; // Int
-    paymentIntentId: string | null; // String
-    paymentMethodId: string | null; // String
-    status: string | null; // String
-    transaction: NexusGenRootTypes['Transaction']; // Transaction!
-    type: NexusGenEnums['PaymentType'] | null; // PaymentType
-    username: string | null; // String
-  }
   PaymentInitiation: { // field return type
     client_key: string; // String!
     paymentIntentId: string; // String!
@@ -786,6 +792,7 @@ export interface NexusGenFieldTypes {
     getSuppliers: Array<NexusGenRootTypes['Supplier'] | null> | null; // [Supplier]
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getUserById: NexusGenRootTypes['User']; // User!
+    inventoryItemByKeys: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     inventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
     itemByName: NexusGenRootTypes['Item'] | null; // Item
     itemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
@@ -809,17 +816,17 @@ export interface NexusGenFieldTypes {
     cashierId: number; // Int!
     change: number | null; // Float
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    customerDetails: NexusGenRootTypes['CustomerDetails'] | null; // CustomerDetails
     id: number; // Int!
     items: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
-    paymentDetails: NexusGenRootTypes['PaymentDetails'] | null; // PaymentDetails
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
-    tax: number; // Float!
     total: number; // Float!
+    vatAmount: number; // Float!
   }
   User: { // field return type
     branchesOwned: NexusGenRootTypes['Branch'][]; // [Branch!]!
@@ -901,6 +908,20 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     items: 'Item'
     name: 'String'
+  }
+  CustomerDetails: { // field return type name
+    client_key: 'String'
+    email: 'String'
+    fullname: 'String'
+    id: 'Int'
+    paymentIntentId: 'String'
+    paymentMethodId: 'String'
+    paymentType: 'PaymentType'
+    phoneNumber: 'String'
+    status: 'String'
+    transaction: 'Transaction'
+    transactionId: 'Int'
+    username: 'String'
   }
   Inventory: { // field return type name
     id: 'Int'
@@ -1129,17 +1150,6 @@ export interface NexusGenFieldTypeNames {
     name: 'String'
     staff: 'User'
   }
-  PaymentDetails: { // field return type name
-    email: 'String'
-    fullname: 'String'
-    id: 'Int'
-    paymentIntentId: 'String'
-    paymentMethodId: 'String'
-    status: 'String'
-    transaction: 'Transaction'
-    type: 'PaymentType'
-    username: 'String'
-  }
   PaymentInitiation: { // field return type name
     client_key: 'String'
     paymentIntentId: 'String'
@@ -1190,6 +1200,7 @@ export interface NexusGenFieldTypeNames {
     getSuppliers: 'Supplier'
     getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
+    inventoryItemByKeys: 'InventoryItems'
     inventoryItemUnits: 'InventoryItemUnit'
     itemByName: 'Item'
     itemMedia: 'Media'
@@ -1213,17 +1224,17 @@ export interface NexusGenFieldTypeNames {
     cashierId: 'Int'
     change: 'Float'
     createdAt: 'DateTime'
+    customerDetails: 'CustomerDetails'
     id: 'Int'
     items: 'CartItem'
     outlet: 'Outlet'
     outletId: 'Int'
-    paymentDetails: 'PaymentDetails'
     paymentMethod: 'PaymentMethod'
     status: 'Status'
     subtotal: 'Float'
     syncedAt: 'DateTime'
-    tax: 'Float'
     total: 'Float'
+    vatAmount: 'Float'
   }
   User: { // field return type name
     branchesOwned: 'Branch'
@@ -1385,7 +1396,7 @@ export interface NexusGenArgTypes {
       id: string; // ID!
     }
     finalizeTransaction: { // args
-      customerDetails?: NexusGenInputs['CustomerDetails'] | null; // CustomerDetails
+      customerDetails?: NexusGenInputs['CustomerDetailsInput'] | null; // CustomerDetailsInput
       itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
       outletId: number; // Int!
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
@@ -1394,7 +1405,7 @@ export interface NexusGenArgTypes {
       vatAmount: number; // Float!
     }
     initiatePayment: { // args
-      customerDetails?: NexusGenInputs['CustomerDetails'] | null; // CustomerDetails
+      customerDetails?: NexusGenInputs['CustomerDetailsInput'] | null; // CustomerDetailsInput
       outletId: number; // Int!
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
       paymentType: NexusGenEnums['PaymentTypeEnum']; // PaymentTypeEnum!
@@ -1547,6 +1558,10 @@ export interface NexusGenArgTypes {
     }
     getUserById: { // args
       id: string; // ID!
+    }
+    inventoryItemByKeys: { // args
+      inventoryId: number; // Int!
+      itemId: number; // Int!
     }
     inventoryItemUnits: { // args
       inventoryItemId: number; // Int!

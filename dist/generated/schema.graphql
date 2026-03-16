@@ -178,7 +178,22 @@ input CreateModeOfPaymentInput {
   supplierId: Int!
 }
 
-input CustomerDetails {
+type CustomerDetails {
+  client_key: String
+  email: String
+  fullname: String
+  id: Int!
+  paymentIntentId: String
+  paymentMethodId: String
+  paymentType: PaymentType
+  phoneNumber: String
+  status: String
+  transaction: Transaction!
+  transactionId: Int!
+  username: String
+}
+
+input CustomerDetailsInput {
   bank_code: String
   card_number: String
   client_key: String
@@ -364,8 +379,8 @@ type Mutation {
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deleteSupplier(id: Int!): Boolean
   deleteUser(id: ID!): User!
-  finalizeTransaction(customerDetails: CustomerDetails, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
-  initiatePayment(customerDetails: CustomerDetails, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
+  finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
   me: User!
   refreshToken(refresh_token: String!): AuthPayload!
@@ -495,18 +510,6 @@ type OutletsWithStaff {
   staff: [User!]!
 }
 
-type PaymentDetails {
-  email: String
-  fullname: String
-  id: Int
-  paymentIntentId: String
-  paymentMethodId: String
-  status: String
-  transaction: Transaction!
-  type: PaymentType
-  username: String
-}
-
 type PaymentInitiation {
   client_key: String!
   paymentIntentId: String!
@@ -523,9 +526,10 @@ enum PaymentMethod {
 }
 
 enum PaymentType {
-  CARD
-  GCASH
-  PAYMAYA
+  card
+  gcash
+  paymaya
+  qrph
 }
 
 enum PaymentTypeEnum {
@@ -579,6 +583,7 @@ type Query {
   getSuppliers: [Supplier]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
+  inventoryItemByKeys(inventoryId: Int!, itemId: Int!): InventoryItems
   inventoryItemUnits(inventoryItemId: Int!): [InventoryItemUnit!]!
   itemByName(name: String!): Item
   itemMedia(itemId: Int!): [Media!]!
@@ -596,6 +601,7 @@ enum Role {
 enum Status {
   CANCELED
   FAILED
+  PAID
   PENDING
   SYNCED
 }
@@ -618,17 +624,17 @@ type Transaction {
   cashierId: Int!
   change: Float
   createdAt: DateTime!
+  customerDetails: CustomerDetails
   id: Int!
   items: [CartItem!]!
   outlet: Outlet!
   outletId: Int!
-  paymentDetails: PaymentDetails
   paymentMethod: PaymentMethod!
   status: Status!
   subtotal: Float!
   syncedAt: DateTime!
-  tax: Float!
   total: Float!
+  vatAmount: Float!
 }
 
 input UpdateInventoryItemUnitInput {
