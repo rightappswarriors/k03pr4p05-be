@@ -28,6 +28,7 @@ import * as TransactionTypes from "./graphql/typeDefs/transaction.type.js";
 import * as TokenMutation from "./graphql/resolvers/token/token.mutation.js";
 import * as APITypes from "./graphql/typeDefs/paymogoAPI.type.js";
 import * as PaymentDetails from "./graphql/typeDefs/paymentDetails.type.js";
+import * as BrandTypes from "./graphql/typeDefs/brand.type.js";
 // Branch Mutation and QUery
 import { branchMutation } from "./graphql/resolvers/branch/branch.mutation.js";
 import { branchQuery } from "./graphql/resolvers/branch/branch.query.js";
@@ -72,6 +73,8 @@ import http from "http";
 import { initWebSocket } from "./lib/ws.js";
 // PromoType 
 import * as PromoType from "./graphql/typeDefs/promo.type.js";
+import * as MediaType from "./graphql/typeDefs/media.type.js";
+import * as InventoryItems from "./graphql/typeDefs/inventoryItemUnit.type.js";
 // Initialize Prisma Client
 // 2. Use `makeSchema` to stitch all your types and mutations together
 const schema = makeSchema({
@@ -135,7 +138,11 @@ const schema = makeSchema({
         // OutletPromo
         ...Object.values(OutletPromo),
         // PromoType
-        ...Object.values(PromoType)
+        ...Object.values(PromoType),
+        ...Object.values(MediaType),
+        // Brand 
+        ...Object.values(BrandTypes),
+        ...Object.values(InventoryItems)
     ],
     outputs: {
         // This will generate `schema.graphql` and `nexus-typegen.ts`

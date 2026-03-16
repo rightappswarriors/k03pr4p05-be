@@ -1,4 +1,4 @@
-import { extendType, nonNull, intArg, objectType, nullable, stringArg, enumType, arg } from "nexus";
+import { extendType, nonNull, intArg, objectType, nullable, stringArg, enumType, arg, list } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as itemService from "../../../services/item.service.js";
 // Define custom type for grouped result
@@ -16,6 +16,41 @@ export const orderBy = enumType({
 export const ItemQuery = extendType({
     type: "Query",
     definition(t) {
+        t.nonNull.list.nonNull.field("items", {
+            type: "Item",
+            args: {
+                search: nullable(stringArg()),
+                excludeIds: nullable(list(nonNull(intArg()))),
+                limit: nullable(intArg()),
+            },
+            async resolve(_, { search, excludeIds, limit }, ctx) {
+                requireAuth(ctx);
+                return ctx.prisma.item.findMany({
+                    where: {
+                        ...(search && { name: { contains: search, mode: "insensitive" } }),
+                        ...(excludeIds?.length && { id: { notIn: excludeIds } }),
+                    },
+                    take: limit ?? 30,
+                    orderBy: { name: "asc" },
+                    include: {
+                        category: true,
+                        brandDetails: true,
+                        color: true,
+                        purchaseUnit: true,
+                        media: { orderBy: { sortOrder: "asc" }, take: 1 },
+                    },
+                });
+            },
+        });
+        t.nullable.field("itemByName", {
+            type: "Item",
+            args: { name: nonNull(stringArg()) },
+            async resolve(_, { name }, ctx) {
+                return ctx.prisma.item.findUnique({
+                    where: { name },
+                });
+            },
+        });
         t.nonNull.list.nonNull.field("getItems", {
             type: "Item",
             args: {

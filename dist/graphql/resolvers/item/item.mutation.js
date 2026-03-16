@@ -10,6 +10,23 @@ export const LocationInput = inputObjectType({
         t.nullable.string("shelf");
     },
 });
+export const CreateItemInput = inputObjectType({
+    name: "CreateItemInput",
+    definition(t) {
+        t.nonNull.string("name");
+        t.nonNull.string("barcode");
+        t.nullable.string("image");
+        t.nullable.string("description");
+        t.nullable.string("brand");
+        t.nullable.int("categoryId");
+        t.nullable.int("brandId"); // ← missing
+        t.nullable.string("itemCode"); // ← missing
+        t.nullable.string("skuNumber"); // ← missing
+        t.nullable.boolean("vatExempt"); // ← missing
+        t.nullable.boolean("ServiceCharge"); // ← missing
+        t.nullable.boolean("assembly"); // ← missing
+    },
+});
 export const ItemInput = inputObjectType({
     name: "ItemInput",
     definition(t) {
@@ -31,22 +48,12 @@ export const InventoryItemUpdateInput = inputObjectType({
     name: "InventoryItemUpdateInput",
     definition(t) {
         t.int("quantity");
+        t.nullable.float("price");
         t.string("name");
         t.field("locationData", { type: "LocationInput" });
         t.field("itemData", { type: "ItemInput" });
     },
 });
-export const CreateItemInput = inputObjectType({
-    name: "CreateItemInput",
-    definition(t) {
-        t.nonNull.string("name");
-        t.nullable.string("image");
-        t.nullable.string("description");
-        t.nonNull.string("barcode");
-        t.nullable.string("brand");
-        t.nullable.int("categoryId");
-    },
-}); // Define LocationInput, ItemInput similarly
 export const update = inputObjectType({
     name: "UpdateItemInput",
     definition(t) {

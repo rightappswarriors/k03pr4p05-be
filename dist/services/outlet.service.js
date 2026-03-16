@@ -385,3 +385,7 @@ export const getPresentStaffs = async (outletId) => {
     });
     return staffs;
 };
+export const getOutlets = async () => {
+    const outlets = await prisma.outlet.findMany();
+    return outlets;
+};

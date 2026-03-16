@@ -6,6 +6,96 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+  CASHIER
+  OWNER
+}
+
+enum OutletType {
+  retail
+  wholesale
+  service
+}
+
+enum OutletStatus {
+  open
+  closed
+  maintainance
+}
+
+enum PaymentMethod {
+  CARD
+  CASH
+  E_WALLET
+}
+
+enum Status {
+  PENDING
+  PAID
+  SYNCED
+  FAILED
+  CANCELED
+}
+
+enum PaymentType {
+  gcash
+  paymaya
+  card
+  qrph
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  in_delivery
+  received
+  cancelled
+  returned
+}
+
+enum DeliveryStatusEvent {
+  order_placed
+  outlet_confirmed
+  outlet_preparing
+  rider_assigned
+  rider_picked_up
+  rider_en_route
+  arrived_at_door
+  delivered
+  cancelled
+  return_requested
+  returned
+}
+
+enum FeeType {
+  delivery
+  packaging
+  priority
+  handling
+  voucher_discount
+}
+
+enum EkumpraCPaymentMethod {
+  cash_on_delivery
+  gcash
+  paymaya
+  card
+  qrph
+}
+
+// ─── EXISTING POS MODELS ──────────────────────────────────────────────────────
+
 model User {
   id                   Int              @id @default(autoincrement())
   fullname             String
@@ -25,9 +115,8 @@ model User {
   Transaction          Transaction[]
   manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]           @relation("ManagerToStaff")
-  promoType           PromoType[]      @relation("UserPromoTypes")
-  outletPromo         OutletPromo[]    @relation("UserOutletPromos")
-
+  promoType            PromoType[]      @relation("UserPromoTypes")
+  outletPromo          OutletPromo[]    @relation("UserOutletPromos")
 }
 
 model PaymongoAPIKeys {
@@ -63,64 +152,62 @@ model PlaceLocation {
 }
 
 model Outlet {
-  id                    Int              @id @default(autoincrement())
+  id                    Int                     @id @default(autoincrement())
   name                  String
   address               String
   phone                 String?
-  code                  String           @unique
-  nextTransactionNumber Int?             @default(1)
-  status                OutletStatus     @default(open)
+  latitude              Float?
+  longitude             Float?
+  code                  String                  @unique
+  nextTransactionNumber Int?                    @default(1)
+  status                OutletStatus            @default(open)
   governmentTax         Float?
   serviceCharge         Float?
   outletType            OutletType
-  isActive              Boolean          @default(true)
-  outletPromos          OutletPromo[]
+  isActive              Boolean                 @default(true)
   wifiSSID              String?
-  createdAt             DateTime         @default(now())
+  createdAt             DateTime                @default(now())
   branchId              Int?
   ownerId               Int
   apiKeyId              Int?
-  apiKey                PaymongoAPIKeys? @relation("OutletApiKeys", fields: [apiKeyId], references: [id], onDelete: SetNull)
-  hasKey                Boolean          @default(false)
+  hasKey                Boolean                 @default(false)
+  outletPromos          OutletPromo[]
   inventory             Inventory?
-  branch                Branch?           @relation(fields: [branchId], references: [id],onDelete: SetNull)
-  owner                 User             @relation("UserOutlets", fields: [ownerId], references: [id])
   staff                 OutletStaff[]
   Transaction           Transaction[]
+  // new relations
+  ekumpraCOrders        EkumpraCOrder[]
+  deliveryConfig        OutletDeliveryConfig?
+  itemSearchIndex       OutletItemSearchIndex[]
+  apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id], onDelete: SetNull)
+  branch                Branch?                 @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  owner                 User                    @relation("UserOutlets", fields: [ownerId], references: [id])
 }
 
 model PromoType {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  outletPromos OutletPromo[]
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  description  String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
   userId       Int?
+  outletPromos OutletPromo[]
   user         User?         @relation("UserPromoTypes", fields: [userId], references: [id])
 }
 
 model OutletPromo {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   outletId    Int
   promoTypeId Int
-  discount    Float // percentage, e.g. 20.0 for 20%
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  discount    Float
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
   userId      Int
-  user        User     @relation("UserOutletPromos",fields: [userId], references: [id])
+  user        User      @relation("UserOutletPromos", fields: [userId], references: [id])
+  outlet      Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  promoType   PromoType @relation(fields: [promoTypeId], references: [id], onDelete: Cascade)
 
-  outlet    Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
-  promoType PromoType @relation(fields: [promoTypeId], references: [id], onDelete: Cascade)
-  
-  @@unique([outletId, promoTypeId]) // prevent duplicate promo per outlet
-}
-
-enum OutletStatus {
-  open
-  closed
-  maintainance
+  @@unique([outletId, promoTypeId])
 }
 
 model OutletStaff {
@@ -159,28 +246,61 @@ model Location {
 }
 
 model InventoryItems {
-  id          Int       @id @default(autoincrement())
+  id          Int                    @id @default(autoincrement())
   inventoryId Int
   itemId      Int
   price       Float
-  quantity    Int       @default(0)
-  locationId  Int?      @unique
-  inventory   Inventory @relation(fields: [inventoryId], references: [id])
-  item        Item      @relation(fields: [itemId], references: [id])
-  location    Location? @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  quantity    Int                    @default(0)
+  locationId  Int?                   @unique
+  inventory   Inventory              @relation(fields: [inventoryId], references: [id])
+  item        Item                   @relation(fields: [itemId], references: [id])
+  location    Location?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  // new relations
+  orderItems  EkumpraCOrderItem[]
+  searchIndex OutletItemSearchIndex?
+  units       InventoryItemUnit[]
 
   @@unique([inventoryId, itemId])
 }
 
+// ─── ITEM TAXONOMY ────────────────────────────────────────────────────────────
+
+// Top-level grouping: "Groceries", "Appliances", "Automotive"
+model ItemGroup {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  icon        String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  categories  Category[]
+}
+
 model Category {
-  id           Int     @id @default(autoincrement())
-  name         String  @unique
-  cost_of_sale String?
-  description  String?
-  groupType    String?
-  sales        String?
-  stocks       String?
-  items        Item[]
+  id             Int               @id @default(autoincrement())
+  name           String            @unique
+  cost_of_sale   String?
+  description    String?
+  groupType      String?
+  sales          String?
+  stocks         String?
+  groupId        Int?
+  group          ItemGroup?        @relation(fields: [groupId], references: [id])
+  // FIX: back-relation for ItemCategoryMap
+  itemCategories ItemCategoryMap[]
+  // Keep this for legacy POS items that still use single category
+  items          Item[]
+}
+
+// Many-to-many: one Item can belong to many Categories
+// e.g. "Samsung TV" → ["Electronics", "Appliances", "Home & Living"]
+model ItemCategoryMap {
+  itemId     Int
+  categoryId Int
+  item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, categoryId])
 }
 
 model Color {
@@ -191,25 +311,43 @@ model Color {
 }
 
 model Item {
-  id             Int              @id @default(autoincrement())
-  name           String           @unique
+  id             Int                     @id @default(autoincrement())
+  name           String                  @unique
   image          String?
   description    String?
   barcode        String
   brand          String?
+  // categoryId kept for POS legacy compatibility — use ItemCategoryMap for Ekumpra
   categoryId     Int?
   brandId        Int?
-  ServiceCharge  Boolean          @default(false)
-  assembly       Boolean          @default(false)
+  ServiceCharge  Boolean                 @default(false)
+  assembly       Boolean                 @default(false)
   itemCode       String?
+  media          Media[]
   skuNumber      String?
-  vatExempt      Boolean          @default(false)
+  vatExempt      Boolean                 @default(false)
   cartItems      CartItem[]
   InventoryItems InventoryItems[]
-  brandDetails   Brand?           @relation(fields: [brandId], references: [id])
-  category       Category?        @relation(fields: [categoryId], references: [id])
-  color          Color[]          @relation("ColorToItem")
-  purchaseUnit   ItemUnit[]       @relation("ItemToItemUnit")
+  brandDetails   Brand?                  @relation(fields: [brandId], references: [id])
+  category       Category?               @relation(fields: [categoryId], references: [id])
+  color          Color[]                 @relation("ColorToItem")
+  purchaseUnit   ItemUnit[]              @relation("ItemToItemUnit")
+  // new relations
+  categories     ItemCategoryMap[]
+  orderItems     EkumpraCOrderItem[]
+  searchIndex    OutletItemSearchIndex[]
+}
+
+model Media {
+  id        Int        @id @default(autoincrement())
+  url       String
+  type      MediaType?
+  // Attach to items when needed — add itemId Int? and relation here
+  item      Item?      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    Int?
+  sortOrder Int        @default(0)
+
+  @@index([itemId, sortOrder])
 }
 
 model StockLocation {
@@ -279,117 +417,183 @@ model CustomerDetails {
   transaction     Transaction @relation(fields: [transactionId], references: [id])
 }
 
-model Supplier {
-  id             Int             @id @default(autoincrement())
-  name           String
-  address        String?
-  zipCode        String?
-  contactNumber  String
-  contactName    String
-  faxNumber      String?
-  tinNumber      String?
-  modesOfPayment ModeOfPayment[]
+// ─── EKUMPRA CUSTOMER ─────────────────────────────────────────────────────────
+// FIX: removed the hidden soft-hyphen in "EkumpraCusto­mer"
+// The correct model name is EkumpraCustomer
+
+model EkumpraCustomer {
+  id           Int                   @id @default(autoincrement())
+  fullname     String
+  email        String?               @unique
+  phone        String                @unique
+  passwordHash String
+  profilePhoto String?
+  isVerified   Boolean               @default(false)
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  addresses    DeliveryAddress[]
+  orders       EkumpraCOrder[]
+  deviceTokens CustomerDeviceToken[]
 }
 
-model ModeOfPayment {
-  id          Int          @id @default(autoincrement())
-  name        String
-  supplierId  Int
-  accountLink AccountLink?
-  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+model CustomerDeviceToken {
+  id         Int             @id @default(autoincrement())
+  customerId Int
+  token      String          @unique
+  platform   String // "android" | "ios"
+  createdAt  DateTime        @default(now())
+  customer   EkumpraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  STAFF
-  CASHIER
-  OWNER
+model DeliveryAddress {
+  id         Int             @id @default(autoincrement())
+  customerId Int
+  label      String // "Home", "Office", "Parents' House"
+  address    String
+  latitude   Float
+  longitude  Float
+  isDefault  Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  customer   EkumpraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     EkumpraCOrder[]
 }
 
-enum OutletType {
-  retail
-  wholesale
-  service
+// ─── EKUMPRA ORDER ────────────────────────────────────────────────────────────
+
+model EkumpraCOrder {
+  id                  Int                        @id @default(autoincrement())
+  transactionNumber   String                     @unique // e.g. "EKU-20240315-0042"
+  customerId          Int
+  outletId            Int
+  deliveryAddressId   Int
+  subtotal            Float
+  total               Float
+  status              OrderStatus                @default(pending)
+  scheduledDeliveryAt DateTime?
+  estimatedDeliveryAt DateTime?
+  deliveredAt         DateTime?
+  paymentMethod       EkumpraCPaymentMethod
+  paymentStatus       String                     @default("unpaid")
+  paymentReference    String?
+  riderName           String?
+  riderPhone          String?
+  customerNote        String?
+  outletNote          String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  customer            EkumpraCustomer            @relation(fields: [customerId], references: [id])
+  outlet              Outlet                     @relation(fields: [outletId], references: [id])
+  deliveryAddress     DeliveryAddress            @relation(fields: [deliveryAddressId], references: [id])
+  items               EkumpraCOrderItem[]
+  fees                EkumpraCOrderFee[]
+  tracking            EkumpraCDeliveryTracking[]
 }
 
-enum PaymentMethod {
-  CARD
-  CASH
-  E_WALLET
+// Price MUST be snapshotted at order time — never look up live price for past orders
+model EkumpraCOrderItem {
+  id              Int                @id @default(autoincrement())
+  orderId         Int
+  inventoryItemId Int
+  itemId          Int
+  quantity        Int
+  priceSnapshot   Float // price at time of order — immutable
+  subtotal        Float // quantity × priceSnapshot
+  order           EkumpraCOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventoryItem   InventoryItems     @relation(fields: [inventoryItemId], references: [id])
+  item            Item               @relation(fields: [itemId], references: [id])
+  unitId          Int?
+  unit            InventoryItemUnit? @relation(fields: [unitId], references: [id])
+
+  @@unique([orderId, inventoryItemId])
 }
 
-enum Status {
-  PENDING
-  PAID
-  SYNCED
-  FAILED
-  CANCELED
+// Flexible fees — add new types without schema migrations
+model EkumpraCOrderFee {
+  id      Int           @id @default(autoincrement())
+  orderId Int
+  type    FeeType
+  label   String // "Delivery fee", "Voucher SAVE50"
+  amount  Float // negative = discount
+  order   EkumpraCOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
-enum PaymentType {
-  gcash
-  paymaya
-  card
-  qrph
+// Append-only event log — never update rows, only insert
+model EkumpraCDeliveryTracking {
+  id         Int                 @id @default(autoincrement())
+  orderId    Int
+  event      DeliveryStatusEvent
+  statusAt   DateTime            @default(now())
+  currentLat Float? // rider GPS — only for movement events
+  currentLng Float?
+  note       String?
+  actorType  String // "customer" | "outlet" | "rider" | "system"
+  actorId    Int?
+  order      EkumpraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, statusAt])
 }
 
-enum AccountLink {
-  CASH_ON_HAND                               @map("Cash on Hand")
-  CASH_IN_BANK_BDO                           @map("Cash in Bank - BDO")
-  CASH_IN_BANK_CHINABANK                     @map("Cash in Bank - Chinabank")
-  CASH_IN_BANK_SECURITY_BANK                 @map("Cash in Bank - Security Bank")
-  ACCOUNTS_RECEIVABLE_TRADE                  @map("Accounts Receivable - Trade")
-  ACCOUNTS_RECEIVABLE_NON_TRADE              @map("Accounts Receivable - Non-Trade")
-  ADVANCES_TO_AFFILIATES                     @map("Advances to Affiliates")
-  ADVANCES_TO_EMPLOYEES                      @map("Advances to Employees")
-  ADVANCES_TO_OFFICERS_STOCKHOLDERS          @map("Advances to Officers/Stockholders")
-  ADVANCES_TO_OUTSIDE_PERSONNEL              @map("Advances to Outside Personnel")
-  INVENTORY_ALL_STOCKS                       @map("Inventory - All Stocks")
-  PREPAID_INSURANCE                          @map("Prepaid Insurance")
-  PETTY_CASH_FUND                            @map("Petty Cash Fund")
-  OFFICE_EQUIPMENT                           @map("Office Equipment")
-  OFFICE_FURNITURES_FIXTURES                 @map("Office Furnitures & Fixtures")
-  OFFICE_SUPPLIES                            @map("Office Supplies")
-  UNUSED_OFFICE_SUPPLIES                     @map("Unused Office Supplies")
-  DELIVERY_VEHICLE                           @map("Delivery Vehicle")
-  SERVICE_VEHICLE                            @map("Service Vehicle")
-  LAND                                       @map("Land")
-  LEASEHOLD_IMPROVEMENTS                     @map("Leasehold Improvements")
-  SUBSCRIPTION_RECEIVABLE                    @map("Subscription Receivable")
-  VAT_INPUT                                  @map("VAT Input")
-  ACCUMULATED_DEP_DELIVERY_VEHICLE           @map("Accumulated Depreciation - Delivery Vehicle")
-  ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS     @map("Accumulated Depreciation - Leasehold Improvements")
-  ACCUMULATED_DEP_OFFICE_EQUIPMENT           @map("Accumulated Depreciation - Office Equipment")
-  ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES @map("Accumulated Depreciation - Office Furnitures & Fixtures")
-  ACCUMULATED_DEP_SERVICE_VEHICLE            @map("Accumulated Depreciation - Service Vehicle")
-  ACCOUNTS_PAYABLE_TRADE                     @map("Accounts Payable - Trade")
-  ACCOUNTS_PAYABLE_NON_TRADE                 @map("Accounts Payable - Non-Trade")
-  ACCRUED_EXPENSES                           @map("Accrued Expenses")
-  INCOME_TAX_PAYABLE                         @map("Income Tax Payable")
-  VAT_PAYABLE                                @map("VAT Payable")
-  WITHHOLDING_TAX_PAYABLE                    @map("Withholding Tax Payable")
-  SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS       @map("SSS, PhilHealth & Pag-IBIG Contributions")
-  ORDINARY_SHARES                            @map("Ordinary Shares")
-  SUBSCRIBED_ORDINARY_SHARES                 @map("Subscribed Ordinary Shares")
-  RETAINED_EARNINGS                          @map("Retained Earnings")
-  INTEREST_INCOME                            @map("Interest Income")
-  MISCELLANEOUS_INCOME                       @map("Miscellaneous Income")
-  OUTPUT_VAT                                 @map("Output VAT")
-  COST_OF_SALES_ALL_STOCKS                   @map("Cost of Sales - All Stocks")
-  DEPRECIATION                               @map("Depreciation")
-  ELECTRICITY                                @map("Electricity")
-  COMMUNICATION                              @map("Communication")
-  EMPLOYEE_BENEFITS                          @map("Employee Benefits")
-  FUEL_OIL                                   @map("Fuel & Oil")
-  INSURANCE                                  @map("Insurance")
-  PROFESSIONAL_FEE                           @map("Professional Fee")
-  RENT                                       @map("Rent")
-  REPAIRS_MAINTENANCE                        @map("Repairs & Maintenance")
-  REPRESENTATION                             @map("Representation")
-  SALARIES_WAGES                             @map("Salaries & Wages")
-  TAXES_LICENSES                             @map("Taxes & Licenses")
-  TRANSPORTATION_TRAVEL                      @map("Transportation & Travel")
-  WATER                                      @map("Water")
-  INCOME_TAX                                 @map("Income Tax")
+// ─── OUTLET DELIVERY CONFIG ───────────────────────────────────────────────────
+
+model OutletDeliveryConfig {
+  id               Int     @id @default(autoincrement())
+  outletId         Int     @unique
+  isDeliveryActive Boolean @default(true)
+  deliveryRadiusKm Float   @default(5.0)
+  baseDeliveryFee  Float   @default(50.0)
+  feePerKm         Float   @default(10.0)
+  minOrderAmount   Float?
+  maxOrderAmount   Float?
+  avgPrepMins      Int     @default(15)
+  outlet           Outlet  @relation(fields: [outletId], references: [id], onDelete: Cascade)
+}
+
+// ─── OUTLET ITEM SEARCH INDEX ─────────────────────────────────────────────────
+// Denormalized flat table for fast nearest-outlet item search.
+// Refreshed on every inventory update + cron job every 15 min.
+
+model OutletItemSearchIndex {
+  id              Int            @id @default(autoincrement())
+  outletId        Int
+  itemId          Int
+  inventoryItemId Int            @unique
+  quantity        Int
+  price           Float
+  outletLatitude  Float
+  outletLongitude Float
+  outlet          Outlet         @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  item            Item           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  inventoryItem   InventoryItems @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@unique([outletId, itemId])
+  @@index([itemId, quantity])
+  @@index([outletId])
+}
+
+// How a unit relates to the base unit of the item
+// e.g. sack = 25 base units (kg), cup = 0.25 base units
+// conversionFactor: how many base units make up 1 of this selling unit
+// baseUnit: what the base is ("kg", "piece", "liter", "gram")
+
+model InventoryItemUnit {
+  id               Int                 @id @default(autoincrement())
+  inventoryItemId  Int
+  unitName         String // "sack", "kilo", "cup", "box", "piece", "dozen"
+  unitLabel        String // display label: "25kg Sack", "Per Kilo", "Per Cup"
+  price            Float // selling price for this unit
+  quantity         Float               @default(0) // stock in this unit
+  conversionFactor Float               @default(1) // 1 sack = 25 base units
+  baseUnit         String              @default("piece") // kg, piece, liter, gram, etc.
+  barcode          String? // some units have their own barcode
+  isDefault        Boolean             @default(false) // which unit shows first on POS
+  isActive         Boolean             @default(true)
+  minOrderQty      Float? // minimum order quantity (wholesale use)
+  maxOrderQty      Float?
+  reorderPoint     Float? // alert when stock drops below this
+  inventoryItem    InventoryItems      @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  orderItems       EkumpraCOrderItem[]
+
+  @@unique([inventoryItemId, unitName])
+  @@index([inventoryItemId])
 }

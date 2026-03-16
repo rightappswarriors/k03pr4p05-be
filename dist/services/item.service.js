@@ -5,21 +5,28 @@ import { prisma } from '../lib/prisma.js';
  * @param {Array<object>} data - An array of item objects to create.
  * @returns {Promise<int>} An object containing the count of created items.
  */
-export const bulkCreateItems = async (data) => {
-    try {
-        const result = await prisma.item.createMany({
-            data: data,
-            skipDuplicates: true,
-        });
-        if (process.env.NODE_ENV === "development")
-            console.log(`Successfully created ${result.count} items.`);
-        return result.count;
-    }
-    catch (error) {
-        if (process.env.NODE_ENV === "development")
-            console.error("Error with bulk item creation:", error);
-        throw new Error("Failed to create all items.");
-    }
+// Add/replace in your item.service.ts
+// Called by the createItems mutation.
+// Returns the count of created rows — the mutation returns { count }.
+export const bulkCreateItems = async (items) => {
+    const result = await prisma.item.createMany({
+        data: items.map((item) => ({
+            name: item.name,
+            barcode: item.barcode,
+            brand: item.brand ?? null,
+            description: item.description ?? null,
+            image: item.image ?? null,
+            categoryId: item.categoryId ?? null,
+            brandId: item.brandId ?? null,
+            itemCode: item.itemCode ?? null,
+            skuNumber: item.skuNumber ?? null,
+            vatExempt: item.vatExempt ?? false,
+            ServiceCharge: item.ServiceCharge ?? false,
+            assembly: item.assembly ?? false,
+        })),
+        skipDuplicates: true, // skips if Item.name already exists (unique constraint)
+    });
+    return result.count;
 };
 /**
  * @description

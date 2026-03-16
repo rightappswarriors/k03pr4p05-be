@@ -17,9 +17,8 @@ export const Inventory = objectType({
         t.nonNull.list.nonNull.field("items", {
             type: "InventoryItems",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.inventoryItems
-                    .findMany({
-                    where: { id: parent.id },
+                return ctx.prisma.inventoryItems.findMany({
+                    where: { inventoryId: parent.id }, // ✅ correct
                     include: {
                         item: true
                     }

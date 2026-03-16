@@ -148,21 +148,73 @@ export const createInventoryItem = async (itemsData, inventoryId) => {
 /**
  * @description Retrieves inventory items by outletId.
  * @param {number} outletId - The ID of the outlet.
- * @returns {Promise<InventoryItems[]>} List of inventory items.
+ * @returns {Promise<Inventory>} Inventory with all items and their details.
  */
 export const getInventoryByOutletId = async (outletId) => {
     if (process.env.NODE_ENV === "development")
         console.log("Outlet ID received in resolver:", outletId);
-    const storeInventory = await prisma.inventory.findFirst({
-        where: { outletId: Number(outletId) },
-        include: {
-            outlet: true,
-            items: {
-                select: { item: true, price: true, quantity: true },
+    const outlet = await prisma.outlet.findFirst({
+        where: { id: outletId },
+        select: {
+            id: true,
+            name: true,
+            address: true,
+            phone: true,
+            isActive: true,
+            status: true,
+            code: true,
+            governmentTax: true,
+            serviceCharge: true,
+            outletType: true,
+            inventory: {
+                select: {
+                    id: true,
+                    name: true,
+                    items: {
+                        select: {
+                            id: true,
+                            itemId: true,
+                            price: true,
+                            quantity: true,
+                            location: true,
+                            item: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    image: true,
+                                    description: true,
+                                    barcode: true,
+                                    brand: true, // ← was missing
+                                    skuNumber: true, // ← was missing
+                                    itemCode: true, // ← was missing
+                                    vatExempt: true, // ← was missing
+                                    ServiceCharge: true, // ← was missing
+                                    assembly: true, // ← was missing
+                                    categoryId: true,
+                                    brandId: true,
+                                    category: true,
+                                    brandDetails: true, // ← was missing
+                                    color: true, // ← was missing
+                                    purchaseUnit: true, // ← was missing
+                                    media: {
+                                        orderBy: { sortOrder: "asc" },
+                                    },
+                                },
+                            },
+                        },
+                        orderBy: { id: "asc" },
+                    },
+                },
             },
         },
     });
-    return storeInventory;
+    if (!outlet)
+        return null;
+    console.log(outlet);
+    //console.log("Outlet Inventory:", outlet.inventory)
+    console.log("Inventory Items:", outlet.inventory.items);
+    console.log("Inventory Items item:", outlet.inventory.items.item);
+    return outlet;
 };
 /**
  * @description Retrieves all inventory items on a specific rack for a given inventory.
@@ -184,4 +236,26 @@ export const getInventoryItemsByRack = async (inventoryId, rackName) => {
         },
     });
     return items;
+};
+// ─── InventoryItems ───────────────────────────────────────────────────────────
+// Step 2 of the create-item flow: links existing Item rows to an Inventory.
+// Uses createMany — faster than looping individual creates.
+export const updateInventoryItem = async (id, data) => {
+    return prisma.inventoryItems.update({
+        where: { id },
+        data: {
+            ...(data.quantity != null && { quantity: data.quantity }),
+            ...(data.price != null && { price: data.price }),
+        },
+        include: {
+            item: { include: { category: true, brandDetails: true, media: { orderBy: { sortOrder: "asc" } } } },
+            location: true,
+        },
+    });
+};
+export const deleteInventoryItem = async (id) => {
+    return prisma.inventoryItems.delete({
+        where: { id },
+        include: { item: true },
+    });
 };

@@ -6,8 +6,30 @@ export const InventoryQuery = extendType({
   type: "Query",
   definition(t) {
     // Get inventory by outletId
+    // Used by the create_new flow in route.ts:
+    //   1. createItems mutation creates the Item row
+    //   2. itemByName fetches the new item's id
+    //   3. addItemsToInventory links it to the inventory
+    t.nullable.field("itemByName", {
+      type: "Item",
+      args: {
+        name: nonNull(stringArg()),
+      },
+      async resolve(_, { name }, ctx) {
+        return ctx.prisma.item.findUnique({
+          where: { name },
+          include: {
+            category:     true,
+            brandDetails: true,
+            color:        true,
+            purchaseUnit: true,
+            media: { orderBy: { sortOrder: "asc" } },
+          },
+        });
+      },
+    });
     t.field("getInventoryByOutletId", {
-      type: "Inventory",
+      type: "Outlet",
       args: {
         outletId: nonNull(intArg()),
       },
@@ -28,27 +50,6 @@ export const InventoryQuery = extendType({
       },
     });
     // !GET invetory Items
-    t.nonNull.list.nullable.field("getInventoryItemByOutletId", {
-      type: "InventoryItems",
-      args: {
-        outletId: nonNull(arg({ type: "ID" }))
-      },
-      async resolve(_, { outletId }, ctx) {
-        requireAuth(ctx)
-        requireRole(ctx, ["ADMIN", "MANAGER"])
-        await requireOwnership(ctx, "outlet", outletId)
-        try {
-          const inventoryItems = await inventoryService.getInventoryByOutletId(Number(outletId))
-          if (!inventoryItems) {
-            throw new Error("No items found")
-          }
-          return inventoryItems
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") console.error("Error getting Inventory Items:", error);
-          throw new Error("Failed to get inventory Items.");
-        }
-      }
-    })
     // Get inventory items by rack
     t.list.field("getInventoryItemsByRack", {
       type: "InventoryItems",

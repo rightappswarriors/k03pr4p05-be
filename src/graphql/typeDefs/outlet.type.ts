@@ -17,6 +17,8 @@ export const Outlet = objectType({
     t.nonNull.string("address");
     t.nonNull.string("code");
     t.nonNull.string("phone");
+    t.nullable.float("latitude")
+    t.nullable.float("longitude")
     t.nullable.int("nextTransactionNumber");
     t.nullable.field("status", { type: "OutletStatus" })
     t.nullable.float("governmentTax");
@@ -54,7 +56,12 @@ export const Outlet = objectType({
     });
     t.nullable.field("inventory", {
       type: "Inventory",
-      resolve: (parent, _, ctx) => {
+      resolve: async (parent: any, _, ctx) => {
+        // If inventory was pre-loaded by the service, return it directly
+        if (parent.inventory && typeof parent.inventory === "object") {
+          return parent.inventory;             // ← preserves the items array
+        }
+        // Fallback for queries that don't pre-load inventory
         return ctx.prisma.outlet
           .findUnique({ where: { id: parent.id } })
           .inventory();
@@ -67,12 +74,14 @@ export const Outlet = objectType({
           .findUnique({ where: { id: parent.id } }).transactions();
       },
     });
-    t.nullable.int("apiKeyId"),
-      t.nullable.field("apiKey", {
-        type: "PaymongoAPIKeys",
-        resolve: (parent, _, ctx) => {
-          return ctx.prisma.outlet.findUnique({ where: parent.id }).apiKeyId()
-        }
-      })
+    t.nullable.int("apiKeyId")
+    t.nullable.field("apiKey", {
+      type: "PaymongoAPIKeys",
+      resolve: (parent, _, ctx) => {
+        return ctx.prisma.outlet
+          .findUnique({ where: { id: parent.id } })
+          .apiKey()
+      }
+    })
   },
 });

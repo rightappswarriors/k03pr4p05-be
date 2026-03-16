@@ -22,8 +22,7 @@ export const InventoryMutation = extendType({
         t.field("createInventory", {
             type: "Inventory",
             args: {
-                storeId: nonNull(intArg()),
-                name: stringArg(),
+                outletId: nonNull(intArg()), name: stringArg(),
             },
             async resolve(_, { outletId, name }, ctx) {
                 requireAuth(ctx);

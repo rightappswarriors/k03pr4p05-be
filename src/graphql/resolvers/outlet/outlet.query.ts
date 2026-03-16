@@ -132,6 +132,21 @@ export const OutletQuery = extendType({
         }
       },
     });
+    t.nonNull.list.nonNull.field("getOutlets", {
+      type: "Outlet",
+      async resolve(_, __, ctx) {
+        requireAuth(ctx)
+        requireRole(ctx, ['ADMIN', 'MANAGER'])
+
+        try {
+          return await outletService.getOutlets()
+        } catch (error) {
+          console.error("Error getting outlets:", error);
+
+          throw new Error("Error getting outlets");
+        }
+      }
+    })
     t.nonNull.list.nonNull.field("getPresentStaffs", {
       type: "OutletPresentStaffs",
       args: {

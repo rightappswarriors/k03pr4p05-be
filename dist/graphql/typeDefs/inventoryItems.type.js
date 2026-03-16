@@ -35,5 +35,14 @@ export const InventoryItems = objectType({
                     .location();
             },
         });
+        t.nonNull.list.nonNull.field("units", {
+            type: "InventoryItemUnit",
+            resolve: async (parent, _, ctx) => {
+                return ctx.prisma.inventoryItemUnit.findMany({
+                    where: { inventoryItemId: parent.id, isActive: true },
+                    orderBy: [{ isDefault: "desc" }, { price: "asc" }],
+                });
+            },
+        });
     },
 });

@@ -8,6 +8,7 @@ export const Branch = objectType({
     t.nonNull.string("name");
     t.nonNull.string("address");
     t.nullable.string("name");
+    t.nullable.string("phone")
     t.nonNull.dateTime("createdAt"); // ✅ works now
     t.nonNull.boolean("isActive");
     t.nonNull.list.nonNull.field("outlets", {

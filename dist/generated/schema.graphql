@@ -68,6 +68,12 @@ input AddItemToInventoryInput {
   quantity: Int!
 }
 
+input AddMediaInput {
+  sortOrder: Int!
+  type: MediaType
+  url: String!
+}
+
 type AddedOutletStaffs {
   id: Int!
   name: String!
@@ -93,6 +99,16 @@ type Branch {
   name: String
   outlets: [Outlet!]!
   owner: User!
+  phone: String
+}
+
+type Brand {
+  Item: [Item!]!
+  contactNumber: String
+  email: String
+  id: Int!
+  name: String
+  webUrl: String
 }
 
 type CartItem {
@@ -121,18 +137,39 @@ type CategoryCount {
 }
 
 type Color {
+  hexCode: String
   id: Int!
   items: [Item!]!
   name: String!
 }
 
+input CreateInventoryItemUnitInput {
+  barcode: String
+  baseUnit: String!
+  conversionFactor: Float!
+  isDefault: Boolean
+  maxOrderQty: Float
+  minOrderQty: Float
+  price: Float!
+  quantity: Float!
+  reorderPoint: Float
+  unitLabel: String!
+  unitName: String!
+}
+
 input CreateItemInput {
+  ServiceCharge: Boolean
+  assembly: Boolean
   barcode: String!
   brand: String
+  brandId: Int
   categoryId: Int
   description: String
   image: String
+  itemCode: String
   name: String!
+  skuNumber: String
+  vatExempt: Boolean
 }
 
 input CreateModeOfPaymentInput {
@@ -177,10 +214,29 @@ input InventoryItemInput {
   quantity: Int!
 }
 
+type InventoryItemUnit {
+  barcode: String
+  baseUnit: String!
+  conversionFactor: Float!
+  id: Int!
+  inventoryItem: InventoryItems!
+  inventoryItemId: Int!
+  isActive: Boolean!
+  isDefault: Boolean!
+  maxOrderQty: Float
+  minOrderQty: Float
+  price: Float!
+  quantity: Float!
+  reorderPoint: Float
+  unitLabel: String!
+  unitName: String!
+}
+
 input InventoryItemUpdateInput {
   itemData: ItemInput
   locationData: LocationInput
   name: String
+  price: Float
   quantity: Int
 }
 
@@ -194,12 +250,17 @@ type InventoryItems {
   locationId: Int
   price: Float
   quantity: Int!
+  units: [InventoryItemUnit!]!
 }
 
 type Item {
   InventoryItems: [InventoryItems!]!
+  ServiceCharge: Boolean!
+  assembly: Boolean!
   barcode: String
   brand: String
+  brandDetails: Brand
+  brandId: Int
   cartItems: [CartItem!]!
   category: Category
   categoryId: Int
@@ -207,11 +268,24 @@ type Item {
   description: String
   id: Int!
   image: String
+  itemCode: String
+  media: [Media!]!
   name: String!
+  purchaseUnit: [ItemUnit!]!
+  searchIndex: [OutletItemSearchIndex!]!
+  skuNumber: String
+  vatExempt: Boolean!
 }
 
 input ItemInput {
   id: Int!
+}
+
+type ItemUnit {
+  Item: [Item!]!
+  description: String
+  id: Int!
+  unitName: String!
 }
 
 type ItemsByRack {
@@ -220,7 +294,7 @@ type ItemsByRack {
 }
 
 type Location {
-  ailse: String!
+  aisle: String!
   id: Int!
   item: InventoryItems
   rack: String!
@@ -231,6 +305,24 @@ input LocationInput {
   aisle: String
   rack: String
   shelf: String
+}
+
+type Media {
+  id: Int!
+  itemId: Int
+  sortOrder: Int!
+  type: MediaType
+  url: String!
+}
+
+input MediaSortOrderInput {
+  id: Int!
+  sortOrder: Int!
+}
+
+enum MediaType {
+  image
+  video
 }
 
 type ModeOfPayment {
@@ -244,25 +336,29 @@ type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
   addAPIKeysToOutlet(apiKeyId: ID!, outletId: ID!): Boolean!
+  addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
+  addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   clearAPIToOutlet(outletId: ID!): Boolean!
   createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
   createBranch(address: String!, name: String!, phone: String!): Branch!
   createCategories(categories: [String!]!): [Category!]!
-  createInventory(name: String, storeId: Int!): Inventory
+  createInventory(name: String, outletId: Int!): Inventory
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createModeOfPayment(data: CreateModeOfPaymentInput!): ModeOfPayment
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!): Outlet!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   createSupplier(address: String, contactName: String!, contactNumber: String!, faxNumber: String, name: String!, tinNumber: String, zipCode: String): Supplier
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
   deleteAPIKEY(apiKeyId: ID!): Boolean!
   deleteBranch(id: ID!): Branch!
   deleteCategory(id: ID!): Category!
   deleteInventory(id: Int!): Boolean
   deleteInventoryItem(id: Int!): InventoryItems!
   deleteItem(id: ID!): Item!
+  deleteItemMedia(id: Int!): Media!
   deleteModeOfPayment(id: Int!): Boolean
   deleteOutlet(id: ID!): Outlet!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
@@ -273,12 +369,15 @@ type Mutation {
   login(email: String!, password: String!): AuthPayload!
   me: User!
   refreshToken(refresh_token: String!): AuthPayload!
+  reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
+  setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   updateAPIKey(public_key: String, secret_key: String): PaymongoAPIKeys!
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateCategory(id: ID!, name: String!): Category!
   updateInventory(id: Int!, name: String!): Inventory
   updateInventoryItem(data: InventoryItemUpdateInput!, id: Int!): InventoryItems!
+  updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(id: ID!, item: UpdateItemInput!): Item!
   updateModeOfPayment(data: UpdateModeOfPaymentInput!, id: Int!): ModeOfPayment
   updateOutlet(address: String, code: String, governmentTax: Float, name: String, outletId: ID!, outletType: OutletType, phone: String, serviceCharge: Float): Outlet!
@@ -299,6 +398,8 @@ type Outlet {
   id: Int!
   inventory: Inventory
   isActive: Boolean!
+  latitude: Float
+  longitude: Float
   name: String!
   nextTransactionNumber: Int
   outletType: OutletType!
@@ -310,6 +411,20 @@ type Outlet {
   status: OutletStatus
   transactions: [Transaction!]!
   wifiSSID: String
+}
+
+type OutletItemSearchIndex {
+  id: Int!
+  inventoryItem: InventoryItems!
+  inventoryItemId: Int!
+  item: Item!
+  itemId: Int!
+  outlet: Outlet!
+  outletId: Int!
+  outletLatitude: Float!
+  outletLongitude: Float!
+  price: Float!
+  quantity: Int!
 }
 
 type OutletPresentStaffs {
@@ -447,8 +562,7 @@ type Query {
   getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
   getCategoryById(id: ID!): Category!
   getCategoryItems(id: ID!): [Item!]!
-  getInventoryByOutletId(outletId: Int!): Inventory
-  getInventoryItemByOutletId(outletId: ID!): [InventoryItems]!
+  getInventoryByOutletId(outletId: Int!): Outlet
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
   getItemById(id: ID!): Item!
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
@@ -456,6 +570,7 @@ type Query {
   getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
   getOutletTransactions(endDate: DateTime, outletId: ID!, startDate: DateTime): [Transaction!]!
+  getOutlets: [Outlet!]!
   getOutletsByBranch(branchId: ID!): [Outlet!]!
   getOwnedBranches: [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
@@ -464,6 +579,10 @@ type Query {
   getSuppliers: [Supplier]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
+  inventoryItemUnits(inventoryItemId: Int!): [InventoryItemUnit!]!
+  itemByName(name: String!): Item
+  itemMedia(itemId: Int!): [Media!]!
+  items(excludeIds: [Int!], limit: Int, search: String): [Item!]!
   modeOfPayments: [ModeOfPayment!]!
 }
 
@@ -510,6 +629,20 @@ type Transaction {
   syncedAt: DateTime!
   tax: Float!
   total: Float!
+}
+
+input UpdateInventoryItemUnitInput {
+  barcode: String
+  baseUnit: String
+  conversionFactor: Float
+  isActive: Boolean
+  isDefault: Boolean
+  maxOrderQty: Float
+  minOrderQty: Float
+  price: Float
+  quantity: Float
+  reorderPoint: Float
+  unitLabel: String
 }
 
 input UpdateItemInput {

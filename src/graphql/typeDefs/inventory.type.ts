@@ -16,17 +16,15 @@ export const Inventory = objectType({
           .outlet();
       },
     });
-
     t.nonNull.list.nonNull.field("items", {
       type: "InventoryItems",
       resolve: (parent, _, ctx) => {
-        return ctx.prisma.inventoryItems
-          .findMany({
-            where: { id: parent.id },
-            include: {
-              item: true
-            }
-          })
+        return ctx.prisma.inventoryItems.findMany({
+          where: { inventoryId: parent.id }, // ✅ correct
+          include: {
+            item: true
+          }
+        })
       },
     });
   },

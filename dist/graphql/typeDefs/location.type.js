@@ -3,7 +3,7 @@ export const Location = objectType({
     name: 'Location',
     definition(t) {
         t.nonNull.int('id');
-        t.nonNull.string('ailse');
+        t.nonNull.string('aisle');
         t.nonNull.string('rack');
         t.nonNull.string('shelf');
         t.nullable.field('item', {
