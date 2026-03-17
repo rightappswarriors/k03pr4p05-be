@@ -189,7 +189,7 @@ export interface NexusGenObjects {
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
-    name?: string | null; // String
+    name: string; // String!
     phone?: string | null; // String
   }
   Brand: { // root type
@@ -462,11 +462,10 @@ export interface NexusGenFieldTypes {
   }
   Branch: { // field return type
     address: string; // String!
-    branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
-    name: string | null; // String
+    name: string; // String!
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     owner: NexusGenRootTypes['User']; // User!
     phone: string | null; // String
@@ -870,7 +869,6 @@ export interface NexusGenFieldTypeNames {
   }
   Branch: { // field return type name
     address: 'String'
-    branches: 'Branch'
     createdAt: 'DateTime'
     id: 'Int'
     isActive: 'Boolean'

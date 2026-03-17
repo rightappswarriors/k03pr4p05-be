@@ -92,11 +92,10 @@ type BatchPayload {
 
 type Branch {
   address: String!
-  branches: [Branch!]!
   createdAt: DateTime!
   id: Int!
   isActive: Boolean!
-  name: String
+  name: String!
   outlets: [Outlet!]!
   owner: User!
   phone: String

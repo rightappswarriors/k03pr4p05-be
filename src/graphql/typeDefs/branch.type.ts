@@ -7,7 +7,6 @@ export const Branch = objectType({
     t.nonNull.int("id");
     t.nonNull.string("name");
     t.nonNull.string("address");
-    t.nullable.string("name");
     t.nullable.string("phone")
     t.nonNull.dateTime("createdAt"); // ✅ works now
     t.nonNull.boolean("isActive");
@@ -15,7 +14,7 @@ export const Branch = objectType({
       type: "Outlet",
       async resolve(parent, _, ctx) {
         return ctx.prisma.outlet.findMany({
-          where: { id: parent.id}
+          where: { branchId: parent.id }
         })
       },
     });
@@ -25,14 +24,6 @@ export const Branch = objectType({
         return ctx.prisma.branch
           .findUnique({ where: { id: parent.id } })
           .owner();
-      },
-    });
-    t.nonNull.list.nonNull.field("branches", {
-      type: "Branch",
-      resolve: (parent, _, ctx) => {
-        return ctx.prisma.branch
-          .findUnique({ where: { id: parent.id } })
-          .branches();
       },
     });
   },
