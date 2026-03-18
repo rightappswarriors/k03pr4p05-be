@@ -8,6 +8,9 @@
     "dev": "nodemon --watch src --exec \"tsc && node ./dist/index.js\"",
     "postinstall": "prisma generate"
   },
+  "engines": {
+    "node": ">=20.19"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

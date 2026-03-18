@@ -222,7 +222,7 @@ async function startApolloServer() {
     })
   );
 
-  const PORT = 4000
+  const PORT = process.env.PORT || 4000;
   const httpServer = http.createServer(app)
   // initialize websocket
   initWebSocket(httpServer)
