@@ -1,4 +1,4 @@
 [phases.setup]
 nixPkgs = [
-    "nodejs_20", "npm-10_x", "openssl"
+    "nodejs_22", "npm-10_x", "openssl"
 ]
