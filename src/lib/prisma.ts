@@ -1,4 +1,4 @@
-import "dotenv/config";
+/**import "dotenv/config";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";
 import pkg from "@prisma/client"; // ← default import for CommonJS
@@ -18,3 +18,19 @@ const prisma =
 global.prisma = prisma;
 
 export { prisma };
+**/
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ["error"], // optional
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
