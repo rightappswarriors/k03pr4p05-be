@@ -171,12 +171,6 @@ input CreateItemInput {
   vatExempt: Boolean
 }
 
-input CreateModeOfPaymentInput {
-  accountLink: AccountLink
-  name: String!
-  supplierId: Int!
-}
-
 type CustomerDetails {
   client_key: String
   email: String
@@ -339,13 +333,6 @@ enum MediaType {
   video
 }
 
-type ModeOfPayment {
-  accountLink: AccountLink
-  id: Int!
-  name: String!
-  supplier: Supplier
-}
-
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
@@ -360,10 +347,8 @@ type Mutation {
   createCategories(categories: [String!]!): [Category!]!
   createInventory(name: String, outletId: Int!): Inventory
   createItems(items: [CreateItemInput!]!): BatchPayload!
-  createModeOfPayment(data: CreateModeOfPaymentInput!): ModeOfPayment
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
-  createSupplier(address: String, contactName: String!, contactNumber: String!, faxNumber: String, name: String!, tinNumber: String, zipCode: String): Supplier
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
   deleteAPIKEY(apiKeyId: ID!): Boolean!
@@ -373,10 +358,8 @@ type Mutation {
   deleteInventoryItem(id: Int!): InventoryItems!
   deleteItem(id: ID!): Item!
   deleteItemMedia(id: Int!): Media!
-  deleteModeOfPayment(id: Int!): Boolean
   deleteOutlet(id: ID!): Outlet!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
-  deleteSupplier(id: Int!): Boolean
   deleteUser(id: ID!): User!
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
@@ -393,9 +376,7 @@ type Mutation {
   updateInventoryItem(data: InventoryItemUpdateInput!, id: Int!): InventoryItems!
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(id: ID!, item: UpdateItemInput!): Item!
-  updateModeOfPayment(data: UpdateModeOfPaymentInput!, id: Int!): ModeOfPayment
   updateOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletId: ID!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
-  updateSupplier(address: String, contactName: String, contactNumber: String, faxNumber: String, id: Int!, name: String, tinNumber: String, zipCode: String): Supplier
   updateUser(fullname: String, id: ID!, username: String): User!
 }
 
@@ -578,8 +559,6 @@ type Query {
   getOwnedBranches: [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
   getStaffByOutletId(outletId: ID!): [UserStaff!]!
-  getSupplierById(id: Int!): Supplier
-  getSuppliers: [Supplier]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
   inventoryItemByKeys(inventoryId: Int!, itemId: Int!): InventoryItems
@@ -587,7 +566,6 @@ type Query {
   itemByName(name: String!): Item
   itemMedia(itemId: Int!): [Media!]!
   items(excludeIds: [Int!], limit: Int, search: String): [Item!]!
-  modeOfPayments: [ModeOfPayment!]!
 }
 
 enum Role {
@@ -603,18 +581,6 @@ enum Status {
   PAID
   PENDING
   SYNCED
-}
-
-type Supplier {
-  address: String
-  contactName: String
-  contactNumber: String!
-  faxNumber: String
-  id: Int!
-  modesOfPayment: [ModeOfPayment!]!
-  name: String!
-  tinNumber: String
-  zipCode: String
 }
 
 type Transaction {
@@ -656,11 +622,6 @@ input UpdateItemInput {
   categoryId: Int
   description: String
   image: String
-  name: String
-}
-
-input UpdateModeOfPaymentInput {
-  accountLink: AccountLink
   name: String
 }
 

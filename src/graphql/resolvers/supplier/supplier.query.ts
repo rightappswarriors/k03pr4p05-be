@@ -1,4 +1,4 @@
-// graphql/supplier/supplier.query.js
+/*/ graphql/supplier/supplier.query.js
 import { extendType, intArg, nonNull } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as supplierService from "../../../services/supplier.service.js";
@@ -28,3 +28,4 @@ export const SupplierQuery = extendType({
     });
   },
 });
+*/

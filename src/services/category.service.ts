@@ -1,6 +1,8 @@
 // services/category.service.js
-import { prisma } from '../lib/prisma.js';
+import { PrismaClient, Prisma } from "@prisma/client";
 
+const prisma = new PrismaClient()
+/**
 
 /**
  * @description
@@ -62,7 +64,7 @@ export const getAllCategories = async (
   page = 1
 ) => {
   const where = query
-    ? { name: { contains: query, mode: prisma.QueryMode.insensitive as any} } // search by query
+    ? { name: { contains: query, mode: Prisma.QueryMode.insensitive as any } } // search by query
     : {}; // empty means no filtering
 
   const categories = await prisma.category.findMany({

@@ -1,4 +1,5 @@
-import { prisma } from '../lib/prisma.js';
+import {  PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient()
 
 /**
  * @description Creates a new inventory record for a given store.
@@ -237,7 +238,6 @@ export const getInventoryByOutletId = async (outletId) => {
   console.log(outlet)
   //console.log("Outlet Inventory:", outlet.inventory)
   console.log("Inventory Items:", outlet.inventory.items)
-  console.log("Inventory Items item:", outlet.inventory.items.item)
   return outlet;
 };
 /**

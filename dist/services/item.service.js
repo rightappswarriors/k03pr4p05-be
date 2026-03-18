@@ -1,4 +1,5 @@
-import { prisma } from '../lib/prisma.js';
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 // Your existing service functions...
 /**
  * Inserts multiple new items into the database in a single, efficient query.

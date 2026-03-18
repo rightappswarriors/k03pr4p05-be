@@ -1,5 +1,5 @@
 // graphql/supplier/supplier.mutation.js
-import { extendType, nonNull, stringArg, intArg } from "nexus";
+/*import { extendType, nonNull, stringArg, intArg } from "nexus";
 import {
   requireAuth,
   requireRole,
@@ -81,3 +81,4 @@ export const SupplierMutation = extendType({
     });
   },
 });
+*/

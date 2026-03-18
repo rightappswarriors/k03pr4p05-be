@@ -1,5 +1,6 @@
-import { PaymentMethod } from '@prisma/client';
-import { prisma } from '../lib/prisma.js';
+import {  PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient()
+
 import { InventoryItems } from '../graphql/typeDefs/inventoryItems.type.js';
 
 /**

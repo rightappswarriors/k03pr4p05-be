@@ -58,6 +58,7 @@ import * as APIQuery from "./graphql/resolvers/userAPIKey/userAPI.query.js";
 import * as APIMutation from "./graphql/resolvers/userAPIKey/userAPI.mutation.js";
 import { prisma } from "./lib/prisma.js"
 import jwt from "jsonwebtoken";
+/*
 // Mode of Payment
 import * as ModeOfPaymentType from "./graphql/typeDefs/modeOfpayment.type.js";
 import * as ModeOfPaymentMutation from "./graphql/resolvers/modeOfPayment/payment.mutation.js";
@@ -65,7 +66,7 @@ import * as ModeOfPaymentQuery from "./graphql/resolvers/modeOfPayment/payment.q
 // Supplier
 import * as Supplier from "./graphql/typeDefs/supplier.type.js";
 import * as SupplierMutation from "./graphql/resolvers/supplier/supplier.mutation.js";
-import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";
+import * as SupplierQuery from "./graphql/resolvers/supplier/supplier.query.js";*/
 // Enums
 import * as Enums from "./graphql/typeDefs/enum.js";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
@@ -135,14 +136,14 @@ const schema = makeSchema({
     ...Object.values(APIMutation),
     ...Object.values(APIQuery),
     ...Object.values(APITypes),
-    // Mode of Payment
-    ...Object.values(ModeOfPaymentType),
-    ...Object.values(ModeOfPaymentQuery),
-    ...Object.values(ModeOfPaymentMutation),
+    //* Mode of Payment
+    //...Object.values(ModeOfPaymentType),
+    //...Object.values(ModeOfPaymentQuery),
+    //...Object.values(ModeOfPaymentMutation),
     // Supplier
-    ...Object.values(Supplier),
-    ...Object.values(SupplierMutation),
-    ...Object.values(SupplierQuery),
+    //...Object.values(Supplier),
+    //...Object.values(SupplierMutation),
+    //...Object.values(SupplierQuery),
     // Enum
     ...Object.values(Enums),
     // OutletPromo

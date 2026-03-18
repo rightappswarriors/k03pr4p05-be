@@ -1,4 +1,4 @@
-import { objectType } from "nexus";
+/*import { objectType } from "nexus";
 
 export const ModeOfPayment = objectType({
   name: "ModeOfPayment",
@@ -18,3 +18,4 @@ export const ModeOfPayment = objectType({
   },
 });
 
+*/

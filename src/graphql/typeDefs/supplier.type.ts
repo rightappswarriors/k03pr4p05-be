@@ -1,4 +1,4 @@
-import { objectType } from "nexus";
+/*import { objectType } from "nexus";
 
 export const Supplier = objectType({
   name: "Supplier",
@@ -26,3 +26,4 @@ export const Supplier = objectType({
     });
   },
 });
+*/

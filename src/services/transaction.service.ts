@@ -1,5 +1,6 @@
 //transaction.service.ts
-import { prisma } from '../lib/prisma.js';
+import {  PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient()
 import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
 import { sendToUser } from "../lib/ws.js"
@@ -284,7 +285,7 @@ export const initiatePayment = async (transactionData) => {
     if (!outlet) {
       throw new Error("Outlet not found")
     }
-    const APIKEYS = await prisma.PaymongoAPIKeys.findUnique({
+    const APIKEYS = await prisma.paymongoAPIKeys.findUnique({
       where: {
         id: outlet.apiKeyId
       },

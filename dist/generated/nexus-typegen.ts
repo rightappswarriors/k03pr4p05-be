@@ -70,11 +70,6 @@ export interface NexusGenInputs {
     skuNumber?: string | null; // String
     vatExempt?: boolean | null; // Boolean
   }
-  CreateModeOfPaymentInput: { // input type
-    accountLink?: NexusGenEnums['AccountLink'] | null; // AccountLink
-    name: string; // String!
-    supplierId: number; // Int!
-  }
   CustomerDetailsInput: { // input type
     bank_code?: string | null; // String
     card_number?: string | null; // String
@@ -140,10 +135,6 @@ export interface NexusGenInputs {
     categoryId?: number | null; // Int
     description?: string | null; // String
     image?: string | null; // String
-    name?: string | null; // String
-  }
-  UpdateModeOfPaymentInput: { // input type
-    accountLink?: NexusGenEnums['AccountLink'] | null; // AccountLink
     name?: string | null; // String
   }
 }
@@ -296,11 +287,6 @@ export interface NexusGenObjects {
     type?: NexusGenEnums['MediaType'] | null; // MediaType
     url: string; // String!
   }
-  ModeOfPayment: { // root type
-    accountLink?: NexusGenEnums['AccountLink'] | null; // AccountLink
-    id: number; // Int!
-    name: string; // String!
-  }
   Mutation: {};
   Outlet: { // root type
     address: string; // String!
@@ -394,16 +380,6 @@ export interface NexusGenObjects {
     name: string; // String!
   }
   Query: {};
-  Supplier: { // root type
-    address?: string | null; // String
-    contactName?: string | null; // String
-    contactNumber: string; // String!
-    faxNumber?: string | null; // String
-    id: number; // Int!
-    name: string; // String!
-    tinNumber?: string | null; // String
-    zipCode?: string | null; // String
-  }
   Transaction: { // root type
     cashReceived?: number | null; // Float
     cashierId: number; // Int!
@@ -597,12 +573,6 @@ export interface NexusGenFieldTypes {
     type: NexusGenEnums['MediaType'] | null; // MediaType
     url: string; // String!
   }
-  ModeOfPayment: { // field return type
-    accountLink: NexusGenEnums['AccountLink'] | null; // AccountLink
-    id: number; // Int!
-    name: string; // String!
-    supplier: NexusGenRootTypes['Supplier'] | null; // Supplier
-  }
   Mutation: { // field return type
     AddOutletStaff: NexusGenRootTypes['AddedOutletStaffs']; // AddedOutletStaffs!
     StaffLogout: boolean; // Boolean!
@@ -617,10 +587,8 @@ export interface NexusGenFieldTypes {
     createCategories: NexusGenRootTypes['Category'][]; // [Category!]!
     createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     createItems: NexusGenRootTypes['BatchPayload']; // BatchPayload!
-    createModeOfPayment: NexusGenRootTypes['ModeOfPayment'] | null; // ModeOfPayment
     createOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     createStaff: NexusGenRootTypes['User']; // User!
-    createSupplier: NexusGenRootTypes['Supplier'] | null; // Supplier
     createTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     deactivateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
     deleteAPIKEY: boolean; // Boolean!
@@ -630,10 +598,8 @@ export interface NexusGenFieldTypes {
     deleteInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     deleteItem: NexusGenRootTypes['Item']; // Item!
     deleteItemMedia: NexusGenRootTypes['Media']; // Media!
-    deleteModeOfPayment: boolean | null; // Boolean
     deleteOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     deleteOutletStaffs: NexusGenRootTypes['OutletStaff']; // OutletStaff!
-    deleteSupplier: boolean | null; // Boolean
     deleteUser: NexusGenRootTypes['User']; // User!
     finalizeTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     initiatePayment: NexusGenRootTypes['PaymentInitiation'] | null; // PaymentInitiation
@@ -650,9 +616,7 @@ export interface NexusGenFieldTypes {
     updateInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     updateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
     updateItem: NexusGenRootTypes['Item']; // Item!
-    updateModeOfPayment: NexusGenRootTypes['ModeOfPayment'] | null; // ModeOfPayment
     updateOutlet: NexusGenRootTypes['Outlet']; // Outlet!
-    updateSupplier: NexusGenRootTypes['Supplier'] | null; // Supplier
     updateUser: NexusGenRootTypes['User']; // User!
   }
   Outlet: { // field return type
@@ -787,8 +751,6 @@ export interface NexusGenFieldTypes {
     getOwnedBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     getPresentStaffs: NexusGenRootTypes['OutletPresentStaffs'][]; // [OutletPresentStaffs!]!
     getStaffByOutletId: NexusGenRootTypes['UserStaff'][]; // [UserStaff!]!
-    getSupplierById: NexusGenRootTypes['Supplier'] | null; // Supplier
-    getSuppliers: Array<NexusGenRootTypes['Supplier'] | null> | null; // [Supplier]
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getUserById: NexusGenRootTypes['User']; // User!
     inventoryItemByKeys: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
@@ -796,18 +758,6 @@ export interface NexusGenFieldTypes {
     itemByName: NexusGenRootTypes['Item'] | null; // Item
     itemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
-    modeOfPayments: NexusGenRootTypes['ModeOfPayment'][]; // [ModeOfPayment!]!
-  }
-  Supplier: { // field return type
-    address: string | null; // String
-    contactName: string | null; // String
-    contactNumber: string; // String!
-    faxNumber: string | null; // String
-    id: number; // Int!
-    modesOfPayment: NexusGenRootTypes['ModeOfPayment'][]; // [ModeOfPayment!]!
-    name: string; // String!
-    tinNumber: string | null; // String
-    zipCode: string | null; // String
   }
   Transaction: { // field return type
     cashReceived: number | null; // Float
@@ -1004,12 +954,6 @@ export interface NexusGenFieldTypeNames {
     type: 'MediaType'
     url: 'String'
   }
-  ModeOfPayment: { // field return type name
-    accountLink: 'AccountLink'
-    id: 'Int'
-    name: 'String'
-    supplier: 'Supplier'
-  }
   Mutation: { // field return type name
     AddOutletStaff: 'AddedOutletStaffs'
     StaffLogout: 'Boolean'
@@ -1024,10 +968,8 @@ export interface NexusGenFieldTypeNames {
     createCategories: 'Category'
     createInventory: 'Inventory'
     createItems: 'BatchPayload'
-    createModeOfPayment: 'ModeOfPayment'
     createOutlet: 'Outlet'
     createStaff: 'User'
-    createSupplier: 'Supplier'
     createTransaction: 'Transaction'
     deactivateInventoryItemUnit: 'InventoryItemUnit'
     deleteAPIKEY: 'Boolean'
@@ -1037,10 +979,8 @@ export interface NexusGenFieldTypeNames {
     deleteInventoryItem: 'InventoryItems'
     deleteItem: 'Item'
     deleteItemMedia: 'Media'
-    deleteModeOfPayment: 'Boolean'
     deleteOutlet: 'Outlet'
     deleteOutletStaffs: 'OutletStaff'
-    deleteSupplier: 'Boolean'
     deleteUser: 'User'
     finalizeTransaction: 'Transaction'
     initiatePayment: 'PaymentInitiation'
@@ -1057,9 +997,7 @@ export interface NexusGenFieldTypeNames {
     updateInventoryItem: 'InventoryItems'
     updateInventoryItemUnit: 'InventoryItemUnit'
     updateItem: 'Item'
-    updateModeOfPayment: 'ModeOfPayment'
     updateOutlet: 'Outlet'
-    updateSupplier: 'Supplier'
     updateUser: 'User'
   }
   Outlet: { // field return type name
@@ -1194,8 +1132,6 @@ export interface NexusGenFieldTypeNames {
     getOwnedBranches: 'Branch'
     getPresentStaffs: 'OutletPresentStaffs'
     getStaffByOutletId: 'UserStaff'
-    getSupplierById: 'Supplier'
-    getSuppliers: 'Supplier'
     getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
     inventoryItemByKeys: 'InventoryItems'
@@ -1203,18 +1139,6 @@ export interface NexusGenFieldTypeNames {
     itemByName: 'Item'
     itemMedia: 'Media'
     items: 'Item'
-    modeOfPayments: 'ModeOfPayment'
-  }
-  Supplier: { // field return type name
-    address: 'String'
-    contactName: 'String'
-    contactNumber: 'String'
-    faxNumber: 'String'
-    id: 'Int'
-    modesOfPayment: 'ModeOfPayment'
-    name: 'String'
-    tinNumber: 'String'
-    zipCode: 'String'
   }
   Transaction: { // field return type name
     cashReceived: 'Float'
@@ -1310,9 +1234,6 @@ export interface NexusGenArgTypes {
     createItems: { // args
       items: NexusGenInputs['CreateItemInput'][]; // [CreateItemInput!]!
     }
-    createModeOfPayment: { // args
-      data: NexusGenInputs['CreateModeOfPaymentInput']; // CreateModeOfPaymentInput!
-    }
     createOutlet: { // args
       address: string; // String!
       branchId: string; // ID!
@@ -1333,15 +1254,6 @@ export interface NexusGenArgTypes {
       password: string; // String!
       role?: NexusGenEnums['Role'] | null; // Role
       username: string; // String!
-    }
-    createSupplier: { // args
-      address?: string | null; // String
-      contactName: string; // String!
-      contactNumber: string; // String!
-      faxNumber?: string | null; // String
-      name: string; // String!
-      tinNumber?: string | null; // String
-      zipCode?: string | null; // String
     }
     createTransaction: { // args
       cashReceived?: number | null; // Float
@@ -1381,18 +1293,12 @@ export interface NexusGenArgTypes {
     deleteItemMedia: { // args
       id: number; // Int!
     }
-    deleteModeOfPayment: { // args
-      id: number; // Int!
-    }
     deleteOutlet: { // args
       id: string; // ID!
     }
     deleteOutletStaffs: { // args
       id: string; // ID!
       userIds: string[]; // [ID!]!
-    }
-    deleteSupplier: { // args
-      id: number; // Int!
     }
     deleteUser: { // args
       id: string; // ID!
@@ -1466,10 +1372,6 @@ export interface NexusGenArgTypes {
       id: string; // ID!
       item: NexusGenInputs['UpdateItemInput']; // UpdateItemInput!
     }
-    updateModeOfPayment: { // args
-      data: NexusGenInputs['UpdateModeOfPaymentInput']; // UpdateModeOfPaymentInput!
-      id: number; // Int!
-    }
     updateOutlet: { // args
       address: string; // String!
       branchId: string; // ID!
@@ -1484,16 +1386,6 @@ export interface NexusGenArgTypes {
       phone: string; // String!
       serviceCharge: number; // Float!
       status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
-    }
-    updateSupplier: { // args
-      address?: string | null; // String
-      contactName?: string | null; // String
-      contactNumber?: string | null; // String
-      faxNumber?: string | null; // String
-      id: number; // Int!
-      name?: string | null; // String
-      tinNumber?: string | null; // String
-      zipCode?: string | null; // String
     }
     updateUser: { // args
       fullname?: string | null; // String
@@ -1554,9 +1446,6 @@ export interface NexusGenArgTypes {
     }
     getStaffByOutletId: { // args
       outletId: string; // ID!
-    }
-    getSupplierById: { // args
-      id: number; // Int!
     }
     getTransactionsByStoreId: { // args
       endDate?: string | null; // String

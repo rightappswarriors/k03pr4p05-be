@@ -1,4 +1,4 @@
-import { extendType } from "nexus";
+/**import { extendType } from "nexus";
 import * as modeOfPaymentService from "../../../services/modeOfPayment.service.js";
 import {
   requireAuth,
@@ -17,4 +17,4 @@ export const ModeOfPaymentQuery = extendType({
       },
     });
   },
-});
+});*/

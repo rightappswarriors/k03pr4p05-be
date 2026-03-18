@@ -1,6 +1,7 @@
 
 import { decrypt, encrypt } from "../lib/encrypt.js";
-import { prisma } from '../lib/prisma.js';
+import {  PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient()
 
 /**
  * @description
@@ -82,12 +83,12 @@ export const deleteAPI = async (id: number) => {
       throw new Error("APIKEY not found")
     }
 
-    await prisma.outlet.findMany({
+    await prisma.outlet.updateMany({
       where: {
         apiKeyId: id
       },
       data: {
-        haskey: false
+        hasKey: false
       }
     })
     await prisma.paymongoAPIKeys.delete({
@@ -97,7 +98,7 @@ export const deleteAPI = async (id: number) => {
   })
 }
 export const addingAPIKeyToOutlet = async (outletId: number, apiKeyId: number) => {
-  const outlet = prisma.outletId.findFirst({
+  const outlet = prisma.outlet.findFirst({
     where: { id: outletId },
     select: {
       id: true
@@ -132,7 +133,7 @@ export const clearApiToOutlet = async (outletId: number) => {
     where: { id: outletId },
     data: {
       apiKeyId: null,
-      haskey: false
+      hasKey: false
     }
   })
 
