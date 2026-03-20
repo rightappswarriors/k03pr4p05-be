@@ -83,7 +83,7 @@ model Outlet {
   latitude              Float?
   longitude             Float?
   imageBanner           String?
-  ekumpraCOrders        EkumpraCOrder[]
+  kompraCOrders        KompraCOrder[]
   inventory             Inventory?
   apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
   branch                Branch?                 @relation(fields: [branchId], references: [id])
@@ -163,7 +163,7 @@ model InventoryItems {
   price       Float
   quantity    Int                    @default(0)
   locationId  Int?                   @unique
-  orderItems  EkumpraCOrderItem[]
+  orderItems  KompraCOrderItem[]
   units       InventoryItemUnit[]
   inventory   Inventory              @relation(fields: [inventoryId], references: [id])
   item        Item                   @relation(fields: [itemId], references: [id])
@@ -228,7 +228,7 @@ model Item {
   skuNumber      String?
   vatExempt      Boolean                 @default(false)
   cartItems      CartItem[]
-  orderItems     EkumpraCOrderItem[]
+  orderItems     KompraCOrderItem[]
   InventoryItems InventoryItems[]
   brandDetails   Brand?                  @relation(fields: [brandId], references: [id])
   category       Category?               @relation(fields: [categoryId], references: [id])
@@ -317,7 +317,7 @@ model CustomerDetails {
   transaction     Transaction @relation(fields: [transactionId], references: [id])
 }
 
-model EkumpraCustomer {
+model KompraCustomer {
   id           Int                   @id @default(autoincrement())
   fullname     String
   email        String                @unique
@@ -330,7 +330,7 @@ model EkumpraCustomer {
   phone        String?               @unique
   deviceTokens CustomerDeviceToken[]
   addresses    DeliveryAddress[]
-  orders       EkumpraCOrder[]
+  orders       KompraCOrder[]
 }
 
 model CustomerDeviceToken {
@@ -339,7 +339,7 @@ model CustomerDeviceToken {
   token      String          @unique
   platform   String
   createdAt  DateTime        @default(now())
-  customer   EkumpraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model DeliveryAddress {
@@ -351,11 +351,11 @@ model DeliveryAddress {
   longitude  Float
   isDefault  Boolean         @default(false)
   createdAt  DateTime        @default(now())
-  customer   EkumpraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  orders     EkumpraCOrder[]
+  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     KompraCOrder[]
 }
 
-model EkumpraCOrder {
+model KompraCOrder {
   id                  Int                        @id @default(autoincrement())
   transactionNumber   String                     @unique
   customerId          Int
@@ -367,7 +367,7 @@ model EkumpraCOrder {
   scheduledDeliveryAt DateTime?
   estimatedDeliveryAt DateTime?
   deliveredAt         DateTime?
-  paymentMethod       EkumpraCPaymentMethod
+  paymentMethod       KompraCPaymentMethod
   paymentStatus       String                     @default("unpaid")
   paymentReference    String?
   riderName           String?
@@ -376,15 +376,15 @@ model EkumpraCOrder {
   outletNote          String?
   createdAt           DateTime                   @default(now())
   updatedAt           DateTime                   @updatedAt
-  tracking            EkumpraCDeliveryTracking[]
-  customer            EkumpraCustomer            @relation(fields: [customerId], references: [id])
+  tracking            KompraCDeliveryTracking[]
+  customer            KompraCustomer            @relation(fields: [customerId], references: [id])
   deliveryAddress     DeliveryAddress            @relation(fields: [deliveryAddressId], references: [id])
   outlet              Outlet                     @relation(fields: [outletId], references: [id])
-  fees                EkumpraCOrderFee[]
-  items               EkumpraCOrderItem[]
+  fees                KompraCOrderFee[]
+  items               KompraCOrderItem[]
 }
 
-model EkumpraCOrderItem {
+model KompraCOrderItem {
   id              Int                @id @default(autoincrement())
   orderId         Int
   inventoryItemId Int
@@ -395,22 +395,22 @@ model EkumpraCOrderItem {
   unitId          Int?
   inventoryItem   InventoryItems     @relation(fields: [inventoryItemId], references: [id])
   item            Item               @relation(fields: [itemId], references: [id])
-  order           EkumpraCOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order           KompraCOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   unit            InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@unique([orderId, inventoryItemId])
 }
 
-model EkumpraCOrderFee {
+model KompraCOrderFee {
   id      Int           @id @default(autoincrement())
   orderId Int
   type    FeeType
   label   String
   amount  Float
-  order   EkumpraCOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   KompraCOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
-model EkumpraCDeliveryTracking {
+model KompraCDeliveryTracking {
   id         Int                 @id @default(autoincrement())
   orderId    Int
   event      DeliveryStatusEvent
@@ -420,7 +420,7 @@ model EkumpraCDeliveryTracking {
   note       String?
   actorType  String
   actorId    Int?
-  order      EkumpraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order      KompraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId, statusAt])
 }
@@ -471,7 +471,7 @@ model InventoryItemUnit {
   minOrderQty      Float?
   maxOrderQty      Float?
   reorderPoint     Float?
-  orderItems       EkumpraCOrderItem[]
+  orderItems       KompraCOrderItem[]
   inventoryItem    InventoryItems      @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   @@unique([inventoryItemId, unitName])
@@ -556,7 +556,7 @@ enum FeeType {
   voucher_discount
 }
 
-enum EkumpraCPaymentMethod {
+enum KompraCPaymentMethod {
   cash_on_delivery
   gcash
   paymaya
