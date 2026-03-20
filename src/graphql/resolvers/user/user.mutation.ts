@@ -35,6 +35,7 @@ export const userMutation = extendType({
         { fullname, username, email, password, role },
         ctx
       ) {
+        console.log("Try Login")
         // Validate that required fields are not empty strings
         if (!fullname || !username || !email || !password) {
           throw new Error(
