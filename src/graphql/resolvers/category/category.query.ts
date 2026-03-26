@@ -29,7 +29,7 @@ export const CategoryQuery = extendType({
     });
     //!SECTION getCategory By ID
     t.nonNull.field("getCategoryById", {
-      type: "Category",
+      type: "ItemCategory",
       args: {
         id: nonNull(arg({ type: "ID" })),
       },
@@ -47,7 +47,7 @@ export const CategoryQuery = extendType({
     });
     //!SECTION Get ALL CATEGORIES
     t.nonNull.list.nonNull.field("getAllCategory", {
-      type: "Category",
+      type: "ItemCategory",
       args: {
         pageSize: nullable(arg({ type: "Int" })),
         query: nullable(stringArg()),

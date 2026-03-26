@@ -61,3 +61,12 @@ export const AccountLink = enumType({
         'INCOME_TAX',
     ],
 });
+// New enums for multi-tenancy and ERP
+export const SubscriptionPlan = enumType({
+    name: 'SubscriptionPlan',
+    members: ['BASIC', 'GOLD'],
+});
+export const EmployeeStatus = enumType({
+    name: 'EmployeeStatus',
+    members: ['Active', 'On_Leave', 'Contract'],
+});

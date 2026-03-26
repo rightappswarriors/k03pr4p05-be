@@ -9,67 +9,64 @@ export const Item = objectType({
         t.nullable.string('description')
         t.nullable.string('barcode')
         t.nullable.int('categoryId')
-        t.nullable.string('skuNumber')
-        t.nullable.string('itemCode')
-        t.nonNull.boolean('vatExempt')
+        t.nullable.int('brandId')
         t.nonNull.boolean('ServiceCharge')
         t.nonNull.boolean('assembly')
-        t.nullable.string('brand')
-        t.nullable.field('category', {
-            type: 'Category',
+        t.nullable.string('itemCode')
+        t.nullable.string('skuNumber')
+        t.nonNull.boolean('vatExempt')
+        t.nonNull.int('orgId') // Added for multi-tenancy
+        t.nonNull.field('org', { // Added relation
+            type: 'Organization',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the category
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).org();
+            }
+        })
+        t.nullable.field('category', {
+            type: 'ItemCategory', // Updated to ItemCategory
+            resolve: (parent, _, ctx) => {
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).category();
+            }
+        })
+        t.nullable.field('brandDetails', {
+            type: 'Brand',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).brandDetails();
             }
         })
         t.nonNull.list.nonNull.field('color', {
             type: 'Color',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the colors
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).color();
             }
         })
         t.nonNull.list.nonNull.field('InventoryItems', {
             type: 'InventoryItems',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the inventory items
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).InventoryItems();
             }
         })
         t.nonNull.list.nonNull.field('cartItems', {
             type: 'CartItem',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the cart items
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).cartItems();
             }
         })
-
         t.nonNull.list.nonNull.field('media', {
             type: 'Media',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the cart items
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).media();
-            }
-        })
-        t.nullable.int('brandId')
-        t.nullable.field('brandDetails', {
-            type: 'Brand',
-            resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the brandDetails
-                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).brandDetails();
             }
         })
         t.nonNull.list.nonNull.field("purchaseUnit", {
             type: 'ItemUnit',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the category
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).purchaseUnit();
             }
         })
         t.nonNull.list.nonNull.field('searchIndex', {
             type: 'OutletItemSearchIndex',
             resolve: (parent, _, ctx) => {
-                // Correct: Use Prisma's relational query to get the category
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).searchIndex();
             }
         })

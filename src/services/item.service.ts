@@ -15,6 +15,7 @@ const prisma = new PrismaClient()
 // Returns the count of created rows — the mutation returns { count }.
 export const bulkCreateItems = async (
   items: Array<{
+    orgId: number;
     name: string;
     barcode: string;
     brand?: string | null;
@@ -31,6 +32,7 @@ export const bulkCreateItems = async (
 ) => {
   const result = await prisma.item.createMany({
     data: items.map((item) => ({
+      orgId: item.orgId,
       name: item.name,
       barcode: item.barcode,
       brand: item.brand ?? null,
@@ -44,6 +46,7 @@ export const bulkCreateItems = async (
       ServiceCharge: item.ServiceCharge ?? false,
       assembly: item.assembly ?? false,
     })),
+
     skipDuplicates: true,  // skips if Item.name already exists (unique constraint)
   });
   return result.count;

@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 export const bulkCreateItems = async (items) => {
     const result = await prisma.item.createMany({
         data: items.map((item) => ({
+            orgId: item.orgId,
             name: item.name,
             barcode: item.barcode,
             brand: item.brand ?? null,

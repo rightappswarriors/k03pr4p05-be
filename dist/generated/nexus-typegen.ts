@@ -11,6 +11,10 @@ declare global {
      * ISO 8601 DateTime string
      */
     dateTime<FieldName extends string>(fieldName: FieldName, opts?: core.CommonInputFieldConfig<TypeName, FieldName>): void // "DateTime";
+    /**
+     * Arbitrary JSON value
+     */
+    json<FieldName extends string>(fieldName: FieldName, opts?: core.CommonInputFieldConfig<TypeName, FieldName>): void // "Json";
   }
 }
 declare global {
@@ -19,6 +23,10 @@ declare global {
      * ISO 8601 DateTime string
      */
     dateTime<FieldName extends string>(fieldName: FieldName, ...opts: core.ScalarOutSpread<TypeName, FieldName>): void // "DateTime";
+    /**
+     * Arbitrary JSON value
+     */
+    json<FieldName extends string>(fieldName: FieldName, ...opts: core.ScalarOutSpread<TypeName, FieldName>): void // "Json";
   }
 }
 
@@ -28,6 +36,13 @@ declare global {
 }
 
 export interface NexusGenInputs {
+  AddDeliveryAddressInput: { // input type
+    address: string; // String!
+    isDefault: boolean; // Boolean!
+    label: string; // String!
+    latitude: number; // Float!
+    longitude: number; // Float!
+  }
   AddItemToInventoryInput: { // input type
     itemId: number; // Int!
     price: number; // Float!
@@ -112,9 +127,33 @@ export interface NexusGenInputs {
     id: number; // Int!
     sortOrder: number; // Int!
   }
+  OrderItemInput: { // input type
+    inventoryItemId: number; // Int!
+    itemId: number; // Int!
+    quantity: number; // Int!
+  }
   OutletStaffInput: { // input type
     role?: string | null; // String
     userId: number; // Int!
+  }
+  PlaceOrderInput: { // input type
+    customerNote?: string | null; // String
+    deliveryAddressId: number; // Int!
+    items: NexusGenInputs['OrderItemInput'][]; // [OrderItemInput!]!
+    outletId: number; // Int!
+    paymentMethod: NexusGenEnums['EkumpraCPaymentMethod']; // EkumpraCPaymentMethod!
+    scheduledDeliveryAt?: string | null; // String
+  }
+  RegisterCustomerInput: { // input type
+    email?: string | null; // String
+    fullname: string; // String!
+    password: string; // String!
+    phone: string; // String!
+  }
+  SearchItemInput: { // input type
+    itemId: number; // Int!
+    name: string; // String!
+    quantityWanted: number; // Int!
   }
   UpdateInventoryItemUnitInput: { // input type
     barcode?: string | null; // String
@@ -141,14 +180,20 @@ export interface NexusGenInputs {
 
 export interface NexusGenEnums {
   AccountLink: "ACCOUNTS_PAYABLE_NON_TRADE" | "ACCOUNTS_PAYABLE_TRADE" | "ACCOUNTS_RECEIVABLE_NON_TRADE" | "ACCOUNTS_RECEIVABLE_TRADE" | "ACCRUED_EXPENSES" | "ACCUMULATED_DEP_DELIVERY_VEHICLE" | "ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS" | "ACCUMULATED_DEP_OFFICE_EQUIPMENT" | "ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES" | "ACCUMULATED_DEP_SERVICE_VEHICLE" | "ADVANCES_TO_AFFILIATES" | "ADVANCES_TO_EMPLOYEES" | "ADVANCES_TO_OFFICERS_STOCKHOLDERS" | "ADVANCES_TO_OUTSIDE_PERSONNEL" | "CASH_IN_BANK_BDO" | "CASH_IN_BANK_CHINABANK" | "CASH_IN_BANK_SECURITY_BANK" | "CASH_ON_HAND" | "COMMUNICATION" | "COST_OF_SALES_ALL_STOCKS" | "DELIVERY_VEHICLE" | "DEPRECIATION" | "ELECTRICITY" | "EMPLOYEE_BENEFITS" | "FUEL_OIL" | "INCOME_TAX" | "INCOME_TAX_PAYABLE" | "INSURANCE" | "INTEREST_INCOME" | "INVENTORY_ALL_STOCKS" | "LAND" | "LEASEHOLD_IMPROVEMENTS" | "MISCELLANEOUS_INCOME" | "OFFICE_EQUIPMENT" | "OFFICE_FURNITURES_FIXTURES" | "OFFICE_SUPPLIES" | "ORDINARY_SHARES" | "OUTPUT_VAT" | "PETTY_CASH_FUND" | "PREPAID_INSURANCE" | "PROFESSIONAL_FEE" | "RENT" | "REPAIRS_MAINTENANCE" | "REPRESENTATION" | "RETAINED_EARNINGS" | "SALARIES_WAGES" | "SERVICE_VEHICLE" | "SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS" | "SUBSCRIBED_ORDINARY_SHARES" | "SUBSCRIPTION_RECEIVABLE" | "TAXES_LICENSES" | "TRANSPORTATION_TRAVEL" | "UNUSED_OFFICE_SUPPLIES" | "VAT_INPUT" | "VAT_PAYABLE" | "WATER" | "WITHHOLDING_TAX_PAYABLE"
+  DeliveryStatusEvent: "arrived_at_door" | "cancelled" | "delivered" | "order_placed" | "outlet_confirmed" | "outlet_preparing" | "return_requested" | "returned" | "rider_assigned" | "rider_en_route" | "rider_picked_up"
+  EkumpraCPaymentMethod: "card" | "cash_on_delivery" | "gcash" | "paymaya" | "qrph"
+  EmployeeStatus: "Active" | "Contract" | "On_Leave"
+  FeeType: "delivery" | "handling" | "packaging" | "priority" | "voucher_discount"
   MediaType: "image" | "video"
-  OutletStatus: "closed" | "maintainance" | "open"
+  OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "pending" | "preparing" | "received" | "returned"
+  OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
   PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
-  Role: "ADMIN" | "CASHIER" | "MANAGER" | "STAFF"
+  Role: "ADMIN" | "CASHIER" | "MANAGER" | "OWNER" | "STAFF"
   Status: "CANCELED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
+  SubscriptionPlan: "BASIC" | "GOLD"
   orderBy: "asc" | "desc"
 }
 
@@ -159,9 +204,15 @@ export interface NexusGenScalars {
   Boolean: boolean
   ID: string
   DateTime: any
+  Json: any
 }
 
 export interface NexusGenObjects {
+  AccountTitle: { // root type
+    id: number; // Int!
+    label: string; // String!
+    orgId: number; // Int!
+  }
   AddedOutletStaffs: { // root type
     id: number; // Int!
     name: string; // String!
@@ -180,14 +231,18 @@ export interface NexusGenObjects {
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
+    locationId?: number | null; // Int
     name: string; // String!
+    orgId: number; // Int!
+    ownerId: number; // Int!
     phone?: string | null; // String
   }
   Brand: { // root type
     contactNumber?: string | null; // String
     email?: string | null; // String
     id: number; // Int!
-    name?: string | null; // String
+    name: string; // String!
+    orgId: number; // Int!
     webUrl?: string | null; // String
   }
   CartItem: { // root type
@@ -195,13 +250,10 @@ export interface NexusGenObjects {
     quantity: number; // Int!
     transactionId: number; // Int!
   }
-  Category: { // root type
-    _count?: NexusGenRootTypes['CategoryCount'] | null; // CategoryCount
+  Center: { // root type
     id: number; // Int!
-    name: string; // String!
-  }
-  CategoryCount: { // root type
-    itemCount?: number | null; // Int
+    label: string; // String!
+    orgId: number; // Int!
   }
   Color: { // root type
     hexCode?: string | null; // String
@@ -221,10 +273,149 @@ export interface NexusGenObjects {
     transactionId: number; // Int!
     username?: string | null; // String
   }
+  CustomerDeviceToken: { // root type
+    createdAt: string; // String!
+    customerId: number; // Int!
+    id: number; // Int!
+    platform: string; // String!
+    token: string; // String!
+  }
+  DeliveryAddress: { // root type
+    address: string; // String!
+    createdAt: string; // String!
+    customer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
+    customerId: number; // Int!
+    id: number; // Int!
+    isDefault: boolean; // Boolean!
+    label: string; // String!
+    latitude: number; // Float!
+    longitude: number; // Float!
+  }
+  Department: { // root type
+    color?: string | null; // String
+    id: number; // Int!
+    label: string; // String!
+    orgId: number; // Int!
+  }
+  EkumpraCDeliveryTracking: { // root type
+    actorId?: number | null; // Int
+    actorType: string; // String!
+    currentLat?: number | null; // Float
+    currentLng?: number | null; // Float
+    event: NexusGenEnums['DeliveryStatusEvent']; // DeliveryStatusEvent!
+    id: number; // Int!
+    note?: string | null; // String
+    orderId: number; // Int!
+    statusAt: string; // String!
+  }
+  EkumpraCOrder: { // root type
+    createdAt: string; // String!
+    customer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
+    customerId: number; // Int!
+    customerNote?: string | null; // String
+    deliveredAt?: string | null; // String
+    deliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
+    deliveryAddressId: number; // Int!
+    estimatedDeliveryAt?: string | null; // String
+    fees: NexusGenRootTypes['EkumpraCOrderFee'][]; // [EkumpraCOrderFee!]!
+    id: number; // Int!
+    items: NexusGenRootTypes['EkumpraCOrderItem'][]; // [EkumpraCOrderItem!]!
+    outlet: NexusGenRootTypes['Outlet']; // Outlet!
+    outletId: number; // Int!
+    outletNote?: string | null; // String
+    paymentMethod: NexusGenEnums['EkumpraCPaymentMethod']; // EkumpraCPaymentMethod!
+    paymentReference?: string | null; // String
+    paymentStatus: string; // String!
+    riderName?: string | null; // String
+    riderPhone?: string | null; // String
+    scheduledDeliveryAt?: string | null; // String
+    status: NexusGenEnums['OrderStatus']; // OrderStatus!
+    subtotal: number; // Float!
+    total: number; // Float!
+    tracking: NexusGenRootTypes['EkumpraCDeliveryTracking'][]; // [EkumpraCDeliveryTracking!]!
+    transactionNumber: string; // String!
+    updatedAt: string; // String!
+  }
+  EkumpraCOrderFee: { // root type
+    amount: number; // Float!
+    id: number; // Int!
+    label: string; // String!
+    orderId: number; // Int!
+    type: NexusGenEnums['FeeType']; // FeeType!
+  }
+  EkumpraCOrderItem: { // root type
+    id: number; // Int!
+    inventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
+    inventoryItemId: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    orderId: number; // Int!
+    priceSnapshot: number; // Float!
+    quantity: number; // Int!
+    subtotal: number; // Float!
+  }
+  EkumpraCustomer: { // root type
+    addresses: NexusGenRootTypes['DeliveryAddress'][]; // [DeliveryAddress!]!
+    createdAt: string; // String!
+    email?: string | null; // String
+    fullname: string; // String!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    orders: NexusGenRootTypes['EkumpraCOrder'][]; // [EkumpraCOrder!]!
+    phone: string; // String!
+    profilePhoto?: string | null; // String
+    updatedAt: string; // String!
+  }
+  EkumpraItemGroup: { // root type
+    categories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
+    createdAt: string; // String!
+    description?: string | null; // String
+    icon?: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+  }
+  Employee: { // root type
+    department: string; // String!
+    email: string; // String!
+    hireDate: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    name: string; // String!
+    orgId: number; // Int!
+    role: string; // String!
+    salary: number; // Float!
+    status: NexusGenEnums['EmployeeStatus']; // EmployeeStatus!
+    userId?: number | null; // Int
+  }
+  GISRow: { // root type
+    code: string; // String!
+    credit: number; // Float!
+    debit: number; // Float!
+    description: string; // String!
+    group: string; // String!
+    id: string; // String!
+    main: string; // String!
+    orgId: number; // Int!
+    total: number; // Float!
+    userId?: number | null; // Int
+  }
   Inventory: { // root type
     id: number; // Int!
     name?: string | null; // String
     outletId: number; // Int!
+  }
+  InventoryItem: { // root type
+    category: string; // String!
+    id: string; // String!
+    lowStock: boolean; // Boolean!
+    minStock: number; // Int!
+    name: string; // String!
+    orgId: number; // Int!
+    price: number; // Float!
+    sku: string; // String!
+    stock: number; // Int!
+    userId?: number | null; // Int
   }
   InventoryItemUnit: { // root type
     barcode?: string | null; // String
@@ -254,7 +445,6 @@ export interface NexusGenObjects {
     ServiceCharge: boolean; // Boolean!
     assembly: boolean; // Boolean!
     barcode?: string | null; // String
-    brand?: string | null; // String
     brandId?: number | null; // Int
     categoryId?: number | null; // Int
     description?: string | null; // String
@@ -262,8 +452,39 @@ export interface NexusGenObjects {
     image?: string | null; // String
     itemCode?: string | null; // String
     name: string; // String!
+    orgId: number; // Int!
     skuNumber?: string | null; // String
     vatExempt: boolean; // Boolean!
+  }
+  ItemCategory: { // root type
+    _count?: NexusGenRootTypes['ItemCategoryCount'] | null; // ItemCategoryCount
+    cost_of_sale?: string | null; // String
+    description?: string | null; // String
+    groupId?: number | null; // Int
+    groupType?: string | null; // String
+    id: number; // Int!
+    name: string; // String!
+    orgId: number; // Int!
+    sales?: string | null; // String
+    stocks?: string | null; // String
+  }
+  ItemCategoryCount: { // root type
+    itemCount?: number | null; // Int
+  }
+  ItemCategoryMap: { // root type
+    category: NexusGenRootTypes['ItemCategory']; // ItemCategory!
+    categoryId: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+  }
+  ItemGroup: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description?: string | null; // String
+    icon?: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+    orgId: number; // Int!
   }
   ItemUnit: { // root type
     description?: string | null; // String
@@ -288,26 +509,48 @@ export interface NexusGenObjects {
     url: string; // String!
   }
   Mutation: {};
+  Organization: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: number; // Int!
+    name: string; // String!
+  }
   Outlet: { // root type
     address: string; // String!
     apiKeyId?: number | null; // Int
-    branchId: number; // Int!
+    branchId?: number | null; // Int
     code: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     governmentTax?: number | null; // Float
     hasKey?: boolean | null; // Boolean
     id: number; // Int!
+    imageBanner?: string | null; // String
     isActive: boolean; // Boolean!
     latitude?: number | null; // Float
     longitude?: number | null; // Float
     name: string; // String!
     nextTransactionNumber?: number | null; // Int
+    orgId: number; // Int!
     outletType: NexusGenEnums['OutletType']; // OutletType!
     ownerId: number; // Int!
-    phone: string; // String!
+    phone?: string | null; // String
     serviceCharge?: number | null; // Float
     status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     wifiSSID?: string | null; // String
+  }
+  OutletCatalogResult: { // root type
+    items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    outletId: number; // Int!
+  }
+  OutletDeliveryConfig: { // root type
+    avgPrepMins: number; // Int!
+    baseDeliveryFee: number; // Float!
+    deliveryRadiusKm: number; // Float!
+    feePerKm: number; // Float!
+    id: number; // Int!
+    isDeliveryActive: boolean; // Boolean!
+    maxOrderAmount?: number | null; // Float
+    minOrderAmount?: number | null; // Float
+    outletId: number; // Int!
   }
   OutletItemSearchIndex: { // root type
     id: number; // Int!
@@ -318,6 +561,17 @@ export interface NexusGenObjects {
     outletLongitude: number; // Float!
     price: number; // Float!
     quantity: number; // Int!
+  }
+  OutletMatchedItem: { // root type
+    available: boolean; // Boolean!
+    itemId: number; // Int!
+    itemName: string; // String!
+    price: number; // Float!
+    stockQty: number; // Int!
+  }
+  OutletMissingItem: { // root type
+    itemId: number; // Int!
+    itemName: string; // String!
   }
   OutletPresentStaffs: { // root type
     id: number; // Int!
@@ -333,6 +587,21 @@ export interface NexusGenObjects {
     outletId: number; // Int!
     promoTypeId: number; // Int!
     userId: number; // Int!
+  }
+  OutletSearchResult: { // root type
+    deliveryFeeEstimate: number; // Float!
+    distanceKm: number; // Float!
+    latitude: number; // Float!
+    longitude: number; // Float!
+    matchCount: number; // Int!
+    matchLabel: string; // String!
+    matchScore: number; // Float!
+    matchedItems: NexusGenRootTypes['OutletMatchedItem'][]; // [OutletMatchedItem!]!
+    missingItems: NexusGenRootTypes['OutletMissingItem'][]; // [OutletMissingItem!]!
+    outletAddress: string; // String!
+    outletId: number; // Int!
+    outletName: string; // String!
+    totalItems: number; // Int!
   }
   OutletStaff: { // root type
     id: number; // Int!
@@ -372,14 +641,65 @@ export interface NexusGenObjects {
     id: number; // Int!
     public_key: string; // String!
   }
+  PlaceLocation: { // root type
+    address: string; // String!
+    branchId: number; // Int!
+    id: number; // Int!
+    latitude: number; // Float!
+    longitude: number; // Float!
+  }
+  Position: { // root type
+    id: number; // Int!
+    label: string; // String!
+    orgId: number; // Int!
+  }
   PromoType: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description?: string | null; // String
     id: number; // Int!
     isActive: boolean; // Boolean!
     name: string; // String!
+    orgId: number; // Int!
+    userId?: number | null; // Int
   }
   Query: {};
+  SalesOrder: { // root type
+    customer: string; // String!
+    date: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    orgId: number; // Int!
+    outlet: string; // String!
+    product: string; // String!
+    qty: number; // Int!
+    status: string; // String!
+    total: number; // Float!
+    userId?: number | null; // Int
+  }
+  SubCenter: { // root type
+    id: number; // Int!
+    label: string; // String!
+    orgId: number; // Int!
+  }
+  Subscription: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    features?: NexusGenScalars['Json'] | null; // Json
+    id: number; // Int!
+    orgId: number; // Int!
+    plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
+  }
+  SummaryRow: { // root type
+    computedCost: number; // Float!
+    costContribution: number; // Float!
+    description: string; // String!
+    id: string; // String!
+    itemCode: string; // String!
+    opExPct: number; // Float!
+    orgId: number; // Int!
+    sellingPrice: number; // Float!
+    status?: string | null; // String
+    userId?: number | null; // Int
+  }
   Transaction: { // root type
     cashReceived?: number | null; // Float
     cashierId: number; // Int!
@@ -395,11 +715,15 @@ export interface NexusGenObjects {
     vatAmount: number; // Float!
   }
   User: { // root type
-    contactNumber: string; // String!
+    contactNumber?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
+    enabledPaymentMethod: boolean; // Boolean!
     fullname: string; // String!
     id: number; // Int!
+    managerId?: number | null; // Int
+    orgId: number; // Int!
+    password: string; // String!
     profilePhoto?: string | null; // String
     role: NexusGenEnums['Role']; // Role!
     username: string; // String!
@@ -409,6 +733,11 @@ export interface NexusGenObjects {
     isPresent: boolean; // Boolean!
     outletId: number; // Int!
     user: NexusGenRootTypes['User']; // User!
+  }
+  VatType: { // root type
+    id: number; // Int!
+    label: string; // String!
+    orgId: number; // Int!
   }
 }
 
@@ -423,6 +752,12 @@ export type NexusGenRootTypes = NexusGenObjects
 export type NexusGenAllTypes = NexusGenRootTypes & NexusGenScalars & NexusGenEnums
 
 export interface NexusGenFieldTypes {
+  AccountTitle: { // field return type
+    id: number; // Int!
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+  }
   AddedOutletStaffs: { // field return type
     id: number; // Int!
     name: string; // String!
@@ -441,9 +776,14 @@ export interface NexusGenFieldTypes {
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
     isActive: boolean; // Boolean!
+    location: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
+    locationId: number | null; // Int
     name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     owner: NexusGenRootTypes['User']; // User!
+    ownerId: number; // Int!
     phone: string | null; // String
   }
   Brand: { // field return type
@@ -451,7 +791,9 @@ export interface NexusGenFieldTypes {
     contactNumber: string | null; // String
     email: string | null; // String
     id: number; // Int!
-    name: string | null; // String
+    name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     webUrl: string | null; // String
   }
   CartItem: { // field return type
@@ -461,14 +803,11 @@ export interface NexusGenFieldTypes {
     transaction: NexusGenRootTypes['Transaction']; // Transaction!
     transactionId: number; // Int!
   }
-  Category: { // field return type
-    _count: NexusGenRootTypes['CategoryCount'] | null; // CategoryCount
+  Center: { // field return type
     id: number; // Int!
-    items: NexusGenRootTypes['Item'][]; // [Item!]!
-    name: string; // String!
-  }
-  CategoryCount: { // field return type
-    itemCount: number | null; // Int
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
   }
   Color: { // field return type
     hexCode: string | null; // String
@@ -490,12 +829,158 @@ export interface NexusGenFieldTypes {
     transactionId: number; // Int!
     username: string | null; // String
   }
+  CustomerDeviceToken: { // field return type
+    createdAt: string; // String!
+    customerId: number; // Int!
+    id: number; // Int!
+    platform: string; // String!
+    token: string; // String!
+  }
+  DeliveryAddress: { // field return type
+    address: string; // String!
+    createdAt: string; // String!
+    customer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
+    customerId: number; // Int!
+    id: number; // Int!
+    isDefault: boolean; // Boolean!
+    label: string; // String!
+    latitude: number; // Float!
+    longitude: number; // Float!
+  }
+  Department: { // field return type
+    color: string | null; // String
+    id: number; // Int!
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+  }
+  EkumpraCDeliveryTracking: { // field return type
+    actorId: number | null; // Int
+    actorType: string; // String!
+    currentLat: number | null; // Float
+    currentLng: number | null; // Float
+    event: NexusGenEnums['DeliveryStatusEvent']; // DeliveryStatusEvent!
+    id: number; // Int!
+    note: string | null; // String
+    orderId: number; // Int!
+    statusAt: string; // String!
+  }
+  EkumpraCOrder: { // field return type
+    createdAt: string; // String!
+    customer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
+    customerId: number; // Int!
+    customerNote: string | null; // String
+    deliveredAt: string | null; // String
+    deliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
+    deliveryAddressId: number; // Int!
+    estimatedDeliveryAt: string | null; // String
+    fees: NexusGenRootTypes['EkumpraCOrderFee'][]; // [EkumpraCOrderFee!]!
+    id: number; // Int!
+    items: NexusGenRootTypes['EkumpraCOrderItem'][]; // [EkumpraCOrderItem!]!
+    outlet: NexusGenRootTypes['Outlet']; // Outlet!
+    outletId: number; // Int!
+    outletNote: string | null; // String
+    paymentMethod: NexusGenEnums['EkumpraCPaymentMethod']; // EkumpraCPaymentMethod!
+    paymentReference: string | null; // String
+    paymentStatus: string; // String!
+    riderName: string | null; // String
+    riderPhone: string | null; // String
+    scheduledDeliveryAt: string | null; // String
+    status: NexusGenEnums['OrderStatus']; // OrderStatus!
+    subtotal: number; // Float!
+    total: number; // Float!
+    tracking: NexusGenRootTypes['EkumpraCDeliveryTracking'][]; // [EkumpraCDeliveryTracking!]!
+    transactionNumber: string; // String!
+    updatedAt: string; // String!
+  }
+  EkumpraCOrderFee: { // field return type
+    amount: number; // Float!
+    id: number; // Int!
+    label: string; // String!
+    orderId: number; // Int!
+    type: NexusGenEnums['FeeType']; // FeeType!
+  }
+  EkumpraCOrderItem: { // field return type
+    id: number; // Int!
+    inventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
+    inventoryItemId: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    orderId: number; // Int!
+    priceSnapshot: number; // Float!
+    quantity: number; // Int!
+    subtotal: number; // Float!
+  }
+  EkumpraCustomer: { // field return type
+    addresses: NexusGenRootTypes['DeliveryAddress'][]; // [DeliveryAddress!]!
+    createdAt: string; // String!
+    email: string | null; // String
+    fullname: string; // String!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    orders: NexusGenRootTypes['EkumpraCOrder'][]; // [EkumpraCOrder!]!
+    phone: string; // String!
+    profilePhoto: string | null; // String
+    updatedAt: string; // String!
+  }
+  EkumpraItemGroup: { // field return type
+    categories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
+    createdAt: string; // String!
+    description: string | null; // String
+    icon: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+  }
+  Employee: { // field return type
+    department: string; // String!
+    email: string; // String!
+    hireDate: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    role: string; // String!
+    salary: number; // Float!
+    status: NexusGenEnums['EmployeeStatus']; // EmployeeStatus!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
+  }
+  GISRow: { // field return type
+    code: string; // String!
+    credit: number; // Float!
+    debit: number; // Float!
+    description: string; // String!
+    group: string; // String!
+    id: string; // String!
+    main: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    total: number; // Float!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
+  }
   Inventory: { // field return type
     id: number; // Int!
     items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     name: string | null; // String
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
+  }
+  InventoryItem: { // field return type
+    category: string; // String!
+    id: string; // String!
+    lowStock: boolean; // Boolean!
+    minStock: number; // Int!
+    name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    price: number; // Float!
+    sku: string; // String!
+    stock: number; // Int!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
   }
   InventoryItemUnit: { // field return type
     barcode: string | null; // String
@@ -531,11 +1016,10 @@ export interface NexusGenFieldTypes {
     ServiceCharge: boolean; // Boolean!
     assembly: boolean; // Boolean!
     barcode: string | null; // String
-    brand: string | null; // String
     brandDetails: NexusGenRootTypes['Brand'] | null; // Brand
     brandId: number | null; // Int
     cartItems: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
-    category: NexusGenRootTypes['Category'] | null; // Category
+    category: NexusGenRootTypes['ItemCategory'] | null; // ItemCategory
     categoryId: number | null; // Int
     color: NexusGenRootTypes['Color'][]; // [Color!]!
     description: string | null; // String
@@ -544,10 +1028,47 @@ export interface NexusGenFieldTypes {
     itemCode: string | null; // String
     media: NexusGenRootTypes['Media'][]; // [Media!]!
     name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     purchaseUnit: NexusGenRootTypes['ItemUnit'][]; // [ItemUnit!]!
     searchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
     skuNumber: string | null; // String
     vatExempt: boolean; // Boolean!
+  }
+  ItemCategory: { // field return type
+    _count: NexusGenRootTypes['ItemCategoryCount'] | null; // ItemCategoryCount
+    cost_of_sale: string | null; // String
+    description: string | null; // String
+    group: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
+    groupId: number | null; // Int
+    groupType: string | null; // String
+    id: number; // Int!
+    items: NexusGenRootTypes['Item'][]; // [Item!]!
+    name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    sales: string | null; // String
+    stocks: string | null; // String
+  }
+  ItemCategoryCount: { // field return type
+    itemCount: number | null; // Int
+  }
+  ItemCategoryMap: { // field return type
+    category: NexusGenRootTypes['ItemCategory']; // ItemCategory!
+    categoryId: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+  }
+  ItemGroup: { // field return type
+    categories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string | null; // String
+    icon: string | null; // String
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
   }
   ItemUnit: { // field return type
     Item: NexusGenRootTypes['Item'][]; // [Item!]!
@@ -577,74 +1098,165 @@ export interface NexusGenFieldTypes {
     AddOutletStaff: NexusGenRootTypes['AddedOutletStaffs']; // AddedOutletStaffs!
     StaffLogout: boolean; // Boolean!
     addAPIKeysToOutlet: boolean; // Boolean!
+    addDeliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
     addInventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
     addItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    cancelEkumpraOrder: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
     clearAPIToOutlet: boolean; // Boolean!
+    confirmEkumpraOrder: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
+    confirmOrderReceived: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
     createAPIKey: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
+    createAccountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     createBranch: NexusGenRootTypes['Branch']; // Branch!
-    createCategories: NexusGenRootTypes['Category'][]; // [Category!]!
+    createCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
+    createCenter: NexusGenRootTypes['Center'] | null; // Center
+    createDepartment: NexusGenRootTypes['Department'] | null; // Department
+    createEmployee: NexusGenRootTypes['Employee'] | null; // Employee
+    createGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
+    createInventoryItem: NexusGenRootTypes['InventoryItem'] | null; // InventoryItem
+    createItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
     createItems: NexusGenRootTypes['BatchPayload']; // BatchPayload!
+    createOrganization: NexusGenRootTypes['Organization'] | null; // Organization
     createOutlet: NexusGenRootTypes['Outlet']; // Outlet!
+    createPlaceLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
+    createPosition: NexusGenRootTypes['Position'] | null; // Position
+    createSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     createStaff: NexusGenRootTypes['User']; // User!
+    createSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
+    createSubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
+    createSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     createTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
+    createVatType: NexusGenRootTypes['VatType'] | null; // VatType
     deactivateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
     deleteAPIKEY: boolean; // Boolean!
+    deleteAccountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     deleteBranch: NexusGenRootTypes['Branch']; // Branch!
-    deleteCategory: NexusGenRootTypes['Category']; // Category!
+    deleteCategory: NexusGenRootTypes['ItemCategory']; // ItemCategory!
+    deleteCenter: NexusGenRootTypes['Center'] | null; // Center
+    deleteDepartment: NexusGenRootTypes['Department'] | null; // Department
+    deleteEmployee: NexusGenRootTypes['Employee'] | null; // Employee
+    deleteGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     deleteInventory: boolean | null; // Boolean
     deleteInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     deleteItem: NexusGenRootTypes['Item']; // Item!
+    deleteItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
     deleteItemMedia: NexusGenRootTypes['Media']; // Media!
     deleteOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     deleteOutletStaffs: NexusGenRootTypes['OutletStaff']; // OutletStaff!
+    deletePlaceLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
+    deletePosition: NexusGenRootTypes['Position'] | null; // Position
+    deleteSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    deleteSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
+    deleteSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     deleteUser: NexusGenRootTypes['User']; // User!
+    deleteVatType: NexusGenRootTypes['VatType'] | null; // VatType
     finalizeTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     initiatePayment: NexusGenRootTypes['PaymentInitiation'] | null; // PaymentInitiation
     login: NexusGenRootTypes['AuthPayload']; // AuthPayload!
+    markOrderInDelivery: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
     me: NexusGenRootTypes['User']; // User!
+    placeEkumpraOrder: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
     refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
+    registerEkumpraCustomer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
     reorderItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     signup: NexusGenRootTypes['User']; // User!
     updateAPIKey: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
+    updateAccountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     updateBranch: NexusGenRootTypes['Branch']; // Branch!
-    updateCategory: NexusGenRootTypes['Category']; // Category!
+    updateCategory: NexusGenRootTypes['ItemCategory']; // ItemCategory!
+    updateCenter: NexusGenRootTypes['Center'] | null; // Center
+    updateDepartment: NexusGenRootTypes['Department'] | null; // Department
+    updateEmployee: NexusGenRootTypes['Employee'] | null; // Employee
+    updateGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     updateInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     updateInventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     updateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
     updateItem: NexusGenRootTypes['Item']; // Item!
+    updateItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
+    updateOrganization: NexusGenRootTypes['Organization'] | null; // Organization
     updateOutlet: NexusGenRootTypes['Outlet']; // Outlet!
+    updatePlaceLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
+    updatePosition: NexusGenRootTypes['Position'] | null; // Position
+    updateSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    updateSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
+    updateSubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
+    updateSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     updateUser: NexusGenRootTypes['User']; // User!
+    updateVatType: NexusGenRootTypes['VatType'] | null; // VatType
+  }
+  Organization: { // field return type
+    accountTitles: NexusGenRootTypes['AccountTitle'][]; // [AccountTitle!]!
+    branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    brands: NexusGenRootTypes['Brand'][]; // [Brand!]!
+    centers: NexusGenRootTypes['Center'][]; // [Center!]!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    departments: NexusGenRootTypes['Department'][]; // [Department!]!
+    employees: NexusGenRootTypes['Employee'][]; // [Employee!]!
+    gisRows: NexusGenRootTypes['GISRow'][]; // [GISRow!]!
+    id: number; // Int!
+    inventoryItems: NexusGenRootTypes['InventoryItem'][]; // [InventoryItem!]!
+    itemCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
+    itemGroups: NexusGenRootTypes['ItemGroup'][]; // [ItemGroup!]!
+    items: NexusGenRootTypes['Item'][]; // [Item!]!
+    name: string; // String!
+    outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
+    positions: NexusGenRootTypes['Position'][]; // [Position!]!
+    promoTypes: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
+    salesOrders: NexusGenRootTypes['SalesOrder'][]; // [SalesOrder!]!
+    subCenters: NexusGenRootTypes['SubCenter'][]; // [SubCenter!]!
+    subscription: NexusGenRootTypes['Subscription'] | null; // Subscription
+    summaryRows: NexusGenRootTypes['SummaryRow'][]; // [SummaryRow!]!
+    users: NexusGenRootTypes['User'][]; // [User!]!
+    vatTypes: NexusGenRootTypes['VatType'][]; // [VatType!]!
   }
   Outlet: { // field return type
     address: string; // String!
     apiKey: NexusGenRootTypes['PaymongoAPIKeys'] | null; // PaymongoAPIKeys
     apiKeyId: number | null; // Int
-    branch: NexusGenRootTypes['Branch']; // Branch!
-    branchId: number; // Int!
+    branch: NexusGenRootTypes['Branch'] | null; // Branch
+    branchId: number | null; // Int
     code: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     governmentTax: number | null; // Float
     hasKey: boolean | null; // Boolean
     id: number; // Int!
+    imageBanner: string | null; // String
     inventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     isActive: boolean; // Boolean!
     latitude: number | null; // Float
     longitude: number | null; // Float
     name: string; // String!
     nextTransactionNumber: number | null; // Int
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     outletType: NexusGenEnums['OutletType']; // OutletType!
     owner: NexusGenRootTypes['User']; // User!
     ownerId: number; // Int!
-    phone: string; // String!
+    phone: string | null; // String
     serviceCharge: number | null; // Float
     staff: NexusGenRootTypes['OutletStaff'][]; // [OutletStaff!]!
     status: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     transactions: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     wifiSSID: string | null; // String
+  }
+  OutletCatalogResult: { // field return type
+    items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    outletId: number; // Int!
+  }
+  OutletDeliveryConfig: { // field return type
+    avgPrepMins: number; // Int!
+    baseDeliveryFee: number; // Float!
+    deliveryRadiusKm: number; // Float!
+    feePerKm: number; // Float!
+    id: number; // Int!
+    isDeliveryActive: boolean; // Boolean!
+    maxOrderAmount: number | null; // Float
+    minOrderAmount: number | null; // Float
+    outletId: number; // Int!
   }
   OutletItemSearchIndex: { // field return type
     id: number; // Int!
@@ -658,6 +1270,17 @@ export interface NexusGenFieldTypes {
     outletLongitude: number; // Float!
     price: number; // Float!
     quantity: number; // Int!
+  }
+  OutletMatchedItem: { // field return type
+    available: boolean; // Boolean!
+    itemId: number; // Int!
+    itemName: string; // String!
+    price: number; // Float!
+    stockQty: number; // Int!
+  }
+  OutletMissingItem: { // field return type
+    itemId: number; // Int!
+    itemName: string; // String!
   }
   OutletPresentStaffs: { // field return type
     id: number; // Int!
@@ -676,6 +1299,21 @@ export interface NexusGenFieldTypes {
     promoTypeId: number; // Int!
     user: NexusGenRootTypes['User']; // User!
     userId: number; // Int!
+  }
+  OutletSearchResult: { // field return type
+    deliveryFeeEstimate: number; // Float!
+    distanceKm: number; // Float!
+    latitude: number; // Float!
+    longitude: number; // Float!
+    matchCount: number; // Int!
+    matchLabel: string; // String!
+    matchScore: number; // Float!
+    matchedItems: NexusGenRootTypes['OutletMatchedItem'][]; // [OutletMatchedItem!]!
+    missingItems: NexusGenRootTypes['OutletMissingItem'][]; // [OutletMissingItem!]!
+    outletAddress: string; // String!
+    outletId: number; // Int!
+    outletName: string; // String!
+    totalItems: number; // Int!
   }
   OutletStaff: { // field return type
     id: number; // Int!
@@ -719,24 +1357,51 @@ export interface NexusGenFieldTypes {
     owner: NexusGenRootTypes['User']; // User!
     public_key: string; // String!
   }
+  PlaceLocation: { // field return type
+    address: string; // String!
+    branch: NexusGenRootTypes['Branch']; // Branch!
+    branchId: number; // Int!
+    id: number; // Int!
+    latitude: number; // Float!
+    longitude: number; // Float!
+  }
+  Position: { // field return type
+    id: number; // Int!
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+  }
   PromoType: { // field return type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description: string | null; // String
     id: number; // Int!
     isActive: boolean; // Boolean!
     name: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     outletPromos: NexusGenRootTypes['OutletPromo'][]; // [OutletPromo!]!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
   }
   Query: { // field return type
     ME: NexusGenRootTypes['User']; // User!
+    accountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
+    accountTitles: Array<NexusGenRootTypes['AccountTitle'] | null> | null; // [AccountTitle]
+    center: NexusGenRootTypes['Center'] | null; // Center
+    centers: Array<NexusGenRootTypes['Center'] | null> | null; // [Center]
+    department: NexusGenRootTypes['Department'] | null; // Department
+    departments: Array<NexusGenRootTypes['Department'] | null> | null; // [Department]
+    ekumpraCOrder: NexusGenRootTypes['EkumpraCOrder'] | null; // EkumpraCOrder
+    employee: NexusGenRootTypes['Employee'] | null; // Employee
+    employees: Array<NexusGenRootTypes['Employee'] | null> | null; // [Employee]
     getAPIKeysByUserId: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
-    getAllCategory: NexusGenRootTypes['Category'][]; // [Category!]!
+    getAllCategory: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
     getAllOutletStaffs: NexusGenRootTypes['OutletsWithStaff'][]; // [OutletsWithStaff!]!
     getAllStaffs: NexusGenRootTypes['User'][]; // [User!]!
     getAllUsers: NexusGenRootTypes['User'][]; // [User!]!
     getBranchById: NexusGenRootTypes['Branch']; // Branch!
     getBranchTransactions: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
-    getCategoryById: NexusGenRootTypes['Category']; // Category!
+    getCategoryById: NexusGenRootTypes['ItemCategory']; // ItemCategory!
     getCategoryItems: NexusGenRootTypes['Item'][]; // [Item!]!
     getInventoryByOutletId: NexusGenRootTypes['Outlet'] | null; // Outlet
     getInventoryItemsByRack: NexusGenRootTypes['ItemsByRack'][]; // [ItemsByRack!]!
@@ -753,11 +1418,79 @@ export interface NexusGenFieldTypes {
     getStaffByOutletId: NexusGenRootTypes['UserStaff'][]; // [UserStaff!]!
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getUserById: NexusGenRootTypes['User']; // User!
+    gisRow: NexusGenRootTypes['GISRow'] | null; // GISRow
+    gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
+    inventoryItem: NexusGenRootTypes['InventoryItem'] | null; // InventoryItem
     inventoryItemByKeys: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     inventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
+    inventoryItems: Array<NexusGenRootTypes['InventoryItem'] | null> | null; // [InventoryItem]
     itemByName: NexusGenRootTypes['Item'] | null; // Item
+    itemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
+    itemGroups: Array<NexusGenRootTypes['ItemGroup'] | null> | null; // [ItemGroup]
     itemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
+    myOrders: NexusGenRootTypes['EkumpraCOrder'][]; // [EkumpraCOrder!]!
+    nearestOutletsWithItems: NexusGenRootTypes['OutletSearchResult'][]; // [OutletSearchResult!]!
+    organization: NexusGenRootTypes['Organization'] | null; // Organization
+    organizations: Array<NexusGenRootTypes['Organization'] | null> | null; // [Organization]
+    outletCatalog: NexusGenRootTypes['OutletCatalogResult']; // OutletCatalogResult!
+    outletOrderQueue: NexusGenRootTypes['EkumpraCOrder'][]; // [EkumpraCOrder!]!
+    placeLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
+    placeLocations: Array<NexusGenRootTypes['PlaceLocation'] | null> | null; // [PlaceLocation]
+    position: NexusGenRootTypes['Position'] | null; // Position
+    positions: Array<NexusGenRootTypes['Position'] | null> | null; // [Position]
+    salesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    salesOrders: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
+    subCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
+    subCenters: Array<NexusGenRootTypes['SubCenter'] | null> | null; // [SubCenter]
+    subscription: NexusGenRootTypes['Subscription'] | null; // Subscription
+    summaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
+    summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
+    vatType: NexusGenRootTypes['VatType'] | null; // VatType
+    vatTypes: Array<NexusGenRootTypes['VatType'] | null> | null; // [VatType]
+  }
+  SalesOrder: { // field return type
+    customer: string; // String!
+    date: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    outlet: string; // String!
+    product: string; // String!
+    qty: number; // Int!
+    status: string; // String!
+    total: number; // Float!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
+  }
+  SubCenter: { // field return type
+    id: number; // Int!
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+  }
+  Subscription: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    expiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+    features: NexusGenScalars['Json'] | null; // Json
+    id: number; // Int!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
+  }
+  SummaryRow: { // field return type
+    computedCost: number; // Float!
+    costContribution: number; // Float!
+    description: string; // String!
+    id: string; // String!
+    itemCode: string; // String!
+    opExPct: number; // Float!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    sellingPrice: number; // Float!
+    status: string | null; // String
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number | null; // Int
   }
   Transaction: { // field return type
     cashReceived: number | null; // Float
@@ -779,19 +1512,29 @@ export interface NexusGenFieldTypes {
   }
   User: { // field return type
     branchesOwned: NexusGenRootTypes['Branch'][]; // [Branch!]!
-    contactNumber: string; // String!
+    contactNumber: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     email: string; // String!
+    employees: Array<NexusGenRootTypes['Employee'] | null>; // [Employee]!
+    enabledPaymentMethod: boolean; // Boolean!
     fullname: string; // String!
+    gisRows: Array<NexusGenRootTypes['GISRow'] | null>; // [GISRow]!
     id: number; // Int!
+    inventoryItems: Array<NexusGenRootTypes['InventoryItem'] | null>; // [InventoryItem]!
     manager: NexusGenRootTypes['User'] | null; // User
+    managerId: number | null; // Int
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
     outletOwned: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     outletPromo: Array<NexusGenRootTypes['OutletPromo'] | null>; // [OutletPromo]!
+    password: string; // String!
     paymongoAPIKeys: NexusGenRootTypes['PaymongoAPIKeys'] | null; // PaymongoAPIKeys
     profilePhoto: string | null; // String
     promoType: Array<NexusGenRootTypes['PromoType'] | null>; // [PromoType]!
     role: NexusGenEnums['Role']; // Role!
+    salesOrders: Array<NexusGenRootTypes['SalesOrder'] | null>; // [SalesOrder]!
     staff: Array<NexusGenRootTypes['OutletStaff'] | null>; // [OutletStaff]!
+    summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null>; // [SummaryRow]!
     transaction: Array<NexusGenRootTypes['Transaction'] | null>; // [Transaction]!
     username: string; // String!
   }
@@ -801,9 +1544,21 @@ export interface NexusGenFieldTypes {
     outletId: number; // Int!
     user: NexusGenRootTypes['User']; // User!
   }
+  VatType: { // field return type
+    id: number; // Int!
+    label: string; // String!
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+  }
 }
 
 export interface NexusGenFieldTypeNames {
+  AccountTitle: { // field return type name
+    id: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+  }
   AddedOutletStaffs: { // field return type name
     id: 'Int'
     name: 'String'
@@ -822,9 +1577,14 @@ export interface NexusGenFieldTypeNames {
     createdAt: 'DateTime'
     id: 'Int'
     isActive: 'Boolean'
+    location: 'PlaceLocation'
+    locationId: 'Int'
     name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
     outlets: 'Outlet'
     owner: 'User'
+    ownerId: 'Int'
     phone: 'String'
   }
   Brand: { // field return type name
@@ -833,6 +1593,8 @@ export interface NexusGenFieldTypeNames {
     email: 'String'
     id: 'Int'
     name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
     webUrl: 'String'
   }
   CartItem: { // field return type name
@@ -842,14 +1604,11 @@ export interface NexusGenFieldTypeNames {
     transaction: 'Transaction'
     transactionId: 'Int'
   }
-  Category: { // field return type name
-    _count: 'CategoryCount'
+  Center: { // field return type name
     id: 'Int'
-    items: 'Item'
-    name: 'String'
-  }
-  CategoryCount: { // field return type name
-    itemCount: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
   }
   Color: { // field return type name
     hexCode: 'String'
@@ -871,12 +1630,158 @@ export interface NexusGenFieldTypeNames {
     transactionId: 'Int'
     username: 'String'
   }
+  CustomerDeviceToken: { // field return type name
+    createdAt: 'String'
+    customerId: 'Int'
+    id: 'Int'
+    platform: 'String'
+    token: 'String'
+  }
+  DeliveryAddress: { // field return type name
+    address: 'String'
+    createdAt: 'String'
+    customer: 'EkumpraCustomer'
+    customerId: 'Int'
+    id: 'Int'
+    isDefault: 'Boolean'
+    label: 'String'
+    latitude: 'Float'
+    longitude: 'Float'
+  }
+  Department: { // field return type name
+    color: 'String'
+    id: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+  }
+  EkumpraCDeliveryTracking: { // field return type name
+    actorId: 'Int'
+    actorType: 'String'
+    currentLat: 'Float'
+    currentLng: 'Float'
+    event: 'DeliveryStatusEvent'
+    id: 'Int'
+    note: 'String'
+    orderId: 'Int'
+    statusAt: 'String'
+  }
+  EkumpraCOrder: { // field return type name
+    createdAt: 'String'
+    customer: 'EkumpraCustomer'
+    customerId: 'Int'
+    customerNote: 'String'
+    deliveredAt: 'String'
+    deliveryAddress: 'DeliveryAddress'
+    deliveryAddressId: 'Int'
+    estimatedDeliveryAt: 'String'
+    fees: 'EkumpraCOrderFee'
+    id: 'Int'
+    items: 'EkumpraCOrderItem'
+    outlet: 'Outlet'
+    outletId: 'Int'
+    outletNote: 'String'
+    paymentMethod: 'EkumpraCPaymentMethod'
+    paymentReference: 'String'
+    paymentStatus: 'String'
+    riderName: 'String'
+    riderPhone: 'String'
+    scheduledDeliveryAt: 'String'
+    status: 'OrderStatus'
+    subtotal: 'Float'
+    total: 'Float'
+    tracking: 'EkumpraCDeliveryTracking'
+    transactionNumber: 'String'
+    updatedAt: 'String'
+  }
+  EkumpraCOrderFee: { // field return type name
+    amount: 'Float'
+    id: 'Int'
+    label: 'String'
+    orderId: 'Int'
+    type: 'FeeType'
+  }
+  EkumpraCOrderItem: { // field return type name
+    id: 'Int'
+    inventoryItem: 'InventoryItems'
+    inventoryItemId: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+    orderId: 'Int'
+    priceSnapshot: 'Float'
+    quantity: 'Int'
+    subtotal: 'Float'
+  }
+  EkumpraCustomer: { // field return type name
+    addresses: 'DeliveryAddress'
+    createdAt: 'String'
+    email: 'String'
+    fullname: 'String'
+    id: 'Int'
+    isActive: 'Boolean'
+    isVerified: 'Boolean'
+    orders: 'EkumpraCOrder'
+    phone: 'String'
+    profilePhoto: 'String'
+    updatedAt: 'String'
+  }
+  EkumpraItemGroup: { // field return type name
+    categories: 'ItemCategory'
+    createdAt: 'String'
+    description: 'String'
+    icon: 'String'
+    id: 'Int'
+    isActive: 'Boolean'
+    name: 'String'
+  }
+  Employee: { // field return type name
+    department: 'String'
+    email: 'String'
+    hireDate: 'DateTime'
+    id: 'String'
+    name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+    role: 'String'
+    salary: 'Float'
+    status: 'EmployeeStatus'
+    user: 'User'
+    userId: 'Int'
+  }
+  GISRow: { // field return type name
+    code: 'String'
+    credit: 'Float'
+    debit: 'Float'
+    description: 'String'
+    group: 'String'
+    id: 'String'
+    main: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+    total: 'Float'
+    user: 'User'
+    userId: 'Int'
+  }
   Inventory: { // field return type name
     id: 'Int'
     items: 'InventoryItems'
     name: 'String'
     outlet: 'Outlet'
     outletId: 'Int'
+  }
+  InventoryItem: { // field return type name
+    category: 'String'
+    id: 'String'
+    lowStock: 'Boolean'
+    minStock: 'Int'
+    name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+    price: 'Float'
+    sku: 'String'
+    stock: 'Int'
+    user: 'User'
+    userId: 'Int'
   }
   InventoryItemUnit: { // field return type name
     barcode: 'String'
@@ -912,11 +1817,10 @@ export interface NexusGenFieldTypeNames {
     ServiceCharge: 'Boolean'
     assembly: 'Boolean'
     barcode: 'String'
-    brand: 'String'
     brandDetails: 'Brand'
     brandId: 'Int'
     cartItems: 'CartItem'
-    category: 'Category'
+    category: 'ItemCategory'
     categoryId: 'Int'
     color: 'Color'
     description: 'String'
@@ -925,10 +1829,47 @@ export interface NexusGenFieldTypeNames {
     itemCode: 'String'
     media: 'Media'
     name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
     purchaseUnit: 'ItemUnit'
     searchIndex: 'OutletItemSearchIndex'
     skuNumber: 'String'
     vatExempt: 'Boolean'
+  }
+  ItemCategory: { // field return type name
+    _count: 'ItemCategoryCount'
+    cost_of_sale: 'String'
+    description: 'String'
+    group: 'ItemGroup'
+    groupId: 'Int'
+    groupType: 'String'
+    id: 'Int'
+    items: 'Item'
+    name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+    sales: 'String'
+    stocks: 'String'
+  }
+  ItemCategoryCount: { // field return type name
+    itemCount: 'Int'
+  }
+  ItemCategoryMap: { // field return type name
+    category: 'ItemCategory'
+    categoryId: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+  }
+  ItemGroup: { // field return type name
+    categories: 'ItemCategory'
+    createdAt: 'DateTime'
+    description: 'String'
+    icon: 'String'
+    id: 'Int'
+    isActive: 'Boolean'
+    name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
   }
   ItemUnit: { // field return type name
     Item: 'Item'
@@ -958,47 +1899,120 @@ export interface NexusGenFieldTypeNames {
     AddOutletStaff: 'AddedOutletStaffs'
     StaffLogout: 'Boolean'
     addAPIKeysToOutlet: 'Boolean'
+    addDeliveryAddress: 'DeliveryAddress'
     addInventoryItemUnits: 'InventoryItemUnit'
     addItemMedia: 'Media'
     addItemsToInventory: 'BatchPayload'
     bulkCreateInventoryItems: 'InventoryItems'
+    cancelEkumpraOrder: 'EkumpraCOrder'
     clearAPIToOutlet: 'Boolean'
+    confirmEkumpraOrder: 'EkumpraCOrder'
+    confirmOrderReceived: 'EkumpraCOrder'
     createAPIKey: 'PaymongoAPIKeys'
+    createAccountTitle: 'AccountTitle'
     createBranch: 'Branch'
-    createCategories: 'Category'
+    createCategories: 'ItemCategory'
+    createCenter: 'Center'
+    createDepartment: 'Department'
+    createEmployee: 'Employee'
+    createGISRow: 'GISRow'
     createInventory: 'Inventory'
+    createInventoryItem: 'InventoryItem'
+    createItemGroup: 'ItemGroup'
     createItems: 'BatchPayload'
+    createOrganization: 'Organization'
     createOutlet: 'Outlet'
+    createPlaceLocation: 'PlaceLocation'
+    createPosition: 'Position'
+    createSalesOrder: 'SalesOrder'
     createStaff: 'User'
+    createSubCenter: 'SubCenter'
+    createSubscription: 'Subscription'
+    createSummaryRow: 'SummaryRow'
     createTransaction: 'Transaction'
+    createVatType: 'VatType'
     deactivateInventoryItemUnit: 'InventoryItemUnit'
     deleteAPIKEY: 'Boolean'
+    deleteAccountTitle: 'AccountTitle'
     deleteBranch: 'Branch'
-    deleteCategory: 'Category'
+    deleteCategory: 'ItemCategory'
+    deleteCenter: 'Center'
+    deleteDepartment: 'Department'
+    deleteEmployee: 'Employee'
+    deleteGISRow: 'GISRow'
     deleteInventory: 'Boolean'
     deleteInventoryItem: 'InventoryItems'
     deleteItem: 'Item'
+    deleteItemGroup: 'ItemGroup'
     deleteItemMedia: 'Media'
     deleteOutlet: 'Outlet'
     deleteOutletStaffs: 'OutletStaff'
+    deletePlaceLocation: 'PlaceLocation'
+    deletePosition: 'Position'
+    deleteSalesOrder: 'SalesOrder'
+    deleteSubCenter: 'SubCenter'
+    deleteSummaryRow: 'SummaryRow'
     deleteUser: 'User'
+    deleteVatType: 'VatType'
     finalizeTransaction: 'Transaction'
     initiatePayment: 'PaymentInitiation'
     login: 'AuthPayload'
+    markOrderInDelivery: 'EkumpraCOrder'
     me: 'User'
+    placeEkumpraOrder: 'EkumpraCOrder'
     refreshToken: 'AuthPayload'
+    registerEkumpraCustomer: 'EkumpraCustomer'
     reorderItemMedia: 'Media'
     setItemPrimaryMedia: 'Media'
     signup: 'User'
     updateAPIKey: 'PaymongoAPIKeys'
+    updateAccountTitle: 'AccountTitle'
     updateBranch: 'Branch'
-    updateCategory: 'Category'
+    updateCategory: 'ItemCategory'
+    updateCenter: 'Center'
+    updateDepartment: 'Department'
+    updateEmployee: 'Employee'
+    updateGISRow: 'GISRow'
     updateInventory: 'Inventory'
     updateInventoryItem: 'InventoryItems'
     updateInventoryItemUnit: 'InventoryItemUnit'
     updateItem: 'Item'
+    updateItemGroup: 'ItemGroup'
+    updateOrganization: 'Organization'
     updateOutlet: 'Outlet'
+    updatePlaceLocation: 'PlaceLocation'
+    updatePosition: 'Position'
+    updateSalesOrder: 'SalesOrder'
+    updateSubCenter: 'SubCenter'
+    updateSubscription: 'Subscription'
+    updateSummaryRow: 'SummaryRow'
     updateUser: 'User'
+    updateVatType: 'VatType'
+  }
+  Organization: { // field return type name
+    accountTitles: 'AccountTitle'
+    branches: 'Branch'
+    brands: 'Brand'
+    centers: 'Center'
+    createdAt: 'DateTime'
+    departments: 'Department'
+    employees: 'Employee'
+    gisRows: 'GISRow'
+    id: 'Int'
+    inventoryItems: 'InventoryItem'
+    itemCategories: 'ItemCategory'
+    itemGroups: 'ItemGroup'
+    items: 'Item'
+    name: 'String'
+    outlets: 'Outlet'
+    positions: 'Position'
+    promoTypes: 'PromoType'
+    salesOrders: 'SalesOrder'
+    subCenters: 'SubCenter'
+    subscription: 'Subscription'
+    summaryRows: 'SummaryRow'
+    users: 'User'
+    vatTypes: 'VatType'
   }
   Outlet: { // field return type name
     address: 'String'
@@ -1011,12 +2025,15 @@ export interface NexusGenFieldTypeNames {
     governmentTax: 'Float'
     hasKey: 'Boolean'
     id: 'Int'
+    imageBanner: 'String'
     inventory: 'Inventory'
     isActive: 'Boolean'
     latitude: 'Float'
     longitude: 'Float'
     name: 'String'
     nextTransactionNumber: 'Int'
+    org: 'Organization'
+    orgId: 'Int'
     outletType: 'OutletType'
     owner: 'User'
     ownerId: 'Int'
@@ -1026,6 +2043,21 @@ export interface NexusGenFieldTypeNames {
     status: 'OutletStatus'
     transactions: 'Transaction'
     wifiSSID: 'String'
+  }
+  OutletCatalogResult: { // field return type name
+    items: 'InventoryItems'
+    outletId: 'Int'
+  }
+  OutletDeliveryConfig: { // field return type name
+    avgPrepMins: 'Int'
+    baseDeliveryFee: 'Float'
+    deliveryRadiusKm: 'Float'
+    feePerKm: 'Float'
+    id: 'Int'
+    isDeliveryActive: 'Boolean'
+    maxOrderAmount: 'Float'
+    minOrderAmount: 'Float'
+    outletId: 'Int'
   }
   OutletItemSearchIndex: { // field return type name
     id: 'Int'
@@ -1039,6 +2071,17 @@ export interface NexusGenFieldTypeNames {
     outletLongitude: 'Float'
     price: 'Float'
     quantity: 'Int'
+  }
+  OutletMatchedItem: { // field return type name
+    available: 'Boolean'
+    itemId: 'Int'
+    itemName: 'String'
+    price: 'Float'
+    stockQty: 'Int'
+  }
+  OutletMissingItem: { // field return type name
+    itemId: 'Int'
+    itemName: 'String'
   }
   OutletPresentStaffs: { // field return type name
     id: 'Int'
@@ -1057,6 +2100,21 @@ export interface NexusGenFieldTypeNames {
     promoTypeId: 'Int'
     user: 'User'
     userId: 'Int'
+  }
+  OutletSearchResult: { // field return type name
+    deliveryFeeEstimate: 'Float'
+    distanceKm: 'Float'
+    latitude: 'Float'
+    longitude: 'Float'
+    matchCount: 'Int'
+    matchLabel: 'String'
+    matchScore: 'Float'
+    matchedItems: 'OutletMatchedItem'
+    missingItems: 'OutletMissingItem'
+    outletAddress: 'String'
+    outletId: 'Int'
+    outletName: 'String'
+    totalItems: 'Int'
   }
   OutletStaff: { // field return type name
     id: 'Int'
@@ -1100,24 +2158,51 @@ export interface NexusGenFieldTypeNames {
     owner: 'User'
     public_key: 'String'
   }
+  PlaceLocation: { // field return type name
+    address: 'String'
+    branch: 'Branch'
+    branchId: 'Int'
+    id: 'Int'
+    latitude: 'Float'
+    longitude: 'Float'
+  }
+  Position: { // field return type name
+    id: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+  }
   PromoType: { // field return type name
     createdAt: 'DateTime'
     description: 'String'
     id: 'Int'
     isActive: 'Boolean'
     name: 'String'
+    org: 'Organization'
+    orgId: 'Int'
     outletPromos: 'OutletPromo'
+    user: 'User'
+    userId: 'Int'
   }
   Query: { // field return type name
     ME: 'User'
+    accountTitle: 'AccountTitle'
+    accountTitles: 'AccountTitle'
+    center: 'Center'
+    centers: 'Center'
+    department: 'Department'
+    departments: 'Department'
+    ekumpraCOrder: 'EkumpraCOrder'
+    employee: 'Employee'
+    employees: 'Employee'
     getAPIKeysByUserId: 'PaymongoAPIKeys'
-    getAllCategory: 'Category'
+    getAllCategory: 'ItemCategory'
     getAllOutletStaffs: 'OutletsWithStaff'
     getAllStaffs: 'User'
     getAllUsers: 'User'
     getBranchById: 'Branch'
     getBranchTransactions: 'Transaction'
-    getCategoryById: 'Category'
+    getCategoryById: 'ItemCategory'
     getCategoryItems: 'Item'
     getInventoryByOutletId: 'Outlet'
     getInventoryItemsByRack: 'ItemsByRack'
@@ -1134,11 +2219,79 @@ export interface NexusGenFieldTypeNames {
     getStaffByOutletId: 'UserStaff'
     getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
+    gisRow: 'GISRow'
+    gisRows: 'GISRow'
+    inventoryItem: 'InventoryItem'
     inventoryItemByKeys: 'InventoryItems'
     inventoryItemUnits: 'InventoryItemUnit'
+    inventoryItems: 'InventoryItem'
     itemByName: 'Item'
+    itemGroup: 'ItemGroup'
+    itemGroups: 'ItemGroup'
     itemMedia: 'Media'
     items: 'Item'
+    myOrders: 'EkumpraCOrder'
+    nearestOutletsWithItems: 'OutletSearchResult'
+    organization: 'Organization'
+    organizations: 'Organization'
+    outletCatalog: 'OutletCatalogResult'
+    outletOrderQueue: 'EkumpraCOrder'
+    placeLocation: 'PlaceLocation'
+    placeLocations: 'PlaceLocation'
+    position: 'Position'
+    positions: 'Position'
+    salesOrder: 'SalesOrder'
+    salesOrders: 'SalesOrder'
+    subCenter: 'SubCenter'
+    subCenters: 'SubCenter'
+    subscription: 'Subscription'
+    summaryRow: 'SummaryRow'
+    summaryRows: 'SummaryRow'
+    vatType: 'VatType'
+    vatTypes: 'VatType'
+  }
+  SalesOrder: { // field return type name
+    customer: 'String'
+    date: 'DateTime'
+    id: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+    outlet: 'String'
+    product: 'String'
+    qty: 'Int'
+    status: 'String'
+    total: 'Float'
+    user: 'User'
+    userId: 'Int'
+  }
+  SubCenter: { // field return type name
+    id: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
+  }
+  Subscription: { // field return type name
+    createdAt: 'DateTime'
+    expiresAt: 'DateTime'
+    features: 'Json'
+    id: 'Int'
+    org: 'Organization'
+    orgId: 'Int'
+    plan: 'SubscriptionPlan'
+  }
+  SummaryRow: { // field return type name
+    computedCost: 'Float'
+    costContribution: 'Float'
+    description: 'String'
+    id: 'String'
+    itemCode: 'String'
+    opExPct: 'Float'
+    org: 'Organization'
+    orgId: 'Int'
+    sellingPrice: 'Float'
+    status: 'String'
+    user: 'User'
+    userId: 'Int'
   }
   Transaction: { // field return type name
     cashReceived: 'Float'
@@ -1163,16 +2316,26 @@ export interface NexusGenFieldTypeNames {
     contactNumber: 'String'
     createdAt: 'DateTime'
     email: 'String'
+    employees: 'Employee'
+    enabledPaymentMethod: 'Boolean'
     fullname: 'String'
+    gisRows: 'GISRow'
     id: 'Int'
+    inventoryItems: 'InventoryItem'
     manager: 'User'
+    managerId: 'Int'
+    org: 'Organization'
+    orgId: 'Int'
     outletOwned: 'Outlet'
     outletPromo: 'OutletPromo'
+    password: 'String'
     paymongoAPIKeys: 'PaymongoAPIKeys'
     profilePhoto: 'String'
     promoType: 'PromoType'
     role: 'Role'
+    salesOrders: 'SalesOrder'
     staff: 'OutletStaff'
+    summaryRows: 'SummaryRow'
     transaction: 'Transaction'
     username: 'String'
   }
@@ -1181,6 +2344,12 @@ export interface NexusGenFieldTypeNames {
     isPresent: 'Boolean'
     outletId: 'Int'
     user: 'User'
+  }
+  VatType: { // field return type name
+    id: 'Int'
+    label: 'String'
+    org: 'Organization'
+    orgId: 'Int'
   }
 }
 
@@ -1197,6 +2366,10 @@ export interface NexusGenArgTypes {
       apiKeyId: string; // ID!
       outletId: string; // ID!
     }
+    addDeliveryAddress: { // args
+      customerId: number; // Int!
+      input: NexusGenInputs['AddDeliveryAddressInput']; // AddDeliveryAddressInput!
+    }
     addInventoryItemUnits: { // args
       inventoryItemId: number; // Int!
       units: NexusGenInputs['CreateInventoryItemUnitInput'][]; // [CreateInventoryItemUnitInput!]!
@@ -1212,12 +2385,32 @@ export interface NexusGenArgTypes {
     bulkCreateInventoryItems: { // args
       items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
     }
+    cancelEkumpraOrder: { // args
+      actorId: number; // Int!
+      actorType: string; // String!
+      orderId: number; // Int!
+      reason?: string | null; // String
+    }
     clearAPIToOutlet: { // args
       outletId: string; // ID!
+    }
+    confirmEkumpraOrder: { // args
+      estimatedDeliveryAt?: string | null; // String
+      orderId: number; // Int!
+      outletNote?: string | null; // String
+    }
+    confirmOrderReceived: { // args
+      customerId: number; // Int!
+      orderId: number; // Int!
     }
     createAPIKey: { // args
       public_key: string; // String!
       secret_key: string; // String!
+    }
+    createAccountTitle: { // args
+      code?: string | null; // String
+      name?: string | null; // String
+      orgId?: number | null; // Int
     }
     createBranch: { // args
       address: string; // String!
@@ -1227,12 +2420,46 @@ export interface NexusGenArgTypes {
     createCategories: { // args
       categories: string[]; // [String!]!
     }
+    createCenter: { // args
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
+    createDepartment: { // args
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
+    createEmployee: { // args
+      departmentId?: number | null; // Int
+      name?: string | null; // String
+      orgId?: number | null; // Int
+      positionId?: number | null; // Int
+    }
+    createGISRow: { // args
+      accountTitleId?: number | null; // Int
+      amount?: number | null; // Float
+      description?: string | null; // String
+      orgId?: number | null; // Int
+    }
     createInventory: { // args
       name?: string | null; // String
       outletId: number; // Int!
     }
+    createInventoryItem: { // args
+      itemGroupId?: number | null; // Int
+      name?: string | null; // String
+      orgId?: number | null; // Int
+      price?: number | null; // Float
+      quantity?: number | null; // Int
+    }
+    createItemGroup: { // args
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
     createItems: { // args
       items: NexusGenInputs['CreateItemInput'][]; // [CreateItemInput!]!
+    }
+    createOrganization: { // args
+      name?: string | null; // String
     }
     createOutlet: { // args
       address: string; // String!
@@ -1248,12 +2475,42 @@ export interface NexusGenArgTypes {
       serviceCharge: number; // Float!
       status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     }
+    createPlaceLocation: { // args
+      address?: string | null; // String
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
+    createPosition: { // args
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
+    createSalesOrder: { // args
+      customerName?: string | null; // String
+      orgId?: number | null; // Int
+      status?: string | null; // String
+      totalAmount?: number | null; // Float
+    }
     createStaff: { // args
       email: string; // String!
       fullname: string; // String!
       password: string; // String!
       role?: NexusGenEnums['Role'] | null; // Role
       username: string; // String!
+    }
+    createSubCenter: { // args
+      centerId?: number | null; // Int
+      name?: string | null; // String
+      orgId?: number | null; // Int
+    }
+    createSubscription: { // args
+      orgId?: number | null; // Int
+      plan?: NexusGenEnums['SubscriptionPlan'] | null; // SubscriptionPlan
+    }
+    createSummaryRow: { // args
+      accountTitleId?: number | null; // Int
+      amount?: number | null; // Float
+      description?: string | null; // String
+      orgId?: number | null; // Int
     }
     createTransaction: { // args
       cashReceived?: number | null; // Float
@@ -1269,17 +2526,37 @@ export interface NexusGenArgTypes {
       total: number; // Float!
       vatAmount: number; // Float!
     }
+    createVatType: { // args
+      name?: string | null; // String
+      orgId?: number | null; // Int
+      rate?: number | null; // Int
+    }
     deactivateInventoryItemUnit: { // args
       id: number; // Int!
     }
     deleteAPIKEY: { // args
       apiKeyId: string; // ID!
     }
+    deleteAccountTitle: { // args
+      id?: number | null; // Int
+    }
     deleteBranch: { // args
       id: string; // ID!
     }
     deleteCategory: { // args
       id: string; // ID!
+    }
+    deleteCenter: { // args
+      id?: number | null; // Int
+    }
+    deleteDepartment: { // args
+      id?: number | null; // Int
+    }
+    deleteEmployee: { // args
+      id?: number | null; // Int
+    }
+    deleteGISRow: { // args
+      id?: number | null; // Int
     }
     deleteInventory: { // args
       id: number; // Int!
@@ -1289,6 +2566,9 @@ export interface NexusGenArgTypes {
     }
     deleteItem: { // args
       id: string; // ID!
+    }
+    deleteItemGroup: { // args
+      id?: number | null; // Int
     }
     deleteItemMedia: { // args
       id: number; // Int!
@@ -1300,8 +2580,26 @@ export interface NexusGenArgTypes {
       id: string; // ID!
       userIds: string[]; // [ID!]!
     }
+    deletePlaceLocation: { // args
+      id?: number | null; // Int
+    }
+    deletePosition: { // args
+      id?: number | null; // Int
+    }
+    deleteSalesOrder: { // args
+      id?: number | null; // Int
+    }
+    deleteSubCenter: { // args
+      id?: number | null; // Int
+    }
+    deleteSummaryRow: { // args
+      id?: number | null; // Int
+    }
     deleteUser: { // args
       id: string; // ID!
+    }
+    deleteVatType: { // args
+      id?: number | null; // Int
     }
     finalizeTransaction: { // args
       customerDetails?: NexusGenInputs['CustomerDetailsInput'] | null; // CustomerDetailsInput
@@ -1323,8 +2621,20 @@ export interface NexusGenArgTypes {
       email: string; // String!
       password: string; // String!
     }
+    markOrderInDelivery: { // args
+      orderId: number; // Int!
+      riderName: string; // String!
+      riderPhone: string; // String!
+    }
+    placeEkumpraOrder: { // args
+      customerId: number; // Int!
+      input: NexusGenInputs['PlaceOrderInput']; // PlaceOrderInput!
+    }
     refreshToken: { // args
       refresh_token: string; // String!
+    }
+    registerEkumpraCustomer: { // args
+      input: NexusGenInputs['RegisterCustomerInput']; // RegisterCustomerInput!
     }
     reorderItemMedia: { // args
       itemId: number; // Int!
@@ -1346,6 +2656,11 @@ export interface NexusGenArgTypes {
       public_key?: string | null; // String
       secret_key?: string | null; // String
     }
+    updateAccountTitle: { // args
+      code?: string | null; // String
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
     updateBranch: { // args
       address?: string | null; // String
       id: string; // ID!
@@ -1355,6 +2670,26 @@ export interface NexusGenArgTypes {
     updateCategory: { // args
       id: string; // ID!
       name: string; // String!
+    }
+    updateCenter: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updateDepartment: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updateEmployee: { // args
+      departmentId?: number | null; // Int
+      id?: number | null; // Int
+      name?: string | null; // String
+      positionId?: number | null; // Int
+    }
+    updateGISRow: { // args
+      accountTitleId?: number | null; // Int
+      amount?: number | null; // Float
+      description?: string | null; // String
+      id?: number | null; // Int
     }
     updateInventory: { // args
       id: number; // Int!
@@ -1372,6 +2707,14 @@ export interface NexusGenArgTypes {
       id: string; // ID!
       item: NexusGenInputs['UpdateItemInput']; // UpdateItemInput!
     }
+    updateItemGroup: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updateOrganization: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
     updateOutlet: { // args
       address: string; // String!
       branchId: string; // ID!
@@ -1387,13 +2730,75 @@ export interface NexusGenArgTypes {
       serviceCharge: number; // Float!
       status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     }
+    updatePlaceLocation: { // args
+      address?: string | null; // String
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updatePosition: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updateSalesOrder: { // args
+      customerName?: string | null; // String
+      id?: number | null; // Int
+      status?: string | null; // String
+      totalAmount?: number | null; // Float
+    }
+    updateSubCenter: { // args
+      centerId?: number | null; // Int
+      id?: number | null; // Int
+      name?: string | null; // String
+    }
+    updateSubscription: { // args
+      orgId?: number | null; // Int
+      plan?: NexusGenEnums['SubscriptionPlan'] | null; // SubscriptionPlan
+    }
+    updateSummaryRow: { // args
+      accountTitleId?: number | null; // Int
+      amount?: number | null; // Float
+      description?: string | null; // String
+      id?: number | null; // Int
+    }
     updateUser: { // args
       fullname?: string | null; // String
       id: string; // ID!
       username?: string | null; // String
     }
+    updateVatType: { // args
+      id?: number | null; // Int
+      name?: string | null; // String
+      rate?: number | null; // Int
+    }
   }
   Query: {
+    accountTitle: { // args
+      id?: number | null; // Int
+    }
+    accountTitles: { // args
+      orgId?: number | null; // Int
+    }
+    center: { // args
+      id?: number | null; // Int
+    }
+    centers: { // args
+      orgId?: number | null; // Int
+    }
+    department: { // args
+      id?: number | null; // Int
+    }
+    departments: { // args
+      orgId?: number | null; // Int
+    }
+    ekumpraCOrder: { // args
+      id: number; // Int!
+    }
+    employee: { // args
+      id?: number | null; // Int
+    }
+    employees: { // args
+      orgId?: number | null; // Int
+    }
     getAllCategory: { // args
       orderBy?: string | null; // String
       pageSize?: number | null; // Int
@@ -1455,6 +2860,15 @@ export interface NexusGenArgTypes {
     getUserById: { // args
       id: string; // ID!
     }
+    gisRow: { // args
+      id?: number | null; // Int
+    }
+    gisRows: { // args
+      orgId?: number | null; // Int
+    }
+    inventoryItem: { // args
+      id?: number | null; // Int
+    }
     inventoryItemByKeys: { // args
       inventoryId: number; // Int!
       itemId: number; // Int!
@@ -1462,8 +2876,17 @@ export interface NexusGenArgTypes {
     inventoryItemUnits: { // args
       inventoryItemId: number; // Int!
     }
+    inventoryItems: { // args
+      orgId?: number | null; // Int
+    }
     itemByName: { // args
       name: string; // String!
+    }
+    itemGroup: { // args
+      id?: number | null; // Int
+    }
+    itemGroups: { // args
+      orgId?: number | null; // Int
     }
     itemMedia: { // args
       itemId: number; // Int!
@@ -1472,6 +2895,63 @@ export interface NexusGenArgTypes {
       excludeIds?: number[] | null; // [Int!]
       limit?: number | null; // Int
       search?: string | null; // String
+    }
+    myOrders: { // args
+      customerId: number; // Int!
+    }
+    nearestOutletsWithItems: { // args
+      customerLat: number; // Float!
+      customerLng: number; // Float!
+      items: NexusGenInputs['SearchItemInput'][]; // [SearchItemInput!]!
+      maxResults?: number | null; // Int
+    }
+    organization: { // args
+      id?: number | null; // Int
+    }
+    outletCatalog: { // args
+      outletId: number; // Int!
+    }
+    outletOrderQueue: { // args
+      outletId: number; // Int!
+    }
+    placeLocation: { // args
+      id?: number | null; // Int
+    }
+    placeLocations: { // args
+      orgId?: number | null; // Int
+    }
+    position: { // args
+      id?: number | null; // Int
+    }
+    positions: { // args
+      orgId?: number | null; // Int
+    }
+    salesOrder: { // args
+      id?: number | null; // Int
+    }
+    salesOrders: { // args
+      orgId?: number | null; // Int
+    }
+    subCenter: { // args
+      id?: number | null; // Int
+    }
+    subCenters: { // args
+      orgId?: number | null; // Int
+    }
+    subscription: { // args
+      orgId?: number | null; // Int
+    }
+    summaryRow: { // args
+      id?: number | null; // Int
+    }
+    summaryRows: { // args
+      orgId?: number | null; // Int
+    }
+    vatType: { // args
+      id?: number | null; // Int
+    }
+    vatTypes: { // args
+      orgId?: number | null; // Int
     }
   }
 }

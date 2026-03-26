@@ -62,6 +62,21 @@ enum AccountLink {
   WITHHOLDING_TAX_PAYABLE
 }
 
+type AccountTitle {
+  id: Int!
+  label: String!
+  org: Organization!
+  orgId: Int!
+}
+
+input AddDeliveryAddressInput {
+  address: String!
+  isDefault: Boolean!
+  label: String!
+  latitude: Float!
+  longitude: Float!
+}
+
 input AddItemToInventoryInput {
   itemId: Int!
   price: Float!
@@ -95,9 +110,14 @@ type Branch {
   createdAt: DateTime!
   id: Int!
   isActive: Boolean!
+  location: PlaceLocation
+  locationId: Int
   name: String!
+  org: Organization!
+  orgId: Int!
   outlets: [Outlet!]!
   owner: User!
+  ownerId: Int!
   phone: String
 }
 
@@ -106,7 +126,9 @@ type Brand {
   contactNumber: String
   email: String
   id: Int!
-  name: String
+  name: String!
+  org: Organization!
+  orgId: Int!
   webUrl: String
 }
 
@@ -124,15 +146,11 @@ input CartItemInput {
   quantity: Int!
 }
 
-type Category {
-  _count: CategoryCount
+type Center {
   id: Int!
-  items: [Item!]!
-  name: String!
-}
-
-type CategoryCount {
-  itemCount: Int
+  label: String!
+  org: Organization!
+  orgId: Int!
 }
 
 type Color {
@@ -202,8 +220,187 @@ input CustomerDetailsInput {
   status: String
 }
 
+type CustomerDeviceToken {
+  createdAt: String!
+  customerId: Int!
+  id: Int!
+  platform: String!
+  token: String!
+}
+
 """ISO 8601 DateTime string"""
 scalar DateTime
+
+type DeliveryAddress {
+  address: String!
+  createdAt: String!
+  customer: EkumpraCustomer!
+  customerId: Int!
+  id: Int!
+  isDefault: Boolean!
+  label: String!
+  latitude: Float!
+  longitude: Float!
+}
+
+enum DeliveryStatusEvent {
+  arrived_at_door
+  cancelled
+  delivered
+  order_placed
+  outlet_confirmed
+  outlet_preparing
+  return_requested
+  returned
+  rider_assigned
+  rider_en_route
+  rider_picked_up
+}
+
+type Department {
+  color: String
+  id: Int!
+  label: String!
+  org: Organization!
+  orgId: Int!
+}
+
+type EkumpraCDeliveryTracking {
+  actorId: Int
+  actorType: String!
+  currentLat: Float
+  currentLng: Float
+  event: DeliveryStatusEvent!
+  id: Int!
+  note: String
+  orderId: Int!
+  statusAt: String!
+}
+
+type EkumpraCOrder {
+  createdAt: String!
+  customer: EkumpraCustomer!
+  customerId: Int!
+  customerNote: String
+  deliveredAt: String
+  deliveryAddress: DeliveryAddress!
+  deliveryAddressId: Int!
+  estimatedDeliveryAt: String
+  fees: [EkumpraCOrderFee!]!
+  id: Int!
+  items: [EkumpraCOrderItem!]!
+  outlet: Outlet!
+  outletId: Int!
+  outletNote: String
+  paymentMethod: EkumpraCPaymentMethod!
+  paymentReference: String
+  paymentStatus: String!
+  riderName: String
+  riderPhone: String
+  scheduledDeliveryAt: String
+  status: OrderStatus!
+  subtotal: Float!
+  total: Float!
+  tracking: [EkumpraCDeliveryTracking!]!
+  transactionNumber: String!
+  updatedAt: String!
+}
+
+type EkumpraCOrderFee {
+  amount: Float!
+  id: Int!
+  label: String!
+  orderId: Int!
+  type: FeeType!
+}
+
+type EkumpraCOrderItem {
+  id: Int!
+  inventoryItem: InventoryItems!
+  inventoryItemId: Int!
+  item: Item!
+  itemId: Int!
+  orderId: Int!
+  priceSnapshot: Float!
+  quantity: Int!
+  subtotal: Float!
+}
+
+enum EkumpraCPaymentMethod {
+  card
+  cash_on_delivery
+  gcash
+  paymaya
+  qrph
+}
+
+type EkumpraCustomer {
+  addresses: [DeliveryAddress!]!
+  createdAt: String!
+  email: String
+  fullname: String!
+  id: Int!
+  isActive: Boolean!
+  isVerified: Boolean!
+  orders: [EkumpraCOrder!]!
+  phone: String!
+  profilePhoto: String
+  updatedAt: String!
+}
+
+type EkumpraItemGroup {
+  categories: [ItemCategory!]!
+  createdAt: String!
+  description: String
+  icon: String
+  id: Int!
+  isActive: Boolean!
+  name: String!
+}
+
+type Employee {
+  department: String!
+  email: String!
+  hireDate: DateTime!
+  id: String!
+  name: String!
+  org: Organization!
+  orgId: Int!
+  role: String!
+  salary: Float!
+  status: EmployeeStatus!
+  user: User
+  userId: Int
+}
+
+enum EmployeeStatus {
+  Active
+  Contract
+  On_Leave
+}
+
+enum FeeType {
+  delivery
+  handling
+  packaging
+  priority
+  voucher_discount
+}
+
+type GISRow {
+  code: String!
+  credit: Float!
+  debit: Float!
+  description: String!
+  group: String!
+  id: String!
+  main: String!
+  org: Organization!
+  orgId: Int!
+  total: Float!
+  user: User
+  userId: Int
+}
 
 type Inventory {
   id: Int!
@@ -211,6 +408,21 @@ type Inventory {
   name: String
   outlet: Outlet!
   outletId: Int!
+}
+
+type InventoryItem {
+  category: String!
+  id: String!
+  lowStock: Boolean!
+  minStock: Int!
+  name: String!
+  org: Organization!
+  orgId: Int!
+  price: Float!
+  sku: String!
+  stock: Int!
+  user: User
+  userId: Int
 }
 
 input InventoryItemInput {
@@ -266,11 +478,10 @@ type Item {
   ServiceCharge: Boolean!
   assembly: Boolean!
   barcode: String
-  brand: String
   brandDetails: Brand
   brandId: Int
   cartItems: [CartItem!]!
-  category: Category
+  category: ItemCategory
   categoryId: Int
   color: [Color!]!
   description: String
@@ -279,10 +490,51 @@ type Item {
   itemCode: String
   media: [Media!]!
   name: String!
+  org: Organization!
+  orgId: Int!
   purchaseUnit: [ItemUnit!]!
   searchIndex: [OutletItemSearchIndex!]!
   skuNumber: String
   vatExempt: Boolean!
+}
+
+type ItemCategory {
+  _count: ItemCategoryCount
+  cost_of_sale: String
+  description: String
+  group: ItemGroup
+  groupId: Int
+  groupType: String
+  id: Int!
+  items: [Item!]!
+  name: String!
+  org: Organization!
+  orgId: Int!
+  sales: String
+  stocks: String
+}
+
+type ItemCategoryCount {
+  itemCount: Int
+}
+
+type ItemCategoryMap {
+  category: ItemCategory!
+  categoryId: Int!
+  item: Item!
+  itemId: Int!
+}
+
+type ItemGroup {
+  categories: [ItemCategory!]!
+  createdAt: DateTime!
+  description: String
+  icon: String
+  id: Int!
+  isActive: Boolean!
+  name: String!
+  org: Organization!
+  orgId: Int!
 }
 
 input ItemInput {
@@ -300,6 +552,9 @@ type ItemsByRack {
   items: [InventoryItems!]!
   rack: String!
 }
+
+"""Arbitrary JSON value"""
+scalar Json
 
 type Location {
   aisle: String!
@@ -337,75 +592,185 @@ type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
   addAPIKeysToOutlet(apiKeyId: ID!, outletId: ID!): Boolean!
+  addDeliveryAddress(customerId: Int!, input: AddDeliveryAddressInput!): DeliveryAddress!
   addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
   addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
+  cancelEkumpraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): EkumpraCOrder!
   clearAPIToOutlet(outletId: ID!): Boolean!
+  confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
+  confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
   createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
+  createAccountTitle(code: String, name: String, orgId: Int): AccountTitle
   createBranch(address: String!, name: String!, phone: String!): Branch!
-  createCategories(categories: [String!]!): [Category!]!
+  createCategories(categories: [String!]!): [ItemCategory!]!
+  createCenter(name: String, orgId: Int): Center
+  createDepartment(name: String, orgId: Int): Department
+  createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
+  createGISRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): GISRow
   createInventory(name: String, outletId: Int!): Inventory
+  createInventoryItem(itemGroupId: Int, name: String, orgId: Int, price: Float, quantity: Int): InventoryItem
+  createItemGroup(name: String, orgId: Int): ItemGroup
   createItems(items: [CreateItemInput!]!): BatchPayload!
+  createOrganization(name: String): Organization
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
+  createPosition(name: String, orgId: Int): Position
+  createSalesOrder(customerName: String, orgId: Int, status: String, totalAmount: Float): SalesOrder
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  createSubCenter(centerId: Int, name: String, orgId: Int): SubCenter
+  createSubscription(orgId: Int, plan: SubscriptionPlan): Subscription
+  createSummaryRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): SummaryRow
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  createVatType(name: String, orgId: Int, rate: Int): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
   deleteAPIKEY(apiKeyId: ID!): Boolean!
+  deleteAccountTitle(id: Int): AccountTitle
   deleteBranch(id: ID!): Branch!
-  deleteCategory(id: ID!): Category!
+  deleteCategory(id: ID!): ItemCategory!
+  deleteCenter(id: Int): Center
+  deleteDepartment(id: Int): Department
+  deleteEmployee(id: Int): Employee
+  deleteGISRow(id: Int): GISRow
   deleteInventory(id: Int!): Boolean
   deleteInventoryItem(id: Int!): InventoryItems!
   deleteItem(id: ID!): Item!
+  deleteItemGroup(id: Int): ItemGroup
   deleteItemMedia(id: Int!): Media!
   deleteOutlet(id: ID!): Outlet!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
+  deletePlaceLocation(id: Int): PlaceLocation
+  deletePosition(id: Int): Position
+  deleteSalesOrder(id: Int): SalesOrder
+  deleteSubCenter(id: Int): SubCenter
+  deleteSummaryRow(id: Int): SummaryRow
   deleteUser(id: ID!): User!
+  deleteVatType(id: Int): VatType
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
+  markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): EkumpraCOrder!
   me: User!
+  placeEkumpraOrder(customerId: Int!, input: PlaceOrderInput!): EkumpraCOrder!
   refreshToken(refresh_token: String!): AuthPayload!
+  registerEkumpraCustomer(input: RegisterCustomerInput!): EkumpraCustomer!
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   updateAPIKey(public_key: String, secret_key: String): PaymongoAPIKeys!
+  updateAccountTitle(code: String, id: Int, name: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
-  updateCategory(id: ID!, name: String!): Category!
+  updateCategory(id: ID!, name: String!): ItemCategory!
+  updateCenter(id: Int, name: String): Center
+  updateDepartment(id: Int, name: String): Department
+  updateEmployee(departmentId: Int, id: Int, name: String, positionId: Int): Employee
+  updateGISRow(accountTitleId: Int, amount: Float, description: String, id: Int): GISRow
   updateInventory(id: Int!, name: String!): Inventory
   updateInventoryItem(data: InventoryItemUpdateInput!, id: Int!): InventoryItems!
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(id: ID!, item: UpdateItemInput!): Item!
+  updateItemGroup(id: Int, name: String): ItemGroup
+  updateOrganization(id: Int, name: String): Organization
   updateOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletId: ID!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  updatePlaceLocation(address: String, id: Int, name: String): PlaceLocation
+  updatePosition(id: Int, name: String): Position
+  updateSalesOrder(customerName: String, id: Int, status: String, totalAmount: Float): SalesOrder
+  updateSubCenter(centerId: Int, id: Int, name: String): SubCenter
+  updateSubscription(orgId: Int, plan: SubscriptionPlan): Subscription
+  updateSummaryRow(accountTitleId: Int, amount: Float, description: String, id: Int): SummaryRow
   updateUser(fullname: String, id: ID!, username: String): User!
+  updateVatType(id: Int, name: String, rate: Int): VatType
+}
+
+input OrderItemInput {
+  inventoryItemId: Int!
+  itemId: Int!
+  quantity: Int!
+}
+
+enum OrderStatus {
+  cancelled
+  confirmed
+  in_delivery
+  pending
+  preparing
+  received
+  returned
+}
+
+type Organization {
+  accountTitles: [AccountTitle!]!
+  branches: [Branch!]!
+  brands: [Brand!]!
+  centers: [Center!]!
+  createdAt: DateTime!
+  departments: [Department!]!
+  employees: [Employee!]!
+  gisRows: [GISRow!]!
+  id: Int!
+  inventoryItems: [InventoryItem!]!
+  itemCategories: [ItemCategory!]!
+  itemGroups: [ItemGroup!]!
+  items: [Item!]!
+  name: String!
+  outlets: [Outlet!]!
+  positions: [Position!]!
+  promoTypes: [PromoType!]!
+  salesOrders: [SalesOrder!]!
+  subCenters: [SubCenter!]!
+  subscription: Subscription
+  summaryRows: [SummaryRow!]!
+  users: [User!]!
+  vatTypes: [VatType!]!
 }
 
 type Outlet {
   address: String!
   apiKey: PaymongoAPIKeys
   apiKeyId: Int
-  branch: Branch!
-  branchId: Int!
+  branch: Branch
+  branchId: Int
   code: String!
   createdAt: DateTime!
   governmentTax: Float
   hasKey: Boolean
   id: Int!
+  imageBanner: String
   inventory: Inventory
   isActive: Boolean!
   latitude: Float
   longitude: Float
   name: String!
   nextTransactionNumber: Int
+  org: Organization!
+  orgId: Int!
   outletType: OutletType!
   owner: User!
   ownerId: Int!
-  phone: String!
+  phone: String
   serviceCharge: Float
   staff: [OutletStaff!]!
   status: OutletStatus
   transactions: [Transaction!]!
   wifiSSID: String
+}
+
+type OutletCatalogResult {
+  items: [InventoryItems!]!
+  outletId: Int!
+}
+
+type OutletDeliveryConfig {
+  avgPrepMins: Int!
+  baseDeliveryFee: Float!
+  deliveryRadiusKm: Float!
+  feePerKm: Float!
+  id: Int!
+  isDeliveryActive: Boolean!
+  maxOrderAmount: Float
+  minOrderAmount: Float
+  outletId: Int!
 }
 
 type OutletItemSearchIndex {
@@ -420,6 +785,19 @@ type OutletItemSearchIndex {
   outletLongitude: Float!
   price: Float!
   quantity: Int!
+}
+
+type OutletMatchedItem {
+  available: Boolean!
+  itemId: Int!
+  itemName: String!
+  price: Float!
+  stockQty: Int!
+}
+
+type OutletMissingItem {
+  itemId: Int!
+  itemName: String!
 }
 
 type OutletPresentStaffs {
@@ -442,6 +820,22 @@ type OutletPromo {
   userId: Int!
 }
 
+type OutletSearchResult {
+  deliveryFeeEstimate: Float!
+  distanceKm: Float!
+  latitude: Float!
+  longitude: Float!
+  matchCount: Int!
+  matchLabel: String!
+  matchScore: Float!
+  matchedItems: [OutletMatchedItem!]!
+  missingItems: [OutletMissingItem!]!
+  outletAddress: String!
+  outletId: Int!
+  outletName: String!
+  totalItems: Int!
+}
+
 type OutletStaff {
   id: Int!
   isPresent: Boolean!
@@ -459,7 +853,7 @@ input OutletStaffInput {
 
 enum OutletStatus {
   closed
-  maintainance
+  maintenance
   open
 }
 
@@ -526,25 +920,63 @@ type PaymongoAPIKeys {
   public_key: String!
 }
 
+type PlaceLocation {
+  address: String!
+  branch: Branch!
+  branchId: Int!
+  id: Int!
+  latitude: Float!
+  longitude: Float!
+}
+
+input PlaceOrderInput {
+  customerNote: String
+  deliveryAddressId: Int!
+  items: [OrderItemInput!]!
+  outletId: Int!
+  paymentMethod: EkumpraCPaymentMethod!
+  scheduledDeliveryAt: String
+}
+
+type Position {
+  id: Int!
+  label: String!
+  org: Organization!
+  orgId: Int!
+}
+
 type PromoType {
   createdAt: DateTime!
   description: String
   id: Int!
   isActive: Boolean!
   name: String!
+  org: Organization!
+  orgId: Int!
   outletPromos: [OutletPromo!]!
+  user: User
+  userId: Int
 }
 
 type Query {
   ME: User!
+  accountTitle(id: Int): AccountTitle
+  accountTitles(orgId: Int): [AccountTitle]
+  center(id: Int): Center
+  centers(orgId: Int): [Center]
+  department(id: Int): Department
+  departments(orgId: Int): [Department]
+  ekumpraCOrder(id: Int!): EkumpraCOrder
+  employee(id: Int): Employee
+  employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
-  getAllCategory(orderBy: String, pageSize: Int, query: String): [Category!]!
+  getAllCategory(orderBy: String, pageSize: Int, query: String): [ItemCategory!]!
   getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs: [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
   getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
-  getCategoryById(id: ID!): Category!
+  getCategoryById(id: ID!): ItemCategory!
   getCategoryItems(id: ID!): [Item!]!
   getInventoryByOutletId(outletId: Int!): Outlet
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
@@ -561,18 +993,72 @@ type Query {
   getStaffByOutletId(outletId: ID!): [UserStaff!]!
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
+  gisRow(id: Int): GISRow
+  gisRows(orgId: Int): [GISRow]
+  inventoryItem(id: Int): InventoryItem
   inventoryItemByKeys(inventoryId: Int!, itemId: Int!): InventoryItems
   inventoryItemUnits(inventoryItemId: Int!): [InventoryItemUnit!]!
+  inventoryItems(orgId: Int): [InventoryItem]
   itemByName(name: String!): Item
+  itemGroup(id: Int): ItemGroup
+  itemGroups(orgId: Int): [ItemGroup]
   itemMedia(itemId: Int!): [Media!]!
   items(excludeIds: [Int!], limit: Int, search: String): [Item!]!
+  myOrders(customerId: Int!): [EkumpraCOrder!]!
+  nearestOutletsWithItems(customerLat: Float!, customerLng: Float!, items: [SearchItemInput!]!, maxResults: Int): [OutletSearchResult!]!
+  organization(id: Int): Organization
+  organizations: [Organization]
+  outletCatalog(outletId: Int!): OutletCatalogResult!
+  outletOrderQueue(outletId: Int!): [EkumpraCOrder!]!
+  placeLocation(id: Int): PlaceLocation
+  placeLocations(orgId: Int): [PlaceLocation]
+  position(id: Int): Position
+  positions(orgId: Int): [Position]
+  salesOrder(id: Int): SalesOrder
+  salesOrders(orgId: Int): [SalesOrder]
+  subCenter(id: Int): SubCenter
+  subCenters(orgId: Int): [SubCenter]
+  subscription(orgId: Int): Subscription
+  summaryRow(id: Int): SummaryRow
+  summaryRows(orgId: Int): [SummaryRow]
+  vatType(id: Int): VatType
+  vatTypes(orgId: Int): [VatType]
+}
+
+input RegisterCustomerInput {
+  email: String
+  fullname: String!
+  password: String!
+  phone: String!
 }
 
 enum Role {
   ADMIN
   CASHIER
   MANAGER
+  OWNER
   STAFF
+}
+
+type SalesOrder {
+  customer: String!
+  date: DateTime!
+  id: String!
+  org: Organization!
+  orgId: Int!
+  outlet: String!
+  product: String!
+  qty: Int!
+  status: String!
+  total: Float!
+  user: User
+  userId: Int
+}
+
+input SearchItemInput {
+  itemId: Int!
+  name: String!
+  quantityWanted: Int!
 }
 
 enum Status {
@@ -581,6 +1067,43 @@ enum Status {
   PAID
   PENDING
   SYNCED
+}
+
+type SubCenter {
+  id: Int!
+  label: String!
+  org: Organization!
+  orgId: Int!
+}
+
+type Subscription {
+  createdAt: DateTime!
+  expiresAt: DateTime
+  features: Json
+  id: Int!
+  org: Organization!
+  orgId: Int!
+  plan: SubscriptionPlan!
+}
+
+enum SubscriptionPlan {
+  BASIC
+  GOLD
+}
+
+type SummaryRow {
+  computedCost: Float!
+  costContribution: Float!
+  description: String!
+  id: String!
+  itemCode: String!
+  opExPct: Float!
+  org: Organization!
+  orgId: Int!
+  sellingPrice: Float!
+  status: String
+  user: User
+  userId: Int
 }
 
 type Transaction {
@@ -627,19 +1150,29 @@ input UpdateItemInput {
 
 type User {
   branchesOwned: [Branch!]!
-  contactNumber: String!
+  contactNumber: String
   createdAt: DateTime!
   email: String!
+  employees: [Employee]!
+  enabledPaymentMethod: Boolean!
   fullname: String!
+  gisRows: [GISRow]!
   id: Int!
+  inventoryItems: [InventoryItem]!
   manager: User
+  managerId: Int
+  org: Organization!
+  orgId: Int!
   outletOwned: [Outlet!]!
   outletPromo: [OutletPromo]!
+  password: String!
   paymongoAPIKeys: PaymongoAPIKeys
   profilePhoto: String
   promoType: [PromoType]!
   role: Role!
+  salesOrders: [SalesOrder]!
   staff: [OutletStaff]!
+  summaryRows: [SummaryRow]!
   transaction: [Transaction]!
   username: String!
 }
@@ -649,6 +1182,13 @@ type UserStaff {
   isPresent: Boolean!
   outletId: Int!
   user: User!
+}
+
+type VatType {
+  id: Int!
+  label: String!
+  org: Organization!
+  orgId: Int!
 }
 
 enum orderBy {

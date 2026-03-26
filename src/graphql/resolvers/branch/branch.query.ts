@@ -1,6 +1,6 @@
 import { arg, extendType, nonNull, nullable, stringArg } from "nexus";
+import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as branchService from "../../../services/branch.service.js";
-import * as middleware from "../../../middleware/auth.middleware.js";
 
 export const branchQuery = extendType({
   type: "Query",
@@ -8,8 +8,8 @@ export const branchQuery = extendType({
     t.nonNull.list.nonNull.field("getOwnedBranches", {
       type: "Branch",
       resolve: async (parent, args, ctx) => {
-        middleware.requireAuth(ctx);
-        middleware.requireRole(ctx, ["ADMIN"]);
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN"]);
         try {
           return await branchService.getOwnedBranches(ctx.user.userId);
         } catch (error) {
@@ -24,8 +24,8 @@ export const branchQuery = extendType({
         id: nonNull(arg({ type: "ID" })),
       },
       resolve: async (parent, { id }, ctx) => {
-        middleware.requireAuth(ctx);
-        middleware.requireRole(ctx, ["ADMIN"]);
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN"]);
         try {
           const branchId = parseInt(id);
           return await branchService.getBranchById(branchId);
@@ -43,8 +43,8 @@ export const branchQuery = extendType({
         endDate: nullable(arg({ type: "DateTime" })),
       },
       resolve: async (parent, { id, startDate, endDate }, ctx) => {
-        middleware.requireAuth(ctx);
-        middleware.requireRole(ctx, ["ADMIN", "OWNER",]);
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER",]);
         try {
           const branchId = parseInt(id);
           return await branchService.getBranchTransactions(branchId, startDate, endDate)

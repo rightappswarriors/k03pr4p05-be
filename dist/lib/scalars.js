@@ -25,3 +25,41 @@ export const DateTimeScalar = scalarType({
         throw new Error('DateTime must be a string literal');
     },
 });
+const parseJsonLiteral = (ast) => {
+    switch (ast.kind) {
+        case Kind.STRING:
+            return ast.value;
+        case Kind.BOOLEAN:
+            return ast.value;
+        case Kind.INT:
+        case Kind.FLOAT:
+            return Number(ast.value);
+        case Kind.OBJECT: {
+            const obj = {};
+            ast.fields.forEach((field) => {
+                obj[field.name.value] = parseJsonLiteral(field.value);
+            });
+            return obj;
+        }
+        case Kind.LIST:
+            return ast.values.map(parseJsonLiteral);
+        case Kind.NULL:
+            return null;
+        default:
+            return null;
+    }
+};
+export const JsonScalar = scalarType({
+    name: 'Json',
+    asNexusMethod: 'json',
+    description: 'Arbitrary JSON value',
+    parseValue(value) {
+        return value;
+    },
+    serialize(value) {
+        return value;
+    },
+    parseLiteral(ast) {
+        return parseJsonLiteral(ast);
+    },
+});

@@ -11,7 +11,7 @@ const prisma = new PrismaClient()
  * @returns {Promise<object>} The newly created category.
  */
 export const createCategory = async (categoryData) => {
-  const newCategory = await prisma.category.create({
+  const newCategory = await prisma.itemCategory.create({
     data: {
       ...categoryData,
     },
@@ -29,11 +29,11 @@ export const createCategories = async (categories) => {
   const names = categories.map((c) => c.name);
 
   // Insert new categories (skip duplicates)
-  await prisma.category.createMany({
+  await prisma.itemCategory.createMany({
     data: categories,
     skipDuplicates: true,
   });
-  return prisma.category.findMany({
+  return prisma.itemCategory.findMany({
     where: {
       name: { in: names },
     },
@@ -47,7 +47,7 @@ export const createCategories = async (categories) => {
  * @returns {Promise<object|null>} The category found or null.
  */
 export const getCategoryById = async (id: number) => {
-  const categoryFound = await prisma.category.findUnique({
+  const categoryFound = await prisma.itemCategory.findUnique({
     where: { id },
     select: {
       id: true,
@@ -67,7 +67,7 @@ export const getAllCategories = async (
     ? { name: { contains: query, mode: Prisma.QueryMode.insensitive as any } } // search by query
     : {}; // empty means no filtering
 
-  const categories = await prisma.category.findMany({
+  const categories = await prisma.itemCategory.findMany({
     where,
     skip: (page - 1) * pageSize,
     take: pageSize,
@@ -94,7 +94,7 @@ export const getAllCategories = async (
  */
 export const getItemsByCategoryId = async (id) => {
   // Using findUnique is more efficient here since an ID is a unique key.
-  const categoryWithItems = await prisma.category.findUnique({
+  const categoryWithItems = await prisma.itemCategory.findUnique({
     where: { id },
     select: {
       items: true, // Selects the items related to this category.
@@ -113,7 +113,7 @@ export const getItemsByCategoryId = async (id) => {
  * @returns {Promise<object>} The updated category record.
  */
 export const updateCategoryById = async (id, name) => {
-  const updatedCategory = await prisma.category.update({
+  const updatedCategory = await prisma.itemCategory.update({
     where: { id },
     data: { name }, // Corrected: use categoryData instead of storeData
   });
@@ -129,7 +129,7 @@ export const updateCategoryById = async (id, name) => {
 export const deleteCategory = async (id) => {
   // Use a transaction to ensure both deletions succeed or fail together.
   return await prisma.$transaction(async (tx) => {
-    return await tx.category.delete({
+    return await tx.itemCategory.delete({
       where: { id },
     });
   });

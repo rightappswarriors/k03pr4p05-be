@@ -2,7 +2,7 @@
 import { objectType, enumType } from 'nexus';
 export const Role = enumType({
     name: 'Role',
-    members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER"]
+    members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER", "OWNER"]
 });
 export const User = objectType({
     name: 'User',
@@ -12,9 +12,21 @@ export const User = objectType({
         t.nonNull.string('username');
         t.nonNull.string('email');
         t.nonNull.field('role', { type: 'Role' });
-        t.nonNull.string('contactNumber');
-        t.nullable.string('profilePhoto');
+        t.nonNull.string('password');
         t.nonNull.dateTime('createdAt');
+        t.nullable.string('profilePhoto');
+        t.nullable.int('managerId');
+        t.nonNull.boolean('enabledPaymentMethod');
+        t.nullable.string('contactNumber');
+        t.nonNull.int('orgId'); // Added for multi-tenancy
+        t.nonNull.field('org', {
+            type: 'Organization',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .org();
+            }
+        });
         t.nonNull.list.nonNull.field('branchesOwned', {
             type: 'Branch',
             resolve: (parent, _, ctx) => {
@@ -37,6 +49,46 @@ export const User = objectType({
                 return ctx.prisma.user
                     .findUnique({ where: { id: parent.id } })
                     .staff();
+            }
+        });
+        t.nonNull.list.field('employees', {
+            type: 'Employee',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .employees();
+            }
+        });
+        t.nonNull.list.field('gisRows', {
+            type: 'GISRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .gisRows();
+            }
+        });
+        t.nonNull.list.field('summaryRows', {
+            type: 'SummaryRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .summaryRows();
+            }
+        });
+        t.nonNull.list.field('salesOrders', {
+            type: 'SalesOrder',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .salesOrders();
+            }
+        });
+        t.nonNull.list.field('inventoryItems', {
+            type: 'InventoryItem',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .inventoryItems();
             }
         });
         t.nonNull.list.field('transaction', {

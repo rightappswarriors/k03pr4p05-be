@@ -6,7 +6,7 @@ export const categoryMutation = extendType({
     definition(t) {
         //!SECTION Create Category
         t.nonNull.list.nonNull.field("createCategories", {
-            type: "Category",
+            type: "ItemCategory",
             args: {
                 categories: nonNull(list(nonNull(arg({ type: "String" })))),
             },
@@ -33,7 +33,7 @@ export const categoryMutation = extendType({
         });
         //!SECTION updateCategory
         t.nonNull.field("updateCategory", {
-            type: "Category",
+            type: "ItemCategory",
             args: {
                 id: nonNull(arg({ type: "ID" })),
                 name: nonNull(arg({ type: "String" })),
@@ -57,7 +57,7 @@ export const categoryMutation = extendType({
         });
         //!SECTION Delete Category
         t.nonNull.field("deleteCategory", {
-            type: "Category",
+            type: "ItemCategory",
             args: {
                 id: nonNull(arg({ type: "ID" })),
             },

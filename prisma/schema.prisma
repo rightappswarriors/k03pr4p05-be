@@ -7,11 +7,56 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
+// ─── Multi-Tenancy Models ─────────────────────────────────────────────────────
+
+model Organization {
+  id            Int             @id @default(autoincrement())
+  name          String
+  createdAt     DateTime        @default(now())
+  subscription  Subscription?
+  users         User[]
+  branches      Branch[]
+  outlets       Outlet[]
+  items         Item[]
+  itemCategories ItemCategory[]
+  vatTypes      VatType[]
+  departments   Department[]
+  positions     Position[]
+  centers       Center[]
+  subCenters    SubCenter[]
+  accountTitles AccountTitle[]
+  gisRows       GISRow[]
+  summaryRows   SummaryRow[]
+  salesOrders   SalesOrder[]
+  inventoryItems InventoryItem[]
+  employees     Employee[]
+  promoTypes    PromoType[]     // Added for PromoType relation
+  itemGroups    ItemGroup[]     // Added for ItemGroup relation
+  brands        Brand[]         // Added for Brand relation
+}
+
+model Subscription {
+  id        Int              @id @default(autoincrement())
+  orgId     Int              @unique
+  plan      SubscriptionPlan @default(BASIC)
+  expiresAt DateTime?
+  features  Json?            // Extensible for feature gating
+  createdAt DateTime         @default(now())
+  org       Organization     @relation(fields: [orgId], references: [id])
+}
+
+enum SubscriptionPlan {
+  BASIC
+  GOLD
+}
+
+// ─── User Model (Updated for Multi-Tenancy) ───────────────────────────────────
+
 model User {
   id                   Int              @id @default(autoincrement())
   fullname             String
-  username             String           @unique
-  email                String           @unique
+  username             String           @unique // Global unique for simplicity; adjust if needed
+  email                String           @unique // Global unique
   role                 Role             @default(CASHIER)
   password             String
   createdAt            DateTime         @default(now())
@@ -19,6 +64,8 @@ model User {
   managerId            Int?
   enabledPaymentMethod Boolean          @default(false)
   contactNumber        String?
+  orgId                Int              // Added for multi-tenancy
+  org                  Organization     @relation(fields: [orgId], references: [id])
   branchesOwned        Branch[]         @relation("UserBranches")
   outletOwned          Outlet[]         @relation("UserOutlets")
   outletPromo          OutletPromo[]    @relation("UserOutletPromos")
@@ -28,6 +75,14 @@ model User {
   Transaction          Transaction[]
   manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]           @relation("ManagerToStaff")
+  employees            Employee[]       // Added relation to HR employees
+  gisRows              GISRow[]         // Added for ERP data
+  summaryRows          SummaryRow[]
+  salesOrders          SalesOrder[]
+  inventoryItems       InventoryItem[]
+
+  @@unique([orgId, username]) // Per-org unique for scalability
+  @@unique([orgId, email])    // Per-org unique
 }
 
 model PaymongoAPIKeys {
@@ -46,11 +101,15 @@ model Branch {
   phone      String?
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
+  orgId      Int            // Added for multi-tenancy
+  org        Organization   @relation(fields: [orgId], references: [id])
   ownerId    Int
   locationId Int?
   owner      User           @relation("UserBranches", fields: [ownerId], references: [id])
   outlets    Outlet[]
   location   PlaceLocation?
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
 model PlaceLocation {
@@ -67,7 +126,7 @@ model Outlet {
   name                  String
   address               String
   phone                 String?
-  code                  String                  @unique
+  code                  String                  @unique // Keep global for now; adjust if needed
   nextTransactionNumber Int?                    @default(1)
   governmentTax         Float?
   serviceCharge         Float?
@@ -75,6 +134,8 @@ model Outlet {
   isActive              Boolean                 @default(true)
   wifiSSID              String?
   createdAt             DateTime                @default(now())
+  orgId                 Int                     // Added for multi-tenancy
+  org                   Organization            @relation(fields: [orgId], references: [id])
   branchId              Int?
   ownerId               Int
   apiKeyId              Int?
@@ -93,17 +154,23 @@ model Outlet {
   outletPromos          OutletPromo[]
   staff                 OutletStaff[]
   Transaction           Transaction[]
+
+  @@unique([orgId, code]) // Per-org unique
 }
 
 model PromoType {
   id           Int           @id @default(autoincrement())
-  name         String        @unique
+  name         String        @unique // Keep global; adjust if needed
   description  String?
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
+  orgId        Int           // Added for multi-tenancy
+  org          Organization  @relation(fields: [orgId], references: [id])
   userId       Int?
   outletPromos OutletPromo[]
   user         User?         @relation("UserPromoTypes", fields: [userId], references: [id])
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
 model OutletPromo {
@@ -175,33 +242,41 @@ model InventoryItems {
 
 model ItemGroup {
   id          Int        @id @default(autoincrement())
-  name        String     @unique
+  name        String     @unique // Keep global
   description String?
   icon        String?
   isActive    Boolean    @default(true)
   createdAt   DateTime   @default(now())
-  categories  Category[]
+  orgId       Int        // Added for multi-tenancy
+  org         Organization @relation(fields: [orgId], references: [id])
+  categories  ItemCategory[]
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
-model Category {
+model ItemCategory {
   id             Int               @id @default(autoincrement())
-  name           String            @unique
+  name           String            @unique // Keep global; adjust if needed
   cost_of_sale   String?
   description    String?
   groupType      String?
   sales          String?
   stocks         String?
+  orgId          Int               // Added for multi-tenancy
+  org            Organization      @relation(fields: [orgId], references: [id])
   groupId        Int?
   group          ItemGroup?        @relation(fields: [groupId], references: [id])
   items          Item[]
   itemCategories ItemCategoryMap[]
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
 model ItemCategoryMap {
   itemId     Int
   categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  item       Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  category   ItemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  item       Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@id([itemId, categoryId])
 }
@@ -215,11 +290,13 @@ model Color {
 
 model Item {
   id             Int                     @id @default(autoincrement())
-  name           String                  @unique
+  name           String                  @unique // Keep global; adjust if needed
   image          String?
   description    String?
   barcode        String
   brand          String?
+  orgId          Int                     // Added for multi-tenancy
+  org            Organization            @relation(fields: [orgId], references: [id])
   categoryId     Int?
   brandId        Int?
   ServiceCharge  Boolean                 @default(false)
@@ -231,12 +308,14 @@ model Item {
   orderItems     KompraCOrderItem[]
   InventoryItems InventoryItems[]
   brandDetails   Brand?                  @relation(fields: [brandId], references: [id])
-  category       Category?               @relation(fields: [categoryId], references: [id])
+  category       ItemCategory?           @relation(fields: [categoryId], references: [id])
   categories     ItemCategoryMap[]
   media          Media[]
   searchIndex    OutletItemSearchIndex[]
   color          Color[]                 @relation("ColorToItem")
   purchaseUnit   ItemUnit[]              @relation("ItemToItemUnit")
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
 model Media {
@@ -261,8 +340,12 @@ model Brand {
   email         String?
   webUrl        String?
   contactNumber String?
-  name          String  @unique
+  name          String  @unique // Keep global
+  orgId         Int     // Added for multi-tenancy
+  org           Organization @relation(fields: [orgId], references: [id])
   Item          Item[]
+
+  @@unique([orgId, name]) // Per-org unique
 }
 
 model ItemUnit {
@@ -478,6 +561,160 @@ model InventoryItemUnit {
   @@index([inventoryItemId])
 }
 
+// ─── Master File Models (Per-Organization) ────────────────────────────────────
+
+model VatType {
+  id    Int          @id @default(autoincrement())
+  label String
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+model Department {
+  id    Int          @id @default(autoincrement())
+  label String
+  color String?
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+model Position {
+  id    Int          @id @default(autoincrement())
+  label String
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+model Center {
+  id    Int          @id @default(autoincrement())
+  label String
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+model SubCenter {
+  id    Int          @id @default(autoincrement())
+  label String
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+model AccountTitle {
+  id    Int          @id @default(autoincrement())
+  label String
+  orgId Int
+  org   Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, label])
+}
+
+// ─── HR Model ────────────────────────────────────────────────────────────────
+
+model Employee {
+  id         String         @id
+  name       String
+  role       String
+  department String
+  status     EmployeeStatus
+  salary     Float
+  hireDate   DateTime
+  email      String         @unique // Global unique; adjust if needed
+  orgId      Int
+  userId     Int?           // Optional link to User
+  org        Organization   @relation(fields: [orgId], references: [id])
+  user       User?          @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+  @@index([department])
+  @@unique([orgId, email]) // Per-org unique
+}
+
+enum EmployeeStatus {
+  Active
+  On_Leave
+  Contract
+}
+
+// ─── ERP Data Models ──────────────────────────────────────────────────────────
+
+model GISRow {
+  id          String       @id
+  main        String
+  group       String
+  code        String
+  description String
+  debit       Float
+  credit      Float
+  total       Float
+  orgId       Int
+  userId      Int?
+  org         Organization @relation(fields: [orgId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+}
+
+model SummaryRow {
+  id               String       @id
+  itemCode         String
+  description      String
+  opExPct          Float
+  computedCost     Float
+  costContribution Float
+  sellingPrice     Float
+  status           String?
+  orgId            Int
+  userId           Int?
+  org              Organization @relation(fields: [orgId], references: [id])
+  user             User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+}
+
+model SalesOrder {
+  id       String       @id
+  customer String
+  product  String
+  qty      Int
+  total    Float
+  status   String
+  date     DateTime
+  outlet   String
+  orgId    Int
+  userId   Int?
+  org      Organization @relation(fields: [orgId], references: [id])
+  user     User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+}
+
+model InventoryItem {
+  id         String       @id
+  name       String
+  sku        String
+  stock      Int
+  minStock   Int
+  category   String
+  price      Float
+  lowStock   Boolean
+  orgId      Int
+  userId     Int?
+  org        Organization @relation(fields: [orgId], references: [id])
+  user       User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -495,7 +732,7 @@ enum OutletType {
 enum OutletStatus {
   open
   closed
-  maintainance
+  maintenance
 }
 
 enum PaymentMethod {

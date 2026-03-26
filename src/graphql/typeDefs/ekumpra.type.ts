@@ -29,7 +29,7 @@ export const EkumpraCPaymentMethodEnum = enumType({
 // ─── ITEM TAXONOMY ────────────────────────────────────────────────────────────
 
 export const ItemGroupType = objectType({
-  name: 'ItemGroup',
+  name: 'EkumpraItemGroup',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.string('name')
@@ -37,7 +37,7 @@ export const ItemGroupType = objectType({
     t.nullable.string('icon')
     t.nonNull.boolean('isActive')
     t.nonNull.string('createdAt')
-    t.nonNull.list.nonNull.field('categories', { type: 'Category' })
+    t.nonNull.list.nonNull.field('categories', { type: 'ItemCategory' })
   },
 })
 
@@ -47,7 +47,7 @@ export const ItemCategoryMapType = objectType({
     t.nonNull.int('itemId')
     t.nonNull.int('categoryId')
     t.nonNull.field('item', { type: 'Item' })
-    t.nonNull.field('category', { type: 'Category' })
+    t.nonNull.field('category', { type: 'ItemCategory' })
   },
 })
 
