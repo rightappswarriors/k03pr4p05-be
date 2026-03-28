@@ -1,4 +1,5 @@
 import { extendType, intArg } from 'nexus';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
 export const employeeQuery = extendType({
     type: 'Query',
     definition(t) {
@@ -8,6 +9,7 @@ export const employeeQuery = extendType({
                 orgId: intArg()
             },
             resolve: async (_, { orgId }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.employee.findMany({
                     where: { orgId }
                 });
@@ -19,6 +21,7 @@ export const employeeQuery = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.employee.findUnique({
                     where: { id }
                 });

@@ -1,4 +1,5 @@
 import { extendType, intArg, stringArg, floatArg } from 'nexus';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
 export const gisRowMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -11,6 +12,7 @@ export const gisRowMutation = extendType({
                 description: stringArg()
             },
             resolve: async (_, { orgId, accountTitleId, amount, description }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.gISRow.create({
                     data: { orgId, accountTitleId, amount, description }
                 });
@@ -25,6 +27,7 @@ export const gisRowMutation = extendType({
                 description: stringArg()
             },
             resolve: async (_, { id, accountTitleId, amount, description }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.gISRow.update({
                     where: { id },
                     data: { accountTitleId, amount, description }

@@ -4,35 +4,37 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ─── Multi-Tenancy Models ─────────────────────────────────────────────────────
 
 model Organization {
-  id            Int             @id @default(autoincrement())
-  name          String
-  createdAt     DateTime        @default(now())
-  subscription  Subscription?
-  users         User[]
-  branches      Branch[]
-  outlets       Outlet[]
-  items         Item[]
+  id             Int             @id @default(autoincrement())
+  name           String
+  createdAt      DateTime        @default(now())
+  subscription   Subscription?
+  users          User[]
+  branches       Branch[]
+  outlets        Outlet[]
+  items          Item[]
   itemCategories ItemCategory[]
-  vatTypes      VatType[]
-  departments   Department[]
-  positions     Position[]
-  centers       Center[]
-  subCenters    SubCenter[]
-  accountTitles AccountTitle[]
-  gisRows       GISRow[]
-  summaryRows   SummaryRow[]
-  salesOrders   SalesOrder[]
+  vatTypes       VatType[]
+  departments    Department[]
+  positions      Position[]
+  centers        Center[]
+  subCenters     SubCenter[]
+  accountTitles  AccountTitle[]
+  gisRows        GISRow[]
+  summaryRows    SummaryRow[]
+  salesOrders    SalesOrder[]
   inventoryItems InventoryItem[]
-  employees     Employee[]
-  promoTypes    PromoType[]     // Added for PromoType relation
-  itemGroups    ItemGroup[]     // Added for ItemGroup relation
-  brands        Brand[]         // Added for Brand relation
+  employees      Employee[]
+  promoTypes     PromoType[] // Added for PromoType relation
+  itemGroups     ItemGroup[] // Added for ItemGroup relation
+  brands         Brand[] // Added for Brand relation
+  shifts         Shift[]
+  attendances    Attendance[]
 }
 
 model Subscription {
@@ -40,7 +42,7 @@ model Subscription {
   orgId     Int              @unique
   plan      SubscriptionPlan @default(BASIC)
   expiresAt DateTime?
-  features  Json?            // Extensible for feature gating
+  features  Json? // Extensible for feature gating
   createdAt DateTime         @default(now())
   org       Organization     @relation(fields: [orgId], references: [id])
 }
@@ -64,7 +66,7 @@ model User {
   managerId            Int?
   enabledPaymentMethod Boolean          @default(false)
   contactNumber        String?
-  orgId                Int              // Added for multi-tenancy
+  orgId                Int // Added for multi-tenancy
   org                  Organization     @relation(fields: [orgId], references: [id])
   branchesOwned        Branch[]         @relation("UserBranches")
   outletOwned          Outlet[]         @relation("UserOutlets")
@@ -75,14 +77,16 @@ model User {
   Transaction          Transaction[]
   manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]           @relation("ManagerToStaff")
-  employees            Employee[]       // Added relation to HR employees
-  gisRows              GISRow[]         // Added for ERP data
+  employees            Employee[] // Added relation to HR employees
+  gisRows              GISRow[] // Added for ERP data
   summaryRows          SummaryRow[]
   salesOrders          SalesOrder[]
   inventoryItems       InventoryItem[]
+  userShifts           UserShift[]
+  attendances          Attendance[]
 
   @@unique([orgId, username]) // Per-org unique for scalability
-  @@unique([orgId, email])    // Per-org unique
+  @@unique([orgId, email]) // Per-org unique
 }
 
 model PaymongoAPIKeys {
@@ -101,7 +105,7 @@ model Branch {
   phone      String?
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
-  orgId      Int            // Added for multi-tenancy
+  orgId      Int // Added for multi-tenancy
   org        Organization   @relation(fields: [orgId], references: [id])
   ownerId    Int
   locationId Int?
@@ -134,7 +138,7 @@ model Outlet {
   isActive              Boolean                 @default(true)
   wifiSSID              String?
   createdAt             DateTime                @default(now())
-  orgId                 Int                     // Added for multi-tenancy
+  orgId                 Int // Added for multi-tenancy
   org                   Organization            @relation(fields: [orgId], references: [id])
   branchId              Int?
   ownerId               Int
@@ -144,7 +148,7 @@ model Outlet {
   latitude              Float?
   longitude             Float?
   imageBanner           String?
-  kompraCOrders        KompraCOrder[]
+  kompraCOrders         KompraCOrder[]
   inventory             Inventory?
   apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
   branch                Branch?                 @relation(fields: [branchId], references: [id])
@@ -164,7 +168,7 @@ model PromoType {
   description  String?
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
-  orgId        Int           // Added for multi-tenancy
+  orgId        Int // Added for multi-tenancy
   org          Organization  @relation(fields: [orgId], references: [id])
   userId       Int?
   outletPromos OutletPromo[]
@@ -241,14 +245,14 @@ model InventoryItems {
 }
 
 model ItemGroup {
-  id          Int        @id @default(autoincrement())
-  name        String     @unique // Keep global
+  id          Int            @id @default(autoincrement())
+  name        String         @unique // Keep global
   description String?
   icon        String?
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  orgId       Int        // Added for multi-tenancy
-  org         Organization @relation(fields: [orgId], references: [id])
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  orgId       Int // Added for multi-tenancy
+  org         Organization   @relation(fields: [orgId], references: [id])
   categories  ItemCategory[]
 
   @@unique([orgId, name]) // Per-org unique
@@ -262,7 +266,7 @@ model ItemCategory {
   groupType      String?
   sales          String?
   stocks         String?
-  orgId          Int               // Added for multi-tenancy
+  orgId          Int // Added for multi-tenancy
   org            Organization      @relation(fields: [orgId], references: [id])
   groupId        Int?
   group          ItemGroup?        @relation(fields: [groupId], references: [id])
@@ -295,7 +299,7 @@ model Item {
   description    String?
   barcode        String
   brand          String?
-  orgId          Int                     // Added for multi-tenancy
+  orgId          Int // Added for multi-tenancy
   org            Organization            @relation(fields: [orgId], references: [id])
   categoryId     Int?
   brandId        Int?
@@ -336,12 +340,12 @@ model StockLocation {
 }
 
 model Brand {
-  id            Int     @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   email         String?
   webUrl        String?
   contactNumber String?
-  name          String  @unique // Keep global
-  orgId         Int     // Added for multi-tenancy
+  name          String       @unique // Keep global
+  orgId         Int // Added for multi-tenancy
   org           Organization @relation(fields: [orgId], references: [id])
   Item          Item[]
 
@@ -417,52 +421,52 @@ model KompraCustomer {
 }
 
 model CustomerDeviceToken {
-  id         Int             @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   customerId Int
-  token      String          @unique
+  token      String         @unique
   platform   String
-  createdAt  DateTime        @default(now())
+  createdAt  DateTime       @default(now())
   customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model DeliveryAddress {
-  id         Int             @id @default(autoincrement())
+  id         Int            @id @default(autoincrement())
   customerId Int
   label      String
   address    String
   latitude   Float
   longitude  Float
-  isDefault  Boolean         @default(false)
-  createdAt  DateTime        @default(now())
+  isDefault  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
   customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   orders     KompraCOrder[]
 }
 
 model KompraCOrder {
-  id                  Int                        @id @default(autoincrement())
-  transactionNumber   String                     @unique
+  id                  Int                       @id @default(autoincrement())
+  transactionNumber   String                    @unique
   customerId          Int
   outletId            Int
   deliveryAddressId   Int
   subtotal            Float
   total               Float
-  status              OrderStatus                @default(pending)
+  status              OrderStatus               @default(pending)
   scheduledDeliveryAt DateTime?
   estimatedDeliveryAt DateTime?
   deliveredAt         DateTime?
   paymentMethod       KompraCPaymentMethod
-  paymentStatus       String                     @default("unpaid")
+  paymentStatus       String                    @default("unpaid")
   paymentReference    String?
   riderName           String?
   riderPhone          String?
   customerNote        String?
   outletNote          String?
-  createdAt           DateTime                   @default(now())
-  updatedAt           DateTime                   @updatedAt
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
   tracking            KompraCDeliveryTracking[]
   customer            KompraCustomer            @relation(fields: [customerId], references: [id])
-  deliveryAddress     DeliveryAddress            @relation(fields: [deliveryAddressId], references: [id])
-  outlet              Outlet                     @relation(fields: [outletId], references: [id])
+  deliveryAddress     DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
+  outlet              Outlet                    @relation(fields: [outletId], references: [id])
   fees                KompraCOrderFee[]
   items               KompraCOrderItem[]
 }
@@ -478,14 +482,14 @@ model KompraCOrderItem {
   unitId          Int?
   inventoryItem   InventoryItems     @relation(fields: [inventoryItemId], references: [id])
   item            Item               @relation(fields: [itemId], references: [id])
-  order           KompraCOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order           KompraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   unit            InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@unique([orderId, inventoryItemId])
 }
 
 model KompraCOrderFee {
-  id      Int           @id @default(autoincrement())
+  id      Int          @id @default(autoincrement())
   orderId Int
   type    FeeType
   label   String
@@ -503,7 +507,7 @@ model KompraCDeliveryTracking {
   note       String?
   actorType  String
   actorId    Int?
-  order      KompraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order      KompraCOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId, statusAt])
 }
@@ -540,22 +544,22 @@ model OutletItemSearchIndex {
 }
 
 model InventoryItemUnit {
-  id               Int                 @id @default(autoincrement())
+  id               Int                @id @default(autoincrement())
   inventoryItemId  Int
   unitName         String
   unitLabel        String
   price            Float
-  quantity         Float               @default(0)
-  conversionFactor Float               @default(1)
-  baseUnit         String              @default("piece")
+  quantity         Float              @default(0)
+  conversionFactor Float              @default(1)
+  baseUnit         String             @default("piece")
   barcode          String?
-  isDefault        Boolean             @default(false)
-  isActive         Boolean             @default(true)
+  isDefault        Boolean            @default(false)
+  isActive         Boolean            @default(true)
   minOrderQty      Float?
   maxOrderQty      Float?
   reorderPoint     Float?
   orderItems       KompraCOrderItem[]
-  inventoryItem    InventoryItems      @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  inventoryItem    InventoryItems     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   @@unique([inventoryItemId, unitName])
   @@index([inventoryItemId])
@@ -630,19 +634,78 @@ model Employee {
   hireDate   DateTime
   email      String         @unique // Global unique; adjust if needed
   orgId      Int
-  userId     Int?           // Optional link to User
+  userId     Int? // Optional link to User
   org        Organization   @relation(fields: [orgId], references: [id])
   user       User?          @relation(fields: [userId], references: [id])
 
+  @@unique([orgId, email]) // Per-org unique
   @@index([orgId])
   @@index([department])
-  @@unique([orgId, email]) // Per-org unique
 }
 
 enum EmployeeStatus {
   Active
   On_Leave
   Contract
+}
+
+// ─── HR Time Tracking Models ────────────────────────────────────────────────
+
+model Shift {
+  id            Int          @id @default(autoincrement())
+  name          String
+  startTime     DateTime
+  endTime       DateTime
+  breakDuration Int          @default(0) // in minutes
+  orgId         Int
+  org           Organization @relation(fields: [orgId], references: [id])
+  userShifts    UserShift[]
+  attendances   Attendance[]
+
+  @@index([orgId])
+}
+
+model UserShift {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  shiftId    Int
+  assignedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  shift      Shift    @relation(fields: [shiftId], references: [id])
+
+  @@unique([userId, shiftId])
+  @@index([userId])
+  @@index([shiftId])
+}
+
+model Attendance {
+  id              Int              @id @default(autoincrement())
+  userId          Int
+  shiftId         Int
+  shiftDate       DateTime         @default(now())
+  timeIn          DateTime?
+  timeOut         DateTime?
+  breakStart      DateTime?
+  breakEnd        DateTime?
+  photoIn         String?
+  photoOut        String?
+  photoBreakStart String?
+  photoBreakEnd   String?
+  status          AttendanceStatus @default(PRESENT)
+  orgId           Int
+  user            User             @relation(fields: [userId], references: [id])
+  shift           Shift            @relation(fields: [shiftId], references: [id])
+  org             Organization     @relation(fields: [orgId], references: [id])
+
+  @@index([userId, shiftDate])
+  @@index([shiftId, shiftDate])
+  @@index([orgId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ON_BREAK
+  OFF_DUTY
 }
 
 // ─── ERP Data Models ──────────────────────────────────────────────────────────
@@ -699,18 +762,18 @@ model SalesOrder {
 }
 
 model InventoryItem {
-  id         String       @id
-  name       String
-  sku        String
-  stock      Int
-  minStock   Int
-  category   String
-  price      Float
-  lowStock   Boolean
-  orgId      Int
-  userId     Int?
-  org        Organization @relation(fields: [orgId], references: [id])
-  user       User?        @relation(fields: [userId], references: [id])
+  id       String       @id
+  name     String
+  sku      String
+  stock    Int
+  minStock Int
+  category String
+  price    Float
+  lowStock Boolean
+  orgId    Int
+  userId   Int?
+  org      Organization @relation(fields: [orgId], references: [id])
+  user     User?        @relation(fields: [userId], references: [id])
 
   @@index([orgId])
 }

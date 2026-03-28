@@ -1,4 +1,5 @@
 import { extendType, intArg, stringArg } from 'nexus';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
 export const organizationMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -8,6 +9,7 @@ export const organizationMutation = extendType({
                 name: stringArg()
             },
             resolve: async (_, { name }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.organization.create({
                     data: { name }
                 });
@@ -20,6 +22,7 @@ export const organizationMutation = extendType({
                 name: stringArg()
             },
             resolve: async (_, { id, name }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.organization.update({
                     where: { id },
                     data: { name }

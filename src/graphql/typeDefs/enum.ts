@@ -73,3 +73,8 @@ export const EmployeeStatus = enumType({
   name: 'EmployeeStatus',
   members: ['Active', 'On_Leave', 'Contract'],
 })
+
+export const AttendanceStatus = enumType({
+  name: 'AttendanceStatus',
+  members: ['PRESENT', 'ON_BREAK', 'OFF_DUTY'],
+})
