@@ -16,12 +16,15 @@ export const User = objectType({
           t.nonNull.string('email')
           t.nonNull.field('role', { type: 'Role' })
           t.nonNull.string('password')
+          // backend onboarding status
+          t.nonNull.boolean('isVerified')
+          t.nullable.string('verificationCode')
           t.nonNull.dateTime('createdAt')
           t.nullable.string('profilePhoto');
           t.nullable.int('managerId')
           t.nonNull.boolean('enabledPaymentMethod')
           t.nullable.string('contactNumber');
-          t.nonNull.int('orgId') // Added for multi-tenancy
+          t.nullable.int('orgId') // Added for multi-tenancy, onboarding may set after org creation
           t.nonNull.field('org', { // Added relation
                type: 'Organization',
                resolve: (parent, _, ctx) => {

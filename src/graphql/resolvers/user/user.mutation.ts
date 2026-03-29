@@ -64,6 +64,34 @@ export const userMutation = extendType({
         return newUser;
       },
     });
+
+    // Register user with OTP email flow
+    t.nonNull.field('registerUser', {
+      type: 'User',
+      args: {
+        fullname: nonNull(stringArg()),
+        email: nonNull(stringArg()),
+        password: nonNull(stringArg()),
+        contactNumber: stringArg(),
+      },
+      async resolve(_, { fullname, email, password, contactNumber }) {
+        const { registerUser } = await import('../../../services/authService.js')
+        return registerUser({ fullname, email, password, contactNumber })
+      },
+    })
+
+    t.nonNull.field('verifyEmail', {
+      type: 'User',
+      args: {
+        email: nonNull(stringArg()),
+        code: nonNull(stringArg()),
+      },
+      async resolve(_, { email, code }) {
+        const { verifyEmail } = await import('../../../services/authService.js')
+        return verifyEmail({ email, code })
+      },
+    })
+
     t.nonNull.field("createStaff", {
       type: "User",
       args: {

@@ -1,5 +1,6 @@
 import { extendType, intArg, stringArg } from 'nexus'
 import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { createOrganization as createOrganizationService } from '../../../services/organizationService.js'
 
 export const organizationMutation = extendType({
   type: 'Mutation',
@@ -11,9 +12,9 @@ export const organizationMutation = extendType({
       },
       resolve: async (_, { name }, ctx) => {
         requireAuth(ctx)
-        return ctx.prisma.organization.create({
-          data: { name }
-        })
+        const userId = ctx.user?.userId
+        if (!userId) throw new Error('User is required')
+        return createOrganizationService(Number(userId), name)
       }
     })
     t.field('updateOrganization', {

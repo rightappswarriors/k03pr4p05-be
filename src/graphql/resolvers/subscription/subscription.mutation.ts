@@ -1,4 +1,5 @@
 import { extendType, intArg } from 'nexus'
+import { createSubscription as createSubscriptionService, updateSubscription as updateSubscriptionService } from '../../../services/subscriptionService.js'
 
 export const subscriptionMutation = extendType({
   type: 'Mutation',
@@ -10,9 +11,7 @@ export const subscriptionMutation = extendType({
         plan: 'SubscriptionPlan'
       },
       resolve: async (_, { orgId, plan }, ctx) => {
-        return ctx.prisma.subscription.create({
-          data: { orgId, plan }
-        })
+        return createSubscriptionService(Number(orgId), plan)
       }
     })
     t.field('updateSubscription', {
@@ -22,10 +21,7 @@ export const subscriptionMutation = extendType({
         plan: 'SubscriptionPlan'
       },
       resolve: async (_, { orgId, plan }, ctx) => {
-        return ctx.prisma.subscription.update({
-          where: { orgId },
-          data: { plan }
-        })
+        return updateSubscriptionService(Number(orgId), plan)
       }
     })
   }

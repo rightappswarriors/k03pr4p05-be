@@ -95,6 +95,32 @@ type AddedOutletStaffs {
   staff: [User!]!
 }
 
+type Attendance {
+  breakEnd: DateTime
+  breakStart: DateTime
+  id: Int!
+  org: Organization!
+  orgId: Int!
+  photoBreakEnd: String
+  photoBreakStart: String
+  photoIn: String
+  photoOut: String
+  shift: Shift!
+  shiftDate: DateTime!
+  shiftId: Int!
+  status: AttendanceStatus!
+  timeIn: DateTime
+  timeOut: DateTime
+  user: User!
+  userId: Int!
+}
+
+enum AttendanceStatus {
+  OFF_DUTY
+  ON_BREAK
+  PRESENT
+}
+
 type AuthPayload {
   refresh_token: String!
   token: String!
@@ -187,6 +213,22 @@ input CreateItemInput {
   name: String!
   skuNumber: String
   vatExempt: Boolean
+}
+
+input CreateOutletPromoInput {
+  discount: Float!
+  isActive: Boolean
+  outletId: Int!
+  promoTypeId: Int!
+  userId: Int!
+}
+
+input CreatePromoTypeInput {
+  description: String
+  isActive: Boolean
+  name: String!
+  orgId: Int!
+  userId: Int
 }
 
 type CustomerDetails {
@@ -591,20 +633,16 @@ enum MediaType {
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
-  addAPIKeysToOutlet(apiKeyId: ID!, outletId: ID!): Boolean!
   addDeliveryAddress(customerId: Int!, input: AddDeliveryAddressInput!): DeliveryAddress!
   addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
   addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelEkumpraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): EkumpraCOrder!
-  clearAPIToOutlet(outletId: ID!): Boolean!
   confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
-  createAPIKey(public_key: String!, secret_key: String!): PaymongoAPIKeys!
   createAccountTitle(code: String, name: String, orgId: Int): AccountTitle
   createBranch(address: String!, name: String!, phone: String!): Branch!
-  createCategories(categories: [String!]!): [ItemCategory!]!
   createCenter(name: String, orgId: Int): Center
   createDepartment(name: String, orgId: Int): Department
   createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
@@ -615,8 +653,10 @@ type Mutation {
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrganization(name: String): Organization
   createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(name: String, orgId: Int): Position
+  createPromoType(data: CreatePromoTypeInput!): PromoType!
   createSalesOrder(customerName: String, orgId: Int, status: String, totalAmount: Float): SalesOrder
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   createSubCenter(centerId: Int, name: String, orgId: Int): SubCenter
@@ -625,28 +665,29 @@ type Mutation {
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   createVatType(name: String, orgId: Int, rate: Int): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
-  deleteAPIKEY(apiKeyId: ID!): Boolean!
   deleteAccountTitle(id: Int): AccountTitle
   deleteBranch(id: ID!): Branch!
-  deleteCategory(id: ID!): ItemCategory!
   deleteCenter(id: Int): Center
   deleteDepartment(id: Int): Department
   deleteEmployee(id: Int): Employee
   deleteGISRow(id: Int): GISRow
   deleteInventory(id: Int!): Boolean
-  deleteInventoryItem(id: Int!): InventoryItems!
+  deleteInventoryItem(id: Int): InventoryItem
   deleteItem(id: ID!): Item!
   deleteItemGroup(id: Int): ItemGroup
   deleteItemMedia(id: Int!): Media!
   deleteOutlet(id: ID!): Outlet!
+  deleteOutletPromo(id: Int!): OutletPromo!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deletePlaceLocation(id: Int): PlaceLocation
   deletePosition(id: Int): Position
+  deletePromoType(id: Int!): PromoType!
   deleteSalesOrder(id: Int): SalesOrder
   deleteSubCenter(id: Int): SubCenter
   deleteSummaryRow(id: Int): SummaryRow
   deleteUser(id: ID!): User!
   deleteVatType(id: Int): VatType
+  endBreak: Attendance
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
@@ -655,32 +696,37 @@ type Mutation {
   placeEkumpraOrder(customerId: Int!, input: PlaceOrderInput!): EkumpraCOrder!
   refreshToken(refresh_token: String!): AuthPayload!
   registerEkumpraCustomer(input: RegisterCustomerInput!): EkumpraCustomer!
+  registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
-  updateAPIKey(public_key: String, secret_key: String): PaymongoAPIKeys!
+  startBreak(photo: String): Attendance
+  timeIn(photo: String): Attendance
+  timeOut(photo: String): Attendance
   updateAccountTitle(code: String, id: Int, name: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
-  updateCategory(id: ID!, name: String!): ItemCategory!
   updateCenter(id: Int, name: String): Center
   updateDepartment(id: Int, name: String): Department
   updateEmployee(departmentId: Int, id: Int, name: String, positionId: Int): Employee
   updateGISRow(accountTitleId: Int, amount: Float, description: String, id: Int): GISRow
   updateInventory(id: Int!, name: String!): Inventory
-  updateInventoryItem(data: InventoryItemUpdateInput!, id: Int!): InventoryItems!
+  updateInventoryItem(id: Int, itemGroupId: Int, name: String, price: Float, quantity: Int): InventoryItem
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(id: ID!, item: UpdateItemInput!): Item!
   updateItemGroup(id: Int, name: String): ItemGroup
   updateOrganization(id: Int, name: String): Organization
   updateOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletId: ID!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  updateOutletPromo(data: UpdateOutletPromoInput!, id: Int!): OutletPromo!
   updatePlaceLocation(address: String, id: Int, name: String): PlaceLocation
   updatePosition(id: Int, name: String): Position
+  updatePromoType(data: UpdatePromoTypeInput!, id: Int!): PromoType!
   updateSalesOrder(customerName: String, id: Int, status: String, totalAmount: Float): SalesOrder
   updateSubCenter(centerId: Int, id: Int, name: String): SubCenter
   updateSubscription(orgId: Int, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, amount: Float, description: String, id: Int): SummaryRow
   updateUser(fullname: String, id: ID!, username: String): User!
   updateVatType(id: Int, name: String, rate: Int): VatType
+  verifyEmail(code: String!, email: String!): User!
 }
 
 input OrderItemInput {
@@ -970,18 +1016,16 @@ type Query {
   employee(id: Int): Employee
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
-  getAllCategory(orderBy: String, pageSize: Int, query: String): [ItemCategory!]!
   getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs: [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
   getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
-  getCategoryById(id: ID!): ItemCategory!
-  getCategoryItems(id: ID!): [Item!]!
   getInventoryByOutletId(outletId: Int!): Outlet
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
   getItemById(id: ID!): Item!
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
+  getMyAttendanceToday: Attendance
   getOutletById(id: ID!): Outlet
   getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
@@ -991,6 +1035,7 @@ type Query {
   getOwnedBranches: [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
   getStaffByOutletId(outletId: ID!): [UserStaff!]!
+  getTodayAttendanceByOrganization(orgId: Int): [Attendance]
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
   gisRow(id: Int): GISRow
@@ -1010,10 +1055,17 @@ type Query {
   organizations: [Organization]
   outletCatalog(outletId: Int!): OutletCatalogResult!
   outletOrderQueue(outletId: Int!): [EkumpraCOrder!]!
+  outletPromo(id: Int!): OutletPromo
+  outletPromos: [OutletPromo!]!
+  outletPromosByOutlet(outletId: Int!): [OutletPromo!]!
+  outletPromosByPromoType(promoTypeId: Int!): [OutletPromo!]!
   placeLocation(id: Int): PlaceLocation
   placeLocations(orgId: Int): [PlaceLocation]
   position(id: Int): Position
   positions(orgId: Int): [Position]
+  promoType(id: Int!): PromoType
+  promoTypes: [PromoType!]!
+  promoTypesByOrg(orgId: Int!): [PromoType!]!
   salesOrder(id: Int): SalesOrder
   salesOrders(orgId: Int): [SalesOrder]
   subCenter(id: Int): SubCenter
@@ -1059,6 +1111,18 @@ input SearchItemInput {
   itemId: Int!
   name: String!
   quantityWanted: Int!
+}
+
+type Shift {
+  attendances: [Attendance]
+  breakDuration: Int!
+  endTime: DateTime!
+  id: Int!
+  name: String!
+  org: Organization!
+  orgId: Int!
+  startTime: DateTime!
+  userShifts: [UserShift]
 }
 
 enum Status {
@@ -1125,6 +1189,13 @@ type Transaction {
   vatAmount: Float!
 }
 
+type UnauthorizedAttempt {
+  attemptedDeviceId: String!
+  id: Int!
+  outletId: Int!
+  timestamp: String!
+}
+
 input UpdateInventoryItemUnitInput {
   barcode: String
   baseUnit: String
@@ -1148,6 +1219,17 @@ input UpdateItemInput {
   name: String
 }
 
+input UpdateOutletPromoInput {
+  discount: Float
+  isActive: Boolean
+}
+
+input UpdatePromoTypeInput {
+  description: String
+  isActive: Boolean
+  name: String
+}
+
 type User {
   branchesOwned: [Branch!]!
   contactNumber: String
@@ -1159,10 +1241,11 @@ type User {
   gisRows: [GISRow]!
   id: Int!
   inventoryItems: [InventoryItem]!
+  isVerified: Boolean!
   manager: User
   managerId: Int
   org: Organization!
-  orgId: Int!
+  orgId: Int
   outletOwned: [Outlet!]!
   outletPromo: [OutletPromo]!
   password: String!
@@ -1175,6 +1258,16 @@ type User {
   summaryRows: [SummaryRow]!
   transaction: [Transaction]!
   username: String!
+  verificationCode: String
+}
+
+type UserShift {
+  assignedAt: DateTime!
+  id: Int!
+  shift: Shift!
+  shiftId: Int!
+  user: User!
+  userId: Int!
 }
 
 type UserStaff {

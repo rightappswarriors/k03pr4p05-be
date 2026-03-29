@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // dont change this
 }
 
 // ─── Multi-Tenancy Models ─────────────────────────────────────────────────────
@@ -61,13 +61,15 @@ model User {
   email                String           @unique // Global unique
   role                 Role             @default(CASHIER)
   password             String
+  isVerified           Boolean          @default(false)
+  verificationCode     String?
   createdAt            DateTime         @default(now())
   profilePhoto         String?
   managerId            Int?
   enabledPaymentMethod Boolean          @default(false)
   contactNumber        String?
-  orgId                Int // Added for multi-tenancy
-  org                  Organization     @relation(fields: [orgId], references: [id])
+  orgId                Int? // Added for multi-tenancy - optional during onboarding until org created
+  org                  Organization?    @relation(fields: [orgId], references: [id])
   branchesOwned        Branch[]         @relation("UserBranches")
   outletOwned          Outlet[]         @relation("UserOutlets")
   outletPromo          OutletPromo[]    @relation("UserOutletPromos")
@@ -778,13 +780,13 @@ model InventoryItem {
   @@index([orgId])
 }
 
-enum Role {
-  ADMIN
-  MANAGER
-  STAFF
-  CASHIER
-  OWNER
-}
+  enum Role {
+    ADMIN
+    MANAGER
+    STAFF
+    CASHIER
+    OWNER
+  }
 
 enum OutletType {
   retail

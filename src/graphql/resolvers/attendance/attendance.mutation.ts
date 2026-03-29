@@ -1,6 +1,6 @@
 import { extendType, intArg, stringArg } from 'nexus'
 import { requireAuth } from '../../../middleware/auth.middleware.js'
-import { AttendanceService } from '../../../services/attendanceService'
+import { AttendanceService } from '../../../services/attendanceService.js'
 
 const attendanceService = new AttendanceService()
 

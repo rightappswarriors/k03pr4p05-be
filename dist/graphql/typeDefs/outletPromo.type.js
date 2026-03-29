@@ -12,7 +12,7 @@ export const OutletPromo = objectType({
         t.nonNull.field("user", {
             type: "User",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.outlet.findUnique({
+                return ctx.prisma.outletPromo.findUnique({
                     where: {
                         id: parent.id
                     }
@@ -22,7 +22,7 @@ export const OutletPromo = objectType({
         t.nonNull.field("outlet", {
             type: "Outlet",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.outlet.findUnique({
+                return ctx.prisma.outletPromo.findUnique({
                     where: {
                         id: parent.id
                     }
@@ -32,7 +32,7 @@ export const OutletPromo = objectType({
         t.nonNull.field("promoType", {
             type: "PromoType",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.promoType.findUnqie({
+                return ctx.prisma.outletPromo.findUnique({
                     where: {
                         id: parent.id
                     }
