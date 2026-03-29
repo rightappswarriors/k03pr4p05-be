@@ -4,6 +4,14 @@ export const Role = enumType({
     name: 'Role',
     members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER", "OWNER"]
 });
+export const TimeInStatus = objectType({
+    name: 'TimeInStatus',
+    definition(t) {
+        t.nonNull.boolean('hasTimeIn');
+        t.nullable.dateTime('lastTimeIn');
+        t.nonNull.string('status');
+    }
+});
 export const User = objectType({
     name: 'User',
     definition(t) {
@@ -22,7 +30,7 @@ export const User = objectType({
         t.nonNull.boolean('enabledPaymentMethod');
         t.nullable.string('contactNumber');
         t.nullable.int('orgId'); // Added for multi-tenancy, onboarding may set after org creation
-        t.nonNull.field('org', {
+        t.nullable.field('org', {
             type: 'Organization',
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.user

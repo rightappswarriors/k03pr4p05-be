@@ -16,11 +16,11 @@ export const branchMutation = extendType({
       args: {
         name: nonNull(arg({ type: "String" })),
         address: nonNull(arg({ type: "String" })),
-        phone: nonNull(arg({ type: "String" })),
+        phone: arg({ type: "String" }),
       },
       async resolve(_, { name, address, phone }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", "OWNER"]);
 
         if (!name || !address) {
           throw new Error("Missing required fields: name, address");
@@ -39,7 +39,13 @@ export const branchMutation = extendType({
         }
 
         const ownerId = ctx.user.userId;
-        return await branchService.createBranch({ name, address, phone }, ownerId);
+        const orgId = ctx.user.orgId;
+
+        if (!orgId) {
+          throw new Error("User must belong to an organization to create a branch");
+        }
+
+        return await branchService.createBranch({ name, address, phone }, ownerId, orgId);
       },
     });
 

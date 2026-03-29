@@ -7,6 +7,12 @@ import jwt from "jsonwebtoken";
 // A secret key to sign and verify your JWTs. In a real-world app, this should be an environment variable.
 const JWT_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+}
+if (!REFRESH_SECRET) {
+    throw new Error('REFRESH_SECRET environment variable is not set');
+}
 /**
  * @description
  * Creates a new user in the database.
@@ -61,15 +67,29 @@ export const loginUser = async (email, password, res) => {
     const user = await prisma.user.findUnique({
         where: { email },
     });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!user) {
+        console.log(`User not found for email: ${email}`);
         return null;
     }
-    if (process.env.NODE_ENV === "development")
+    if (!user.password) {
+        console.log(`User ${email} has no password stored`);
+        return null;
+    }
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+        console.log(`Invalid password for user: ${email}`);
+        return null;
+    }
+    // Check if user has verified their email
+    if (!user.isVerified) {
+        console.log(`User ${email} has not verified their email`);
+        throw new Error('Please verify your email before logging in');
+    }
+    if (process.env.NODE_ENV === "development") {
         console.log("User: ", user.username);
-    if (process.env.NODE_ENV === "development")
         console.log("User Role: ", user.role);
-    if (process.env.NODE_ENV === "development")
         console.log("User fullname: ", user.fullname);
+    }
     const staffexists = await prisma.outletStaff.findFirst({
         where: { userId: user.id }
     });

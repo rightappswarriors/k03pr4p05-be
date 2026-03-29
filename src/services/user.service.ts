@@ -10,6 +10,14 @@ import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.REFRESH_SECRET;
 
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set');
+}
+
+if (!REFRESH_SECRET) {
+  throw new Error('REFRESH_SECRET environment variable is not set');
+}
+
 
 
 /**
@@ -70,12 +78,35 @@ export const loginUser = async (email: any, password: any, res: any) => {
   const user = await prisma.user.findUnique({
     where: { email },
   });
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+
+  if (!user) {
+    console.log(`User not found for email: ${email}`);
     return null;
   }
-  if (process.env.NODE_ENV === "development") console.log("User: ", user.username);
-  if (process.env.NODE_ENV === "development") console.log("User Role: ", user.role);
-  if (process.env.NODE_ENV === "development") console.log("User fullname: ", user.fullname);
+
+  if (!user.password) {
+    console.log(`User ${email} has no password stored`);
+    return null;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    console.log(`Invalid password for user: ${email}`);
+    return null;
+  }
+
+  // Check if user has verified their email
+  if (!user.isVerified) {
+    console.log(`User ${email} has not verified their email`);
+    throw new Error('Please verify your email before logging in');
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("User: ", user.username);
+    console.log("User Role: ", user.role);
+    console.log("User fullname: ", user.fullname);
+  }
+
   const staffexists = await prisma.outletStaff.findFirst({
     where: { userId: user.id }
   })
@@ -86,6 +117,7 @@ export const loginUser = async (email: any, password: any, res: any) => {
       data: { isPresent: true, }
     })
   }
+
   const token = jwt.sign(
     {
       userId: user.id,

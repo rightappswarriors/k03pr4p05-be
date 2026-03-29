@@ -200,6 +200,7 @@ model OutletStaff {
   userId    Int
   role      Role
   isPresent Boolean @default(false)
+  logInTime DateTime?
   outlet    Outlet  @relation(fields: [outletId], references: [id])
   user      User    @relation(fields: [userId], references: [id])
 

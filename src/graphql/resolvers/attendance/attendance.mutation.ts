@@ -1,5 +1,5 @@
 import { extendType, intArg, stringArg } from 'nexus'
-import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 import { AttendanceService } from '../../../services/attendanceService.js'
 
 const attendanceService = new AttendanceService()
@@ -14,6 +14,7 @@ export const attendanceMutation = extendType({
       },
       resolve: async (_, { photo }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER'])
         const userId = ctx.userId // Assuming we have userId in context from auth middleware
         return attendanceService.timeIn(userId, photo)
       }

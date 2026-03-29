@@ -116,5 +116,33 @@ export const userQuery = extendType({
         }
       }
     });
+    t.field("checkUserTimeInStatus", {
+      type: "TimeInStatus",
+      args: {
+        userId: nonNull(arg({ type: "ID" }))
+      },
+      async resolve(_, { userId }, ctx) {
+        requireAuth(ctx);
+        try {
+          const outletStaff = await ctx.prisma.outletStaff.findFirst({
+            where: { userId: Number(userId) },
+            select: { isPresent: true, logInTime: true }
+          });
+          
+          return {
+            hasTimeIn: outletStaff?.isPresent ?? false,
+            lastTimeIn: outletStaff?.logInTime || null,
+            status: outletStaff?.isPresent ? 'present' : 'absent'
+          };
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") console.error("Error checking time-in status:", error);
+          return {
+            hasTimeIn: false,
+            lastTimeIn: null,
+            status: 'unknown'
+          };
+        }
+      }
+    });
   },
 });

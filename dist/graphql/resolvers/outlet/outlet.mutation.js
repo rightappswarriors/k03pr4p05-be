@@ -25,7 +25,7 @@ export const outletMutation = extendType({
                 name: nonNull(arg({ type: "String" })),
                 address: nonNull(arg({ type: "String" })),
                 branchId: nonNull(arg({ type: "ID" })),
-                phone: nonNull(arg({ type: "String" })),
+                phone: nullable(arg({ type: "String" })),
                 code: nonNull(arg({ type: "String" })),
                 isActive: nullable(booleanArg()),
                 status: nullable(arg({ type: "OutletStatus" })),
@@ -34,10 +34,11 @@ export const outletMutation = extendType({
                 outletType: nonNull(arg({ type: "OutletType" })),
                 longitude: nullable(arg({ type: "Float" })),
                 latitude: nullable(floatArg()),
+                bannerImage: nullable(arg({ type: "String" })),
             },
-            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive }, ctx) {
+            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive, bannerImage }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 const userId = ctx.user.userId;
                 if (!name || !address || !code || !outletType || !branchId) {
                     throw new Error("Missing required fields: name, address, code, outletType, branchId");
@@ -47,14 +48,15 @@ export const outletMutation = extendType({
                         name,
                         address,
                         isActive,
-                        phone,
+                        phone: phone || null,
                         code,
                         governmentTax,
                         serviceCharge,
                         outletType,
                         longitude,
                         latitude,
-                        status
+                        status,
+                        bannerImage: bannerImage || null
                     }, Number(branchId), Number(userId));
                 }
                 catch (error) {
@@ -115,7 +117,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { id, userIds }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", id);
                 if (!id ||
                     !userIds ||
@@ -152,7 +154,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", outletId);
                 // Ensure at least one field to update
                 if (!name &&

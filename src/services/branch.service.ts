@@ -6,14 +6,16 @@ const prisma = new PrismaClient()
  * Creates a new Branch in the database.
  * @param {object} branchData - The Branch's data (name, address, etc.).
  * @param {number} ownerId - The ID of the user who owns the branch.
+ * @param {number} orgId - The ID of the organization the branch belongs to.
  * @returns {Promise<object>} The newly created Branch data.
  */
 
-export const createBranch = async (branchData, ownerId) => {
+export const createBranch = async (branchData, ownerId, orgId) => {
   const newBranchData = await prisma.branch.create({
     data: {
       ...branchData,
       ownerId: ownerId,
+      orgId: orgId,
     },
   });
 

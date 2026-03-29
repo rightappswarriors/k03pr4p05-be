@@ -37,7 +37,7 @@ export const InventoryQuery = extendType({
       },
       async resolve(_, { inventoryId, itemId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         return ctx.prisma.inventoryItems.findUnique({
           where: { inventoryId_itemId: { inventoryId, itemId } },
         });
@@ -50,7 +50,7 @@ export const InventoryQuery = extendType({
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         await requireOwnership(ctx, "Outlet", outletId)
         try {
           const inventory = await inventoryService.getInventoryByOutletId(Number(outletId));
@@ -75,7 +75,7 @@ export const InventoryQuery = extendType({
 
       async resolve(_, { inventoryId, rackName }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
 
         try {
           return await inventoryService.getInventoryItemsByRack(

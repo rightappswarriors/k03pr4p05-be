@@ -8,9 +8,18 @@ const prisma = new PrismaClient();
  * @returns {Promise<object>} The newly created Outlet data.
  */
 export const createOutlet = async (outletData, branchId, ownerId) => {
+    // Get the organization ID from branch
+    const branch = await prisma.branch.findUnique({
+        where: { id: branchId },
+        select: { orgId: true }
+    });
+    if (!branch?.orgId) {
+        throw new Error('Branch does not have an associated organization');
+    }
     const newOutletWithInventory = await prisma.outlet.create({
         data: {
             ...outletData,
+            orgId: branch.orgId,
             branch: {
                 connect: {
                     id: branchId,

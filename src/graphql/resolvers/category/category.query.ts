@@ -17,7 +17,7 @@ export const CategoryQuery = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["MANAGER", "ADMIN"]);
+        requireRole(ctx, ["MANAGER", "ADMIN", "OWNER"]);
 
         try {
           return await categoryService.getItemsByCategoryId(Number(id));
@@ -35,7 +35,7 @@ export const CategoryQuery = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
 
         try {
           return await categoryService.getCategoryById(Number(id));
@@ -55,7 +55,7 @@ export const CategoryQuery = extendType({
       },
       async resolve(_, { pageSize, query, orderBy }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["MANAGER", "ADMIN"]);
+        requireRole(ctx, ["MANAGER", "ADMIN", "OWNER"]);
         if (!orderBy) {
           orderBy = "desc"
           if (orderBy !== "asc" && orderBy !== "desc") {

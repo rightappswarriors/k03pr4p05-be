@@ -8,7 +8,7 @@ export const branchQuery = extendType({
             type: "Branch",
             resolve: async (parent, args, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 try {
                     return await branchService.getOwnedBranches(ctx.user.userId);
                 }
@@ -26,7 +26,7 @@ export const branchQuery = extendType({
             },
             resolve: async (parent, { id }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 try {
                     const branchId = parseInt(id);
                     return await branchService.getBranchById(branchId);

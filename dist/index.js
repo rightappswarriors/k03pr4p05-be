@@ -16,12 +16,14 @@ import { prisma } from "./lib/prisma.js";
 import jwt from "jsonwebtoken";
 const JWT_SECRET = process.env.JWT_SECRET || "token";
 import { DateTimeScalar, JsonScalar } from './lib/scalars.js';
+// import { ValueNode, Kind } from "graphql";
+// OutletPromo
+// import * as OutletPromo from "./graphql/typeDefs/outletPromo.type.js"
 import http from "http";
 import { initWebSocket } from "./lib/ws.js";
 // PromoType 
 import * as Resolvers from "./graphql/resolvers/index.js";
 import * as TypeDefs from "./graphql/typeDefs/index.js";
-// Initialize Prisma Client
 const schema = makeSchema({
     types: [
         // Correctly unpack the individual types from the imported modules
@@ -63,19 +65,21 @@ async function startApolloServer() {
     await server.start();
     const allowedOrigins = [
         "http://localhost:4000",
-        "http://192.168.254.104:8081",
-        "exp://192.168.254.104:8081",
+        "exp+pos-vine-mman://expo-development-client/?url=https%3A%2F%2Fcb04bpw-nuelgrace-8081.exp.direct",
+        "http://192.168.254.254:8081",
+        "exp://192.168.254.254:8081",
+        "http://192.168.254.125:4000",
+        "exp://192.168.254.125:8081",
     ];
     app.use("/graphql", cors({
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            }
-            else {
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-        //origin: true,
+        //origin: (origin, callback) => {
+        //  if (!origin || allowedOrigins.includes(origin)) {
+        //    callback(null, true);
+        //  } else {
+        //    callback(new Error("Not allowed by CORS"));
+        // }
+        //},
+        origin: true,
         credentials: true, // allow cookies to be sent
     }), expressMiddleware(server, {
         context: async ({ req, res }) => {
@@ -85,7 +89,26 @@ async function startApolloServer() {
             let user = null;
             if (token) {
                 try {
-                    user = jwt.verify(token, JWT_SECRET);
+                    const decoded = jwt.verify(token, JWT_SECRET);
+                    if (decoded.userId) {
+                        // Fetch current user data from database to ensure we have latest info
+                        user = await prisma.user.findUnique({
+                            where: { id: decoded.userId },
+                            select: {
+                                id: true,
+                                role: true,
+                                email: true,
+                                orgId: true,
+                                isVerified: true,
+                                fullname: true,
+                                username: true
+                            }
+                        });
+                        // Add userId for backward compatibility
+                        if (user) {
+                            user.userId = user.id;
+                        }
+                    }
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development") {

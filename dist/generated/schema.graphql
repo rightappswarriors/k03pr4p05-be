@@ -642,7 +642,7 @@ type Mutation {
   confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
   createAccountTitle(code: String, name: String, orgId: Int): AccountTitle
-  createBranch(address: String!, name: String!, phone: String!): Branch!
+  createBranch(address: String!, name: String!, phone: String): Branch!
   createCenter(name: String, orgId: Int): Center
   createDepartment(name: String, orgId: Int): Department
   createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
@@ -651,8 +651,8 @@ type Mutation {
   createInventoryItem(itemGroupId: Int, name: String, orgId: Int, price: Float, quantity: Int): InventoryItem
   createItemGroup(name: String, orgId: Int): ItemGroup
   createItems(items: [CreateItemInput!]!): BatchPayload!
-  createOrganization(name: String): Organization
-  createOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  createOrganization(name: String!): Organization
+  createOutlet(address: String!, bannerImage: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String, serviceCharge: Float!, status: OutletStatus): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(name: String, orgId: Int): Position
@@ -660,7 +660,7 @@ type Mutation {
   createSalesOrder(customerName: String, orgId: Int, status: String, totalAmount: Float): SalesOrder
   createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   createSubCenter(centerId: Int, name: String, orgId: Int): SubCenter
-  createSubscription(orgId: Int, plan: SubscriptionPlan): Subscription
+  createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): SummaryRow
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   createVatType(name: String, orgId: Int, rate: Int): VatType
@@ -698,6 +698,7 @@ type Mutation {
   registerEkumpraCustomer(input: RegisterCustomerInput!): EkumpraCustomer!
   registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
+  resendOTP(email: String!): String!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   startBreak(photo: String): Attendance
@@ -722,11 +723,11 @@ type Mutation {
   updatePromoType(data: UpdatePromoTypeInput!, id: Int!): PromoType!
   updateSalesOrder(customerName: String, id: Int, status: String, totalAmount: Float): SalesOrder
   updateSubCenter(centerId: Int, id: Int, name: String): SubCenter
-  updateSubscription(orgId: Int, plan: SubscriptionPlan): Subscription
+  updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSummaryRow(accountTitleId: Int, amount: Float, description: String, id: Int): SummaryRow
   updateUser(fullname: String, id: ID!, username: String): User!
   updateVatType(id: Int, name: String, rate: Int): VatType
-  verifyEmail(code: String!, email: String!): User!
+  verifyEmail(code: String!, email: String!): AuthPayload!
 }
 
 input OrderItemInput {
@@ -775,6 +776,7 @@ type Outlet {
   address: String!
   apiKey: PaymongoAPIKeys
   apiKeyId: Int
+  bannerImage: String
   branch: Branch
   branchId: Int
   code: String!
@@ -782,7 +784,6 @@ type Outlet {
   governmentTax: Float
   hasKey: Boolean
   id: Int!
-  imageBanner: String
   inventory: Inventory
   isActive: Boolean!
   latitude: Float
@@ -1010,6 +1011,7 @@ type Query {
   accountTitles(orgId: Int): [AccountTitle]
   center(id: Int): Center
   centers(orgId: Int): [Center]
+  checkUserTimeInStatus(userId: ID!): TimeInStatus
   department(id: Int): Department
   departments(orgId: Int): [Department]
   ekumpraCOrder(id: Int!): EkumpraCOrder
@@ -1170,6 +1172,12 @@ type SummaryRow {
   userId: Int
 }
 
+type TimeInStatus {
+  hasTimeIn: Boolean!
+  lastTimeIn: DateTime
+  status: String!
+}
+
 type Transaction {
   cashReceived: Float
   cashier: User!
@@ -1244,7 +1252,7 @@ type User {
   isVerified: Boolean!
   manager: User
   managerId: Int
-  org: Organization!
+  org: Organization
   orgId: Int
   outletOwned: [Outlet!]!
   outletPromo: [OutletPromo]!

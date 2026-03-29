@@ -557,13 +557,13 @@ export interface NexusGenObjects {
   Outlet: { // root type
     address: string; // String!
     apiKeyId?: number | null; // Int
+    bannerImage?: string | null; // String
     branchId?: number | null; // Int
     code: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     governmentTax?: number | null; // Float
     hasKey?: boolean | null; // Boolean
     id: number; // Int!
-    imageBanner?: string | null; // String
     isActive: boolean; // Boolean!
     latitude?: number | null; // Float
     longitude?: number | null; // Float
@@ -747,6 +747,11 @@ export interface NexusGenObjects {
     sellingPrice: number; // Float!
     status?: string | null; // String
     userId?: number | null; // Int
+  }
+  TimeInStatus: { // root type
+    hasTimeIn: boolean; // Boolean!
+    lastTimeIn?: NexusGenScalars['DateTime'] | null; // DateTime
+    status: string; // String!
   }
   Transaction: { // root type
     cashReceived?: number | null; // Float
@@ -1243,6 +1248,7 @@ export interface NexusGenFieldTypes {
     registerEkumpraCustomer: NexusGenRootTypes['EkumpraCustomer']; // EkumpraCustomer!
     registerUser: NexusGenRootTypes['User']; // User!
     reorderItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
+    resendOTP: string; // String!
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     signup: NexusGenRootTypes['User']; // User!
     startBreak: NexusGenRootTypes['Attendance'] | null; // Attendance
@@ -1271,7 +1277,7 @@ export interface NexusGenFieldTypes {
     updateSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     updateUser: NexusGenRootTypes['User']; // User!
     updateVatType: NexusGenRootTypes['VatType'] | null; // VatType
-    verifyEmail: NexusGenRootTypes['User']; // User!
+    verifyEmail: NexusGenRootTypes['AuthPayload']; // AuthPayload!
   }
   Organization: { // field return type
     accountTitles: NexusGenRootTypes['AccountTitle'][]; // [AccountTitle!]!
@@ -1302,6 +1308,7 @@ export interface NexusGenFieldTypes {
     address: string; // String!
     apiKey: NexusGenRootTypes['PaymongoAPIKeys'] | null; // PaymongoAPIKeys
     apiKeyId: number | null; // Int
+    bannerImage: string | null; // String
     branch: NexusGenRootTypes['Branch'] | null; // Branch
     branchId: number | null; // Int
     code: string; // String!
@@ -1309,7 +1316,6 @@ export interface NexusGenFieldTypes {
     governmentTax: number | null; // Float
     hasKey: boolean | null; // Boolean
     id: number; // Int!
-    imageBanner: string | null; // String
     inventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     isActive: boolean; // Boolean!
     latitude: number | null; // Float
@@ -1474,6 +1480,7 @@ export interface NexusGenFieldTypes {
     accountTitles: Array<NexusGenRootTypes['AccountTitle'] | null> | null; // [AccountTitle]
     center: NexusGenRootTypes['Center'] | null; // Center
     centers: Array<NexusGenRootTypes['Center'] | null> | null; // [Center]
+    checkUserTimeInStatus: NexusGenRootTypes['TimeInStatus'] | null; // TimeInStatus
     department: NexusGenRootTypes['Department'] | null; // Department
     departments: Array<NexusGenRootTypes['Department'] | null> | null; // [Department]
     ekumpraCOrder: NexusGenRootTypes['EkumpraCOrder'] | null; // EkumpraCOrder
@@ -1594,6 +1601,11 @@ export interface NexusGenFieldTypes {
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
   }
+  TimeInStatus: { // field return type
+    hasTimeIn: boolean; // Boolean!
+    lastTimeIn: NexusGenScalars['DateTime'] | null; // DateTime
+    status: string; // String!
+  }
   Transaction: { // field return type
     cashReceived: number | null; // Float
     cashier: NexusGenRootTypes['User']; // User!
@@ -1632,7 +1644,7 @@ export interface NexusGenFieldTypes {
     isVerified: boolean; // Boolean!
     manager: NexusGenRootTypes['User'] | null; // User
     managerId: number | null; // Int
-    org: NexusGenRootTypes['Organization']; // Organization!
+    org: NexusGenRootTypes['Organization'] | null; // Organization
     orgId: number | null; // Int
     outletOwned: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     outletPromo: Array<NexusGenRootTypes['OutletPromo'] | null>; // [OutletPromo]!
@@ -2100,6 +2112,7 @@ export interface NexusGenFieldTypeNames {
     registerEkumpraCustomer: 'EkumpraCustomer'
     registerUser: 'User'
     reorderItemMedia: 'Media'
+    resendOTP: 'String'
     setItemPrimaryMedia: 'Media'
     signup: 'User'
     startBreak: 'Attendance'
@@ -2128,7 +2141,7 @@ export interface NexusGenFieldTypeNames {
     updateSummaryRow: 'SummaryRow'
     updateUser: 'User'
     updateVatType: 'VatType'
-    verifyEmail: 'User'
+    verifyEmail: 'AuthPayload'
   }
   Organization: { // field return type name
     accountTitles: 'AccountTitle'
@@ -2159,6 +2172,7 @@ export interface NexusGenFieldTypeNames {
     address: 'String'
     apiKey: 'PaymongoAPIKeys'
     apiKeyId: 'Int'
+    bannerImage: 'String'
     branch: 'Branch'
     branchId: 'Int'
     code: 'String'
@@ -2166,7 +2180,6 @@ export interface NexusGenFieldTypeNames {
     governmentTax: 'Float'
     hasKey: 'Boolean'
     id: 'Int'
-    imageBanner: 'String'
     inventory: 'Inventory'
     isActive: 'Boolean'
     latitude: 'Float'
@@ -2331,6 +2344,7 @@ export interface NexusGenFieldTypeNames {
     accountTitles: 'AccountTitle'
     center: 'Center'
     centers: 'Center'
+    checkUserTimeInStatus: 'TimeInStatus'
     department: 'Department'
     departments: 'Department'
     ekumpraCOrder: 'EkumpraCOrder'
@@ -2450,6 +2464,11 @@ export interface NexusGenFieldTypeNames {
     status: 'String'
     user: 'User'
     userId: 'Int'
+  }
+  TimeInStatus: { // field return type name
+    hasTimeIn: 'Boolean'
+    lastTimeIn: 'DateTime'
+    status: 'String'
   }
   Transaction: { // field return type name
     cashReceived: 'Float'
@@ -2578,7 +2597,7 @@ export interface NexusGenArgTypes {
     createBranch: { // args
       address: string; // String!
       name: string; // String!
-      phone: string; // String!
+      phone?: string | null; // String
     }
     createCenter: { // args
       name?: string | null; // String
@@ -2619,10 +2638,11 @@ export interface NexusGenArgTypes {
       items: NexusGenInputs['CreateItemInput'][]; // [CreateItemInput!]!
     }
     createOrganization: { // args
-      name?: string | null; // String
+      name: string; // String!
     }
     createOutlet: { // args
       address: string; // String!
+      bannerImage?: string | null; // String
       branchId: string; // ID!
       code: string; // String!
       governmentTax: number; // Float!
@@ -2631,7 +2651,7 @@ export interface NexusGenArgTypes {
       longitude?: number | null; // Float
       name: string; // String!
       outletType: NexusGenEnums['OutletType']; // OutletType!
-      phone: string; // String!
+      phone?: string | null; // String
       serviceCharge: number; // Float!
       status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
     }
@@ -2669,8 +2689,8 @@ export interface NexusGenArgTypes {
       orgId?: number | null; // Int
     }
     createSubscription: { // args
-      orgId?: number | null; // Int
-      plan?: NexusGenEnums['SubscriptionPlan'] | null; // SubscriptionPlan
+      orgId: number; // Int!
+      plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
     }
     createSummaryRow: { // args
       accountTitleId?: number | null; // Int
@@ -2812,6 +2832,9 @@ export interface NexusGenArgTypes {
       itemId: number; // Int!
       order: NexusGenInputs['MediaSortOrderInput'][]; // [MediaSortOrderInput!]!
     }
+    resendOTP: { // args
+      email: string; // String!
+    }
     setItemPrimaryMedia: { // args
       itemId: number; // Int!
       mediaId: number; // Int!
@@ -2935,8 +2958,8 @@ export interface NexusGenArgTypes {
       name?: string | null; // String
     }
     updateSubscription: { // args
-      orgId?: number | null; // Int
-      plan?: NexusGenEnums['SubscriptionPlan'] | null; // SubscriptionPlan
+      orgId: number; // Int!
+      plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
     }
     updateSummaryRow: { // args
       accountTitleId?: number | null; // Int
@@ -2971,6 +2994,9 @@ export interface NexusGenArgTypes {
     }
     centers: { // args
       orgId?: number | null; // Int
+    }
+    checkUserTimeInStatus: { // args
+      userId: string; // ID!
     }
     department: { // args
       id?: number | null; // Int

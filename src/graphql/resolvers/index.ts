@@ -101,6 +101,9 @@ export * from './userAPIKey/userAPI.query.js';
 export * from './vatType/vatType.mutation.js';
 export * from './vatType/vatType.query.js';
 
+export * from "./organization/organization.mutation.js"
+export * from "./organization/organization.query.js"
+
 // Attendance
 export * from './attendance/attendance.mutation.js';
 export * from './attendance/attendance.query.js';

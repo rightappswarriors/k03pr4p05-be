@@ -1,4 +1,4 @@
-import { extendType, intArg, stringArg } from 'nexus';
+import { extendType, intArg, nonNull, stringArg } from 'nexus';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { createOrganization as createOrganizationService } from '../../../services/organizationService.js';
 export const organizationMutation = extendType({
@@ -7,14 +7,16 @@ export const organizationMutation = extendType({
         t.field('createOrganization', {
             type: 'Organization',
             args: {
-                name: stringArg()
+                name: nonNull(stringArg())
             },
             resolve: async (_, { name }, ctx) => {
                 requireAuth(ctx);
                 const userId = ctx.user?.userId;
                 if (!userId)
                     throw new Error('User is required');
-                return createOrganizationService(Number(userId), name);
+                if (!name || !name.trim())
+                    throw new Error('Organization name is required');
+                return createOrganizationService(Number(userId), name.trim());
             }
         });
         t.field('updateOrganization', {

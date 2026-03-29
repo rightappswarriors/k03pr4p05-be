@@ -17,7 +17,7 @@ export const categoryMutation = extendType({
       },
       async resolve(_, { categories }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
 
         if (!categories.length) {
           throw new Error(
@@ -47,7 +47,7 @@ export const categoryMutation = extendType({
       },
       async resolve(_, { id, name }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", "OWNER"]);
         try {
           const category = await categoryService.updateCategoryById(Number(id), name);
           if (!category) {
@@ -68,7 +68,7 @@ export const categoryMutation = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", "OWNER"]);
         try {
           const category = await categoryService.deleteCategory(Number(id));
           if (!category) {

@@ -67,14 +67,25 @@ export const userMutation = extendType({
             },
         });
         t.nonNull.field('verifyEmail', {
-            type: 'User',
+            type: 'AuthPayload',
             args: {
                 email: nonNull(stringArg()),
                 code: nonNull(stringArg()),
             },
-            async resolve(_, { email, code }) {
+            async resolve(_, { email, code }, { res }) {
                 const { verifyEmail } = await import('../../../services/authService.js');
-                return verifyEmail({ email, code });
+                return verifyEmail({ email, code, res });
+            },
+        });
+        t.nonNull.field('resendOTP', {
+            type: 'String',
+            args: {
+                email: nonNull(stringArg()),
+            },
+            async resolve(_, { email }) {
+                const { resendOTP } = await import('../../../services/authService.js');
+                const result = await resendOTP({ email });
+                return result.message;
             },
         });
         t.nonNull.field("createStaff", {

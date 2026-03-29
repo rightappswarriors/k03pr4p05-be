@@ -29,7 +29,7 @@ export const Outlet = objectType({
         t.nonNull.int("ownerId");
         t.nullable.int("apiKeyId");
         t.nullable.boolean("hasKey");
-        t.nullable.string("imageBanner");
+        t.nullable.string("bannerImage");
         t.nonNull.int("orgId"); // Added for multi-tenancy
         t.nonNull.field("org", {
             type: "Organization",

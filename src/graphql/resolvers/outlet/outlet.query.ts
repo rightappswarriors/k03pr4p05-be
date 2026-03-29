@@ -50,7 +50,7 @@ export const OutletQuery = extendType({
       async resolve(_, { id }, ctx) {
         // optional auth/role checks
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", "OWNER"]);
         await requireOwnership(ctx, "Outlet", id);
         return await outletService.getOutletById(Number(id));
       },
@@ -62,7 +62,7 @@ export const OutletQuery = extendType({
       },
       async resolve(_, { branchId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", "OWNER"]);
         await requireOwnership(ctx, "branch", branchId);
 
         try {
@@ -81,7 +81,7 @@ export const OutletQuery = extendType({
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
         try {
           return await outletService.getOutletStaffs(Number(outletId));
         } catch (error) {
@@ -94,7 +94,7 @@ export const OutletQuery = extendType({
       type: "OutletWithItems",
       async resolve(_, __, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
 
         const userId = Number(ctx.user.userId);
         try {
@@ -121,7 +121,7 @@ export const OutletQuery = extendType({
       },
       async resolve(_, { outletId, startDate, endDate }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
         try {
           return await outletService.getOutletTransactions(Number(outletId), startDate, endDate);
         } catch (error) {
@@ -154,7 +154,7 @@ export const OutletQuery = extendType({
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
         try {
           return await outletService.getPresentStaffs(Number(outletId))
         } catch (error) {
