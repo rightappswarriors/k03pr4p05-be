@@ -26,7 +26,7 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { outletId, name }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", Number(outletId));
                 try {
                     return await inventoryService.createInventory(name ?? "", outletId);
@@ -47,7 +47,7 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { id, name }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 try {
                     return await inventoryService.updateInventory(id, name);
                 }
@@ -65,7 +65,7 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Invetory", id);
                 try {
                     await inventoryService.deleteInventory(id);
@@ -92,7 +92,7 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { inventoryId, items }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
                 inventoryId = Number(inventoryId);
                 const inventory = await ctx.prisma.inventory.findFirst({
                     where: { id: inventoryId },

@@ -19,7 +19,11 @@ export const createOutlet = async (outletData, branchId, ownerId) => {
     const newOutletWithInventory = await prisma.outlet.create({
         data: {
             ...outletData,
-            orgId: branch.orgId,
+            org: {
+                connect: {
+                    id: branch.orgId,
+                },
+            },
             branch: {
                 connect: {
                     id: branchId,

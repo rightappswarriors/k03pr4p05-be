@@ -1,4 +1,5 @@
 import { extendType, intArg } from 'nexus';
+import { requireRole } from '../../../middleware/auth.middleware.js';
 export const accountTitleQuery = extendType({
     type: 'Query',
     definition(t) {
@@ -8,6 +9,7 @@ export const accountTitleQuery = extendType({
                 orgId: intArg()
             },
             resolve: async (_, { orgId }, ctx) => {
+                requireRole(ctx, ['OWNER']);
                 return ctx.prisma.accountTitle.findMany({
                     where: { orgId }
                 });
@@ -19,6 +21,7 @@ export const accountTitleQuery = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
+                requireRole(ctx, ['OWNER']);
                 return ctx.prisma.accountTitle.findUnique({
                     where: { id }
                 });

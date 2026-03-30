@@ -131,7 +131,7 @@ export const OutletQuery = extendType({
             type: "Outlet",
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ['ADMIN', 'MANAGER']);
+                requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
                 try {
                     return await outletService.getOutlets();
                 }

@@ -124,7 +124,7 @@ export const outletMutation = extendType({
       },
       async resolve(_, { outletId, users }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         await requireOwnership(ctx, "Outlet", outletId);
         try {
           if (Array.isArray(users)) {

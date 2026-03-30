@@ -63,7 +63,7 @@ export const ItemQuery = extendType({
         size = size ? size : 20;
         orderBy = orderBy ? orderBy : "asc"
         requireAuth(ctx),
-          requireRole(ctx, ["ADMIN", "MANAGER"])
+          requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"])
         try {
           const items = await itemService.getItems(query, size, orderBy)
 

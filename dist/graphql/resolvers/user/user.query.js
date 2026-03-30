@@ -27,7 +27,7 @@ export const userQuery = extendType({
             type: "User",
             resolve: async (_, __, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
                 try {
                     return await userService.getAllUsers();
                 }

@@ -1,5 +1,5 @@
 import { extendType, intArg } from 'nexus'
-import { requireRole } from '../../../middleware/auth.middleware'
+import { requireRole } from '../../../middleware/auth.middleware.js'
 
 export const accountTitleQuery = extendType({
   type: 'Query',

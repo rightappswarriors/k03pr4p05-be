@@ -150,6 +150,8 @@ model Outlet {
   latitude              Float?
   longitude             Float?
   imageBanner           String?
+  
+  bannerImage           String?
   kompraCOrders         KompraCOrder[]
   inventory             Inventory?
   apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id])

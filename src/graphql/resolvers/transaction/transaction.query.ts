@@ -15,7 +15,7 @@ export const TransactionQuery = extendType({
       },
       async resolve(_, { outletId, startDate, endDate }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "OWNER"]);
 
         try {
           return await transactionService.getTransactionsByOutletId(
