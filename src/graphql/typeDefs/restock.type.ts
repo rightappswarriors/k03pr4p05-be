@@ -32,20 +32,26 @@ export const RestockSchedule = objectType({
   }
 })
 
-export const RestockScheduleInput = inputObjectType({
-  name: "RestockScheduleInput",
+export const RestockScheduleItemInput = inputObjectType({
+  name: 'RestockScheduleItemInput',
   definition(t) {
-    t.int("itemId")
-    t.field("recurrence", { type: "RecurrenceType" })
-    t.nonNull.field("startDate", { type: "DateTime" })
-    t.nonNull.field("endDate", { type: "DateTime" })
+    t.nonNull.int('itemId');
+    t.nonNull.float('quantity');
+  },
+});
 
-    t.string("timeOfDay")
-    t.nullable.int("dayOfWeek")
-    t.nullable.int("dayOfMonth")
-
-    t.string("emailRecipient")
-    t.string("emailSubject")
-    t.string("emailBody")
-  }
-})
+export const RestockScheduleInput = inputObjectType({
+  name: 'RestockScheduleInput',
+  definition(t) {
+    t.nonNull.list.nonNull.field('items', { type: 'RestockScheduleItemInput' });
+    t.nonNull.field('recurrence', { type: 'RecurrenceType' });
+    t.nonNull.field('startDate', { type: 'DateTime' });
+    t.nullable.field('endDate', { type: 'DateTime' });
+    t.nonNull.string('timeOfDay');
+    t.nullable.int('dayOfWeek');
+    t.nullable.int('dayOfMonth');
+    t.nonNull.string('emailRecipient');
+    t.nullable.string('emailSubject');
+    t.nullable.string('emailBody');
+  },
+});

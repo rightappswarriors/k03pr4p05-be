@@ -19,6 +19,7 @@ export * from './itemGroup.type.js';
 export * from './location.type.js';
 export * from './media.type.js';
 export * from './organization.type.js';
+export * from "./restock.type.js";
 export * from './outlet.type.js';
 export * from './outletPromo.type.js';
 export * from './outletStaff.type.js';

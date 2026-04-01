@@ -1,3 +1,4 @@
+//rai-pos-backend\src\graphql\typeDefs\item.type.ts
 import { objectType } from 'nexus'
 
 export const Item = objectType({
@@ -12,7 +13,9 @@ export const Item = objectType({
         t.float('sellingPrice')
         t.nonNull.float('stock')
         t.nullable.int('brandId')
-        
+        t.nonNull.dateTime("exactExpiryDate")
+        t.nullable.dateTime('expiryStartDate')
+        t.nullable.dateTime('expiryEndDate')
         t.nonNull.boolean('ServiceCharge')
         t.nonNull.boolean('assembly')
         t.nullable.string('itemCode')

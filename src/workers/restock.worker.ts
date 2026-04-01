@@ -1,7 +1,8 @@
+// rai-pos-backend\src\workers\restock.worker.ts
 import { Worker } from 'bullmq';
-import { restockQueue } from '../queue/restock.queue';
-import { sendEmail, generateRestockEmailContent } from '../services/email/email.service';
-import { prisma } from '../lib/prisma';
+import { restockQueue } from '../queue/restock.queue.js';
+import { sendEmail, generateRestockEmailContent } from '../services/email/email.service.js';
+import { prisma } from '../lib/prisma.js';
 import { RestockStatus } from '@prisma/client';
 
 const worker = new Worker(

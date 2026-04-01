@@ -1,7 +1,5 @@
-// rai-pos-backend\src\graphql\resolvers\restock\restock.mutation.ts
 import { extendType, nonNull } from "nexus";
 import { registerRestockJob, removeRestockJob } from "../../../utils/scheduler.js";
-
 export const CreateRestockSchedule = extendType({
     type: "Mutation",
     definition(t) {
@@ -18,15 +16,14 @@ export const CreateRestockSchedule = extendType({
                         isActive: true,
                     },
                 });
-
                 // Register the BullMQ job
                 try {
                     await registerRestockJob(schedule);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error("Failed to register restock job:", error);
                     // Don't fail the mutation, but log the error
                 }
-
                 return schedule;
             },
         });
@@ -39,17 +36,16 @@ export const CreateRestockSchedule = extendType({
                 // Remove the job before deleting the schedule
                 try {
                     await removeRestockJob(id);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error("Failed to remove restock job:", error);
                     // Continue with deletion even if job removal fails
                 }
-
                 return ctx.prisma.restockSchedule.delete({
                     where: { id },
                 });
             },
         });
-
         t.field("updateRestockSchedule", {
             type: "RestockSchedule",
             args: {
@@ -64,18 +60,17 @@ export const CreateRestockSchedule = extendType({
                         orgId: ctx.user.orgId,
                     },
                 });
-
                 // Remove old job and register new one
                 try {
                     await removeRestockJob(id);
                     await registerRestockJob(updatedSchedule);
-                } catch (error) {
+                }
+                catch (error) {
                     console.error("Failed to update restock job:", error);
                     // Don't fail the mutation, but log the error
                 }
-
                 return updatedSchedule;
             }
-        })
+        });
     },
 });

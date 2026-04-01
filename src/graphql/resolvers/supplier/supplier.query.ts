@@ -29,3 +29,27 @@ export const SupplierQuery = extendType({
   },
 });
 */
+
+// rai-pos-backend/src/graphql/resolvers/supplier/supplier.query.ts
+import { extendType, nonNull, stringArg } from 'nexus';
+
+export const SupplierQuery = extendType({
+  type: 'Query',
+  definition(t) {
+    t.field('getSupplierOrder', {
+      type: 'SupplierOrder',
+      args: { token: nonNull(stringArg()) },
+      async resolve(_, { token }, ctx) {
+        
+        const order = await ctx.prisma.supplierOrder.findUnique({
+          where: { supplierToken: token },
+          include: { items: { include: { item: true } } },
+        });
+        if (!order) throw new Error('Invalid or expired link');
+        if (new Date() > order.tokenExpiresAt) throw new Error('This link has expired');
+        // Don't expose the token itself in the response
+        return order;
+      },
+    });
+  },
+});

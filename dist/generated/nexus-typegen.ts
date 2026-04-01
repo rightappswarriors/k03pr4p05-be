@@ -186,6 +186,18 @@ export interface NexusGenInputs {
     password: string; // String!
     phone: string; // String!
   }
+  RestockScheduleInput: { // input type
+    dayOfMonth?: number | null; // Int
+    dayOfWeek?: number | null; // Int
+    emailBody?: string | null; // String
+    emailRecipient?: string | null; // String
+    emailSubject?: string | null; // String
+    endDate: NexusGenScalars['DateTime']; // DateTime!
+    itemId?: number | null; // Int
+    recurrence?: NexusGenEnums['RecurrenceType'] | null; // RecurrenceType
+    startDate: NexusGenScalars['DateTime']; // DateTime!
+    timeOfDay?: string | null; // String
+  }
   SearchItemInput: { // input type
     itemId: number; // Int!
     name: string; // String!
@@ -250,6 +262,7 @@ export interface NexusGenEnums {
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
   PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
+  RecurrenceType: "daily" | "monthly" | "once" | "weekly"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "OWNER" | "STAFF"
   Status: "CANCELED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   SubscriptionPlan: "BASIC" | "GOLD"
@@ -490,12 +503,12 @@ export interface NexusGenObjects {
     category: string; // String!
     id: string; // String!
     lowStock: boolean; // Boolean!
-    minStock: number; // Int!
+    minStock: number; // Float!
     name: string; // String!
     orgId: number; // Int!
     price: number; // Float!
     sku: string; // String!
-    stock: number; // Int!
+    stock: number; // Float!
     userId?: number | null; // Int
   }
   InventoryItemUnit: { // root type
@@ -540,7 +553,7 @@ export interface NexusGenObjects {
     priceC?: number | null; // Float
     sellingPrice?: number | null; // Float
     skuNumber?: string | null; // String
-    stock: number; // Int!
+    stock: number; // Float!
     totalCost?: number | null; // Float
     vatExempt: boolean; // Boolean!
   }
@@ -751,6 +764,23 @@ export interface NexusGenObjects {
     userId?: number | null; // Int
   }
   Query: {};
+  RestockSchedule: { // root type
+    createdAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    dayOfMonth?: number | null; // Int
+    dayOfWeek?: number | null; // Int
+    emailBody?: string | null; // String
+    emailRecipient?: string | null; // String
+    emailSubject?: string | null; // String
+    endDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    id?: number | null; // Int
+    isActive?: boolean | null; // Boolean
+    itemId?: number | null; // Int
+    lastTriggeredAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    orgId?: number | null; // Int
+    recurrence?: NexusGenEnums['RecurrenceType'] | null; // RecurrenceType
+    startDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    timeOfDay?: string | null; // String
+  }
   SalesOrder: { // root type
     customer: string; // String!
     date: NexusGenScalars['DateTime']; // DateTime!
@@ -1113,13 +1143,13 @@ export interface NexusGenFieldTypes {
     category: string; // String!
     id: string; // String!
     lowStock: boolean; // Boolean!
-    minStock: number; // Int!
+    minStock: number; // Float!
     name: string; // String!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
     price: number; // Float!
     sku: string; // String!
-    stock: number; // Int!
+    stock: number; // Float!
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
   }
@@ -1180,7 +1210,7 @@ export interface NexusGenFieldTypes {
     searchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
     sellingPrice: number | null; // Float
     skuNumber: string | null; // String
-    stock: number; // Int!
+    stock: number; // Float!
     totalCost: number | null; // Float
     vatExempt: boolean; // Boolean!
   }
@@ -1614,6 +1644,23 @@ export interface NexusGenFieldTypes {
     vatType: NexusGenRootTypes['VatType'] | null; // VatType
     vatTypes: Array<NexusGenRootTypes['VatType'] | null> | null; // [VatType]
   }
+  RestockSchedule: { // field return type
+    createdAt: NexusGenScalars['DateTime'] | null; // DateTime
+    dayOfMonth: number | null; // Int
+    dayOfWeek: number | null; // Int
+    emailBody: string | null; // String
+    emailRecipient: string | null; // String
+    emailSubject: string | null; // String
+    endDate: NexusGenScalars['DateTime'] | null; // DateTime
+    id: number | null; // Int
+    isActive: boolean | null; // Boolean
+    itemId: number | null; // Int
+    lastTriggeredAt: NexusGenScalars['DateTime'] | null; // DateTime
+    orgId: number | null; // Int
+    recurrence: NexusGenEnums['RecurrenceType'] | null; // RecurrenceType
+    startDate: NexusGenScalars['DateTime'] | null; // DateTime
+    timeOfDay: string | null; // String
+  }
   SalesOrder: { // field return type
     customer: string; // String!
     date: NexusGenScalars['DateTime']; // DateTime!
@@ -1996,13 +2043,13 @@ export interface NexusGenFieldTypeNames {
     category: 'String'
     id: 'String'
     lowStock: 'Boolean'
-    minStock: 'Int'
+    minStock: 'Float'
     name: 'String'
     org: 'Organization'
     orgId: 'Int'
     price: 'Float'
     sku: 'String'
-    stock: 'Int'
+    stock: 'Float'
     user: 'User'
     userId: 'Int'
   }
@@ -2063,7 +2110,7 @@ export interface NexusGenFieldTypeNames {
     searchIndex: 'OutletItemSearchIndex'
     sellingPrice: 'Float'
     skuNumber: 'String'
-    stock: 'Int'
+    stock: 'Float'
     totalCost: 'Float'
     vatExempt: 'Boolean'
   }
@@ -2496,6 +2543,23 @@ export interface NexusGenFieldTypeNames {
     summaryRows: 'SummaryRow'
     vatType: 'VatType'
     vatTypes: 'VatType'
+  }
+  RestockSchedule: { // field return type name
+    createdAt: 'DateTime'
+    dayOfMonth: 'Int'
+    dayOfWeek: 'Int'
+    emailBody: 'String'
+    emailRecipient: 'String'
+    emailSubject: 'String'
+    endDate: 'DateTime'
+    id: 'Int'
+    isActive: 'Boolean'
+    itemId: 'Int'
+    lastTriggeredAt: 'DateTime'
+    orgId: 'Int'
+    recurrence: 'RecurrenceType'
+    startDate: 'DateTime'
+    timeOfDay: 'String'
   }
   SalesOrder: { // field return type name
     customer: 'String'

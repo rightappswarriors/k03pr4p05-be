@@ -488,13 +488,13 @@ type InventoryItem {
   category: String!
   id: String!
   lowStock: Boolean!
-  minStock: Int!
+  minStock: Float!
   name: String!
   org: Organization!
   orgId: Int!
   price: Float!
   sku: String!
-  stock: Int!
+  stock: Float!
   user: User
   userId: Int
 }
@@ -575,7 +575,7 @@ type Item {
   searchIndex: [OutletItemSearchIndex!]!
   sellingPrice: Float
   skuNumber: String
-  stock: Int!
+  stock: Float!
   totalCost: Float
   vatExempt: Boolean!
 }
@@ -1123,11 +1123,49 @@ type Query {
   vatTypes(orgId: Int): [VatType]
 }
 
+enum RecurrenceType {
+  daily
+  monthly
+  once
+  weekly
+}
+
 input RegisterCustomerInput {
   email: String
   fullname: String!
   password: String!
   phone: String!
+}
+
+type RestockSchedule {
+  createdAt: DateTime
+  dayOfMonth: Int
+  dayOfWeek: Int
+  emailBody: String
+  emailRecipient: String
+  emailSubject: String
+  endDate: DateTime
+  id: Int
+  isActive: Boolean
+  itemId: Int
+  lastTriggeredAt: DateTime
+  orgId: Int
+  recurrence: RecurrenceType
+  startDate: DateTime
+  timeOfDay: String
+}
+
+input RestockScheduleInput {
+  dayOfMonth: Int
+  dayOfWeek: Int
+  emailBody: String
+  emailRecipient: String
+  emailSubject: String
+  endDate: DateTime!
+  itemId: Int
+  recurrence: RecurrenceType
+  startDate: DateTime!
+  timeOfDay: String
 }
 
 enum Role {

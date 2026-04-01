@@ -1,3 +1,4 @@
+// rai-pos-backend\src\services\item.service.ts
 import { PrismaClient } from "@prisma/client";
 import { Item } from "../graphql/typeDefs";
 const prisma = new PrismaClient()

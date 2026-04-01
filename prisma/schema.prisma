@@ -31,6 +31,9 @@ model Organization {
   subCenters     SubCenter[]
   subscription   Subscription?
   summaryRows    SummaryRow[]
+  supplierOrders SupplierOrder[]
+  stockBatches   StockBatch[]
+  restockSchedules RestockSchedule[]
   users          User[]
   vatTypes       VatType[]
 }
@@ -309,20 +312,24 @@ model Item {
   priceB           Float?
   priceC           Float?
   totalCost        Float                   @default(0)
-  cartItems        CartItem[]
-  costLines        CostLines[]
-  InventoryItems   InventoryItems[]
-  brandDetails     Brand?                  @relation(fields: [brandId], references: [id])
-  category         ItemCategory?           @relation(fields: [categoryId], references: [id])
-  org              Organization            @relation(fields: [orgId], references: [id])
-  categories       ItemCategoryMap[]
-  orderItems       KompraCOrderItem[]
-  media            Media[]
-  searchIndex      OutletItemSearchIndex[]
-  color            Color[]                 @relation("ColorToItem")
-  purchaseUnit     ItemUnit[]              @relation("ItemToItemUnit")
-  restockItems     RestockItem[]
-  restockSchedules RestockSchedule[]
+  expiryStartDate  DateTime?
+  expiryEndDate    DateTime?
+  exactExpiryDate  DateTime?
+  cartItems            CartItem[]
+  costLines            CostLines[]
+  InventoryItems       InventoryItems[]
+  brandDetails         Brand?                  @relation(fields: [brandId], references: [id])
+  category             ItemCategory?           @relation(fields: [categoryId], references: [id])
+  org                  Organization            @relation(fields: [orgId], references: [id])
+  categories           ItemCategoryMap[]
+  orderItems           KompraCOrderItem[]
+  media                Media[]
+  searchIndex          OutletItemSearchIndex[]
+  color                Color[]                 @relation("ColorToItem")
+  purchaseUnit         ItemUnit[]              @relation("ItemToItemUnit")
+  supplierOrderItems   SupplierOrderItem[]
+  stockBatches         StockBatch[]
+  restockScheduleItems RestockScheduleItem[]
 
   @@unique([orgId, name])
 }
@@ -337,30 +344,113 @@ model CostLines {
   @@index([itemId])
 }
 
+enum SupplierOrderStatus {
+  pending       // email sent, waiting for supplier
+  acknowledged  // supplier opened portal
+  sent          // supplier confirmed dispatch
+  delivered     // user confirmed receipt
+  cancelled
+}
+
+model SupplierOrder {
+  id              Int                  @id @default(autoincrement())
+  orgId           Int
+  scheduleId      Int?
+  supplierEmail   String
+  supplierToken   String               @unique  // JWT or UUID stored here
+  tokenExpiresAt  DateTime
+  status          SupplierOrderStatus  @default(pending)
+  supplierMessage String?              // supplier's reply message
+  userMessage     String?              // message from user to supplier
+  expectedArrival DateTime
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  org             Organization         @relation(fields: [orgId], references: [id])
+  schedule        RestockSchedule?     @relation(fields: [scheduleId], references: [id])
+  items           SupplierOrderItem[]
+
+  @@index([orgId, status])
+  @@index([supplierToken])
+}
+
+model SupplierOrderItem {
+  id               Int            @id @default(autoincrement())
+  orderId          Int
+  itemId           Int
+  requestedQty     Float          // what we asked for
+  deliveredQty     Float?         // what supplier says they'll send
+  confirmedQty     Float?         // what user confirms on arrival
+  expiryStartDate  DateTime?
+  expiryEndDate    DateTime?
+  exactExpiryDate  DateTime?
+
+  order            SupplierOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item             Item           @relation(fields: [itemId], references: [id])
+
+  @@index([orderId])
+}
+
+// Tracks each received batch — enables FEFO (first expired, first out)
+model StockBatch {
+  id              Int       @id @default(autoincrement())
+  itemId          Int
+  orgId           Int
+  orderId         Int?
+  quantity        Float
+  remainingQty    Float     // decremented as stock is consumed
+  expiryStartDate DateTime?
+  expiryEndDate   DateTime?
+  exactExpiryDate DateTime?
+  receivedAt      DateTime  @default(now())
+
+  item            Item      @relation(fields: [itemId], references: [id])
+  org             Organization @relation(fields: [orgId], references: [id])
+
+  @@index([itemId, expiryStartDate])
+  @@index([itemId, exactExpiryDate])
+}
+
 enum RestockStatus {
   pending
   completed
   failed
 }
 
-model RestockItem {
-  id          Int           @id @default(autoincrement())
+// Remove: itemId Int
+// Add:
+model RestockSchedule {
+  id              Int                @id @default(autoincrement())
+  orgId           Int
+  recurrence      RecurrenceType
+  startDate       DateTime
+  endDate         DateTime?
+  timeOfDay       String
+  dayOfWeek       Int?
+  dayOfMonth      Int?
+  lastTriggeredAt DateTime?
+  emailRecipient  String
+  emailFrom       String?
+  emailSubject    String?
+  emailBody       String?
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  org             Organization       @relation(fields: [orgId], references: [id])
+  scheduleItems   RestockScheduleItem[]
+  supplierOrders  SupplierOrder[]
+}
+
+model RestockScheduleItem {
+  id          Int             @id @default(autoincrement())
+  scheduleId  Int
   itemId      Int
-  quantity    Float
-  restockedAt DateTime      @default(now())
-  status      RestockStatus @default(pending)
+  quantity    Float           // quantity to request from supplier
+  schedule    RestockSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  item        Item            @relation(fields: [itemId], references: [id])
 
-  message        String?
-  emailRecipient String?
-  emailFrom      String?
-  emailSubject   String?
-  emailBody      String?
-
-  orgId Int
-
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@index([itemId, restockedAt, orgId])
+  @@unique([scheduleId, itemId])
 }
 
 enum RecurrenceType {
@@ -370,33 +460,8 @@ enum RecurrenceType {
   monthly
 }
 
-model RestockSchedule {
-  id     Int @id @default(autoincrement())
-  itemId Int
-  orgId  Int
 
-  // Scheduling
-  recurrence RecurrenceType
-  startDate  DateTime
-  endDate    DateTime? // optional (for daily/weekly/monthly)
-  timeOfDay  String // "22:00" (10 PM)
-  dayOfWeek  Int? // 0-6 (for weekly)
-  dayOfMonth Int? // 1-31 (for monthly)
-
-  // Email config
-  emailRecipient String
-  emailFrom      String?
-  emailSubject   String?
-  emailBody      String?
-
-  isActive Boolean @default(true)
-
-  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
+// .... other models ....
 model Media {
   id        Int        @id @default(autoincrement())
   url       String

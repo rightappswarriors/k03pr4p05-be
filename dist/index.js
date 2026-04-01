@@ -21,9 +21,11 @@ import { DateTimeScalar, JsonScalar } from './lib/scalars.js';
 // import * as OutletPromo from "./graphql/typeDefs/outletPromo.type.js"
 import http from "http";
 import { initWebSocket } from "./lib/ws.js";
-// PromoType 
+// PromoType
 import * as Resolvers from "./graphql/resolvers/index.js";
 import * as TypeDefs from "./graphql/typeDefs/index.js";
+// Import BullMQ worker
+import './workers/restock.worker.js';
 const schema = makeSchema({
     types: [
         // Correctly unpack the individual types from the imported modules

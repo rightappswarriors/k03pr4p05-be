@@ -9,7 +9,7 @@ export const Item = objectType({
         t.nullable.string('barcode');
         t.nullable.int('categoryId');
         t.float('sellingPrice');
-        t.nonNull.int('stock');
+        t.nonNull.float('stock');
         t.nullable.int('brandId');
         t.nonNull.boolean('ServiceCharge');
         t.nonNull.boolean('assembly');

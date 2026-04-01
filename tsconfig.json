@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDirs": ["src"],
     "outDir": "dist",
-    "lib": ["es2023"],
+    "lib": ["es2023", "DOM"],
     "target": "es2023",
     "module": "esnext",
     "moduleResolution": "node",
