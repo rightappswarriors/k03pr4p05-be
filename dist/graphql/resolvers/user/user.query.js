@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, objectType } from "nexus";
+import { extendType, arg, nonNull, objectType, intArg } from "nexus";
 import * as userService from "../../../services/user.service.js";
 import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
 export const UserStaff = objectType({
@@ -40,12 +40,18 @@ export const userQuery = extendType({
         });
         t.nonNull.list.nonNull.field("getAllStaffs", {
             type: "User",
-            async resolve(_, __, ctx) {
+            args: {
+                orgId: intArg()
+            },
+            async resolve(_, { orgId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
-                const managerId = ctx.user.userId;
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                const userOrgId = orgId || ctx.user.orgId;
+                if (!userOrgId) {
+                    throw new Error("Organization ID is required");
+                }
                 try {
-                    return await userService.getAllStaffs(Number(managerId));
+                    return await userService.getAllStaffs(Number(userOrgId));
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")

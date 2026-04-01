@@ -1,5 +1,5 @@
 import { extendType, intArg } from 'nexus';
-import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 export const gisRowQuery = extendType({
     type: 'Query',
     definition(t) {
@@ -10,6 +10,7 @@ export const gisRowQuery = extendType({
             },
             resolve: async (_, { orgId }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'ADMIN']);
                 return ctx.prisma.gISRow.findMany({
                     where: { orgId }
                 });
@@ -22,6 +23,7 @@ export const gisRowQuery = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'ADMIN']);
                 return ctx.prisma.gISRow.findUnique({
                     where: { id }
                 });

@@ -83,6 +83,18 @@ input AddItemToInventoryInput {
   quantity: Int!
 }
 
+input AddItemToInventoryWithUnitsInput {
+  costLines: [CostLineInput]
+  itemId: Int!
+  minQuantity: Int
+  opExPct: Float
+  price: Float!
+  priceB: Float
+  priceC: Float
+  quantity: Int!
+  units: [CreateInventoryItemUnitInput]
+}
+
 input AddMediaInput {
   sortOrder: Int!
   type: MediaType
@@ -186,6 +198,19 @@ type Color {
   name: String!
 }
 
+input CostLineInput {
+  amount: Float!
+  label: String!
+}
+
+type CostLines {
+  amount: Float!
+  id: Int!
+  item: Item!
+  itemId: Int!
+  label: String!
+}
+
 input CreateInventoryItemUnitInput {
   barcode: String
   baseUnit: String!
@@ -207,11 +232,18 @@ input CreateItemInput {
   brand: String
   brandId: Int
   categoryId: Int
+  costLines: [CostLineInput]
   description: String
   image: String
   itemCode: String
+  minQuantity: Int
   name: String!
+  opExPct: Float
+  priceB: Float
+  priceC: Float
+  sellingPrice: Float!
   skuNumber: String
+  stock: Int!
   vatExempt: Boolean
 }
 
@@ -526,17 +558,25 @@ type Item {
   category: ItemCategory
   categoryId: Int
   color: [Color!]!
+  costLines: [CostLines!]!
   description: String
   id: Int!
   image: String
   itemCode: String
   media: [Media!]!
+  minQuantity: Int!
   name: String!
+  opExPct: Float!
   org: Organization!
   orgId: Int!
+  priceB: Float
+  priceC: Float
   purchaseUnit: [ItemUnit!]!
   searchIndex: [OutletItemSearchIndex!]!
+  sellingPrice: Float
   skuNumber: String
+  stock: Int!
+  totalCost: Float
   vatExempt: Boolean!
 }
 
@@ -636,6 +676,7 @@ type Mutation {
   addDeliveryAddress(customerId: Int!, input: AddDeliveryAddressInput!): DeliveryAddress!
   addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
   addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
+  addItemToInventoryWithUnits(data: AddItemToInventoryWithUnitsInput!, outletId: ID!): InventoryItems
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelEkumpraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): EkumpraCOrder!
@@ -649,6 +690,7 @@ type Mutation {
   createGISRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): GISRow
   createInventory(name: String, outletId: Int!): Inventory
   createInventoryItem(itemGroupId: Int, name: String, orgId: Int, price: Float, quantity: Int): InventoryItem
+  createItem(data: CreateItemInput!): Item
   createItemGroup(name: String, orgId: Int): ItemGroup
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrganization(name: String!): Organization
@@ -1019,7 +1061,7 @@ type Query {
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
   getAllOutletStaffs: [OutletsWithStaff!]!
-  getAllStaffs: [User!]!
+  getAllStaffs(orgId: Int): [User!]!
   getAllUsers: [User!]!
   getBranchById(id: ID!): Branch!
   getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
@@ -1027,6 +1069,7 @@ type Query {
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
   getItemById(id: ID!): Item!
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
+  getItemsByOutlet(outletId: ID!): [InventoryItems]
   getMyAttendanceToday: Attendance
   getOutletById(id: ID!): Outlet
   getOutletItems: OutletWithItems!
@@ -1038,6 +1081,7 @@ type Query {
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
   getStaffByOutletId(outletId: ID!): [UserStaff!]!
   getTodayAttendanceByOrganization(orgId: Int): [Attendance]
+  getTransactionsByOrgId(endDate: String, orgId: Int!, startDate: String): [Transaction!]!
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
   getUserById(id: ID!): User!
   gisRow(id: Int): GISRow
@@ -1219,12 +1263,25 @@ input UpdateInventoryItemUnitInput {
 }
 
 input UpdateItemInput {
+  ServiceCharge: Boolean
+  assembly: Boolean
   barcode: String
   brand: String
+  brandId: Int
   categoryId: Int
+  costLines: [CostLineInput]
   description: String
   image: String
+  itemCode: String
+  minQuantity: Int
   name: String
+  opExPct: Float
+  priceB: Float
+  priceC: Float
+  sellingPrice: Float!
+  skuNumber: String
+  stock: Int
+  vatExempt: Boolean
 }
 
 input UpdateOutletPromoInput {

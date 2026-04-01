@@ -167,6 +167,52 @@ export const processTransaction = async (transactionData, itemsSold) => {
 
   return transactions;
 };
+
+/**
+ * Retrieves a list of all transactions for all outlets of a specific organization.
+ * @param {number} orgId - The ID of the organization.
+ * @param {string} [startDate] - Optional start date for filtering (ISO 8601 string).
+ * @param {string} [endDate] - Optional end date for filtering (ISO 8601 string).
+ * @returns {Promise<object[]>} An array of transaction records.
+ */
+export const getTransactionsByOrgId = async (
+  orgId: number,
+  startDate?: string,
+  endDate?: string
+) => {
+  const where: any = {
+    outlet: {
+      orgId,
+    },
+    ...(startDate || endDate
+      ? {
+        createdAt: {
+          ...(startDate && { gte: new Date(startDate) }),
+          ...(endDate && { lte: new Date(endDate) }),
+        },
+      }
+      : {}),
+  };
+
+  const transactions = await prisma.transaction.findMany({
+    where,
+    include: {
+      outlet: true,
+      cashier: true,
+      items: {
+        include: {
+          item: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return transactions;
+};
+
 export const finalizeTransaction = async (transactionDatas, itemsSold) => {
   return prisma.$transaction(async (tx) => {
     // 1. Deduct items from the inventory.

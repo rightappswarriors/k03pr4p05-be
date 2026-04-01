@@ -48,6 +48,17 @@ export interface NexusGenInputs {
     price: number; // Float!
     quantity: number; // Int!
   }
+  AddItemToInventoryWithUnitsInput: { // input type
+    costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
+    itemId: number; // Int!
+    minQuantity?: number | null; // Int
+    opExPct?: number | null; // Float
+    price: number; // Float!
+    priceB?: number | null; // Float
+    priceC?: number | null; // Float
+    quantity: number; // Int!
+    units?: Array<NexusGenInputs['CreateInventoryItemUnitInput'] | null> | null; // [CreateInventoryItemUnitInput]
+  }
   AddMediaInput: { // input type
     sortOrder: number; // Int!
     type?: NexusGenEnums['MediaType'] | null; // MediaType
@@ -57,6 +68,10 @@ export interface NexusGenInputs {
     itemId: number; // Int!
     price: number; // Float!
     quantity: number; // Int!
+  }
+  CostLineInput: { // input type
+    amount: number; // Float!
+    label: string; // String!
   }
   CreateInventoryItemUnitInput: { // input type
     barcode?: string | null; // String
@@ -78,11 +93,18 @@ export interface NexusGenInputs {
     brand?: string | null; // String
     brandId?: number | null; // Int
     categoryId?: number | null; // Int
+    costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
     image?: string | null; // String
     itemCode?: string | null; // String
+    minQuantity?: number | null; // Int
     name: string; // String!
+    opExPct?: number | null; // Float
+    priceB?: number | null; // Float
+    priceC?: number | null; // Float
+    sellingPrice: number; // Float!
     skuNumber?: string | null; // String
+    stock: number; // Int!
     vatExempt?: boolean | null; // Boolean
   }
   CreateOutletPromoInput: { // input type
@@ -183,12 +205,25 @@ export interface NexusGenInputs {
     unitLabel?: string | null; // String
   }
   UpdateItemInput: { // input type
+    ServiceCharge?: boolean | null; // Boolean
+    assembly?: boolean | null; // Boolean
     barcode?: string | null; // String
     brand?: string | null; // String
+    brandId?: number | null; // Int
     categoryId?: number | null; // Int
+    costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
     image?: string | null; // String
+    itemCode?: string | null; // String
+    minQuantity?: number | null; // Int
     name?: string | null; // String
+    opExPct?: number | null; // Float
+    priceB?: number | null; // Float
+    priceC?: number | null; // Float
+    sellingPrice: number; // Float!
+    skuNumber?: string | null; // String
+    stock?: number | null; // Int
+    vatExempt?: boolean | null; // Boolean
   }
   UpdateOutletPromoInput: { // input type
     discount?: number | null; // Float
@@ -299,6 +334,12 @@ export interface NexusGenObjects {
     hexCode?: string | null; // String
     id: number; // Int!
     name: string; // String!
+  }
+  CostLines: { // root type
+    amount: number; // Float!
+    id: number; // Int!
+    itemId: number; // Int!
+    label: string; // String!
   }
   CustomerDetails: { // root type
     client_key?: string | null; // String
@@ -491,9 +532,16 @@ export interface NexusGenObjects {
     id: number; // Int!
     image?: string | null; // String
     itemCode?: string | null; // String
+    minQuantity: number; // Int!
     name: string; // String!
+    opExPct: number; // Float!
     orgId: number; // Int!
+    priceB?: number | null; // Float
+    priceC?: number | null; // Float
+    sellingPrice?: number | null; // Float
     skuNumber?: string | null; // String
+    stock: number; // Int!
+    totalCost?: number | null; // Float
     vatExempt: boolean; // Boolean!
   }
   ItemCategory: { // root type
@@ -901,6 +949,13 @@ export interface NexusGenFieldTypes {
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     name: string; // String!
   }
+  CostLines: { // field return type
+    amount: number; // Float!
+    id: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    label: string; // String!
+  }
   CustomerDetails: { // field return type
     client_key: string | null; // String
     email: string | null; // String
@@ -1108,17 +1163,25 @@ export interface NexusGenFieldTypes {
     category: NexusGenRootTypes['ItemCategory'] | null; // ItemCategory
     categoryId: number | null; // Int
     color: NexusGenRootTypes['Color'][]; // [Color!]!
+    costLines: NexusGenRootTypes['CostLines'][]; // [CostLines!]!
     description: string | null; // String
     id: number; // Int!
     image: string | null; // String
     itemCode: string | null; // String
     media: NexusGenRootTypes['Media'][]; // [Media!]!
+    minQuantity: number; // Int!
     name: string; // String!
+    opExPct: number; // Float!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
+    priceB: number | null; // Float
+    priceC: number | null; // Float
     purchaseUnit: NexusGenRootTypes['ItemUnit'][]; // [ItemUnit!]!
     searchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
+    sellingPrice: number | null; // Float
     skuNumber: string | null; // String
+    stock: number; // Int!
+    totalCost: number | null; // Float
     vatExempt: boolean; // Boolean!
   }
   ItemCategory: { // field return type
@@ -1186,6 +1249,7 @@ export interface NexusGenFieldTypes {
     addDeliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
     addInventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
     addItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
+    addItemToInventoryWithUnits: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     cancelEkumpraOrder: NexusGenRootTypes['EkumpraCOrder']; // EkumpraCOrder!
@@ -1199,6 +1263,7 @@ export interface NexusGenFieldTypes {
     createGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     createInventoryItem: NexusGenRootTypes['InventoryItem'] | null; // InventoryItem
+    createItem: NexusGenRootTypes['Item'] | null; // Item
     createItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
     createItems: NexusGenRootTypes['BatchPayload']; // BatchPayload!
     createOrganization: NexusGenRootTypes['Organization'] | null; // Organization
@@ -1496,6 +1561,7 @@ export interface NexusGenFieldTypes {
     getInventoryItemsByRack: NexusGenRootTypes['ItemsByRack'][]; // [ItemsByRack!]!
     getItemById: NexusGenRootTypes['Item']; // Item!
     getItems: NexusGenRootTypes['Item'][]; // [Item!]!
+    getItemsByOutlet: Array<NexusGenRootTypes['InventoryItems'] | null> | null; // [InventoryItems]
     getMyAttendanceToday: NexusGenRootTypes['Attendance'] | null; // Attendance
     getOutletById: NexusGenRootTypes['Outlet'] | null; // Outlet
     getOutletItems: NexusGenRootTypes['OutletWithItems']; // OutletWithItems!
@@ -1507,6 +1573,7 @@ export interface NexusGenFieldTypes {
     getPresentStaffs: NexusGenRootTypes['OutletPresentStaffs'][]; // [OutletPresentStaffs!]!
     getStaffByOutletId: NexusGenRootTypes['UserStaff'][]; // [UserStaff!]!
     getTodayAttendanceByOrganization: Array<NexusGenRootTypes['Attendance'] | null> | null; // [Attendance]
+    getTransactionsByOrgId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getUserById: NexusGenRootTypes['User']; // User!
     gisRow: NexusGenRootTypes['GISRow'] | null; // GISRow
@@ -1765,6 +1832,13 @@ export interface NexusGenFieldTypeNames {
     items: 'Item'
     name: 'String'
   }
+  CostLines: { // field return type name
+    amount: 'Float'
+    id: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+    label: 'String'
+  }
   CustomerDetails: { // field return type name
     client_key: 'String'
     email: 'String'
@@ -1972,17 +2046,25 @@ export interface NexusGenFieldTypeNames {
     category: 'ItemCategory'
     categoryId: 'Int'
     color: 'Color'
+    costLines: 'CostLines'
     description: 'String'
     id: 'Int'
     image: 'String'
     itemCode: 'String'
     media: 'Media'
+    minQuantity: 'Int'
     name: 'String'
+    opExPct: 'Float'
     org: 'Organization'
     orgId: 'Int'
+    priceB: 'Float'
+    priceC: 'Float'
     purchaseUnit: 'ItemUnit'
     searchIndex: 'OutletItemSearchIndex'
+    sellingPrice: 'Float'
     skuNumber: 'String'
+    stock: 'Int'
+    totalCost: 'Float'
     vatExempt: 'Boolean'
   }
   ItemCategory: { // field return type name
@@ -2050,6 +2132,7 @@ export interface NexusGenFieldTypeNames {
     addDeliveryAddress: 'DeliveryAddress'
     addInventoryItemUnits: 'InventoryItemUnit'
     addItemMedia: 'Media'
+    addItemToInventoryWithUnits: 'InventoryItems'
     addItemsToInventory: 'BatchPayload'
     bulkCreateInventoryItems: 'InventoryItems'
     cancelEkumpraOrder: 'EkumpraCOrder'
@@ -2063,6 +2146,7 @@ export interface NexusGenFieldTypeNames {
     createGISRow: 'GISRow'
     createInventory: 'Inventory'
     createInventoryItem: 'InventoryItem'
+    createItem: 'Item'
     createItemGroup: 'ItemGroup'
     createItems: 'BatchPayload'
     createOrganization: 'Organization'
@@ -2360,6 +2444,7 @@ export interface NexusGenFieldTypeNames {
     getInventoryItemsByRack: 'ItemsByRack'
     getItemById: 'Item'
     getItems: 'Item'
+    getItemsByOutlet: 'InventoryItems'
     getMyAttendanceToday: 'Attendance'
     getOutletById: 'Outlet'
     getOutletItems: 'OutletWithItems'
@@ -2371,6 +2456,7 @@ export interface NexusGenFieldTypeNames {
     getPresentStaffs: 'OutletPresentStaffs'
     getStaffByOutletId: 'UserStaff'
     getTodayAttendanceByOrganization: 'Attendance'
+    getTransactionsByOrgId: 'Transaction'
     getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
     gisRow: 'GISRow'
@@ -2567,6 +2653,10 @@ export interface NexusGenArgTypes {
       itemId: number; // Int!
       media: NexusGenInputs['AddMediaInput'][]; // [AddMediaInput!]!
     }
+    addItemToInventoryWithUnits: { // args
+      data: NexusGenInputs['AddItemToInventoryWithUnitsInput']; // AddItemToInventoryWithUnitsInput!
+      outletId: string; // ID!
+    }
     addItemsToInventory: { // args
       inventoryId: string; // ID!
       items: NexusGenInputs['AddItemToInventoryInput'][]; // [AddItemToInventoryInput!]!
@@ -2629,6 +2719,9 @@ export interface NexusGenArgTypes {
       orgId?: number | null; // Int
       price?: number | null; // Float
       quantity?: number | null; // Int
+    }
+    createItem: { // args
+      data: NexusGenInputs['CreateItemInput']; // CreateItemInput!
     }
     createItemGroup: { // args
       name?: string | null; // String
@@ -3013,6 +3106,9 @@ export interface NexusGenArgTypes {
     employees: { // args
       orgId?: number | null; // Int
     }
+    getAllStaffs: { // args
+      orgId?: number | null; // Int
+    }
     getBranchById: { // args
       id: string; // ID!
     }
@@ -3034,6 +3130,9 @@ export interface NexusGenArgTypes {
       orderBy?: NexusGenEnums['orderBy'] | null; // orderBy
       query?: string | null; // String
       size?: number | null; // Int
+    }
+    getItemsByOutlet: { // args
+      outletId: string; // ID!
     }
     getOutletById: { // args
       id: string; // ID!
@@ -3057,6 +3156,11 @@ export interface NexusGenArgTypes {
     }
     getTodayAttendanceByOrganization: { // args
       orgId?: number | null; // Int
+    }
+    getTransactionsByOrgId: { // args
+      endDate?: string | null; // String
+      orgId: number; // Int!
+      startDate?: string | null; // String
     }
     getTransactionsByStoreId: { // args
       endDate?: string | null; // String

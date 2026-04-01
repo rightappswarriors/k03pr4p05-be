@@ -14,6 +14,14 @@ export const LocationInput = inputObjectType({
   },
 });
 
+export const CostLineInput = inputObjectType({
+  name: "CostLineInput",
+  definition(t) {
+    t.nonNull.string("label");
+    t.nonNull.float("amount");
+  },
+});
+
 export const CreateItemInput = inputObjectType({
   name: "CreateItemInput",
   definition(t) {
@@ -23,12 +31,19 @@ export const CreateItemInput = inputObjectType({
     t.nullable.string("description")
     t.nullable.string("brand")
     t.nullable.int("categoryId")
+    t.nonNull.float("sellingPrice")
+    t.nonNull.int("stock")          // ← new required field
     t.nullable.int("brandId")       // ← missing
     t.nullable.string("itemCode")   // ← missing
     t.nullable.string("skuNumber")  // ← missing
     t.nullable.boolean("vatExempt")     // ← missing
     t.nullable.boolean("ServiceCharge") // ← missing
     t.nullable.boolean("assembly")      // ← missing
+    t.list.field("costLines", { type: "CostLineInput" }) // ← new field
+    t.nullable.float("opExPct")         // ← new field
+    t.nullable.float("priceB")          // ← new field
+    t.nullable.float("priceC")          // ← new field
+    t.nullable.int("minQuantity")       // ← new field
   },
 })
 export const ItemInput = inputObjectType({
@@ -54,14 +69,14 @@ export const InventoryItemUpdateInput = inputObjectType({
   name: "InventoryItemUpdateInput",
   definition(t) {
     t.int("quantity");
-    t.nullable.float("price")  
+    t.nullable.float("price")
     t.string("name");
     t.field("locationData", { type: "LocationInput" });
     t.field("itemData", { type: "ItemInput" });
   },
 });
 
-export const update = inputObjectType({
+export const UpdateItemInput = inputObjectType({
   name: "UpdateItemInput",
   definition(t) {
     t.nullable.string("name");
@@ -69,9 +84,22 @@ export const update = inputObjectType({
     t.nullable.string("description");
     t.nullable.string("barcode");
     t.nullable.string("brand");
+    t.nonNull.float("sellingPrice")
+    t.list.field("costLines", { type: "CostLineInput" })
+    t.nullable.int("brandId");
+    t.nullable.string("itemCode");
     t.nullable.int("categoryId");
+    t.nullable.int("stock");
+    t.nullable.float("priceB")
+    t.nullable.float("priceC")
+    t.nullable.float("opExPct") 
+    t.nullable.int("minQuantity")
+    t.nullable.boolean("vatExempt");
+    t.nullable.boolean("ServiceCharge");
+    t.nullable.boolean("assembly");
+    t.nullable.string("skuNumber");
   },
-}); // Define LocationInput, ItemInput similarly
+});
 
 export const ItemMutation = extendType({
   type: "Mutation",

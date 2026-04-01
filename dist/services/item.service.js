@@ -10,25 +10,43 @@ const prisma = new PrismaClient();
 // Called by the createItems mutation.
 // Returns the count of created rows — the mutation returns { count }.
 export const bulkCreateItems = async (items) => {
-    const result = await prisma.item.createMany({
-        data: items.map((item) => ({
-            orgId: item.orgId,
-            name: item.name,
-            barcode: item.barcode,
-            brand: item.brand ?? null,
-            description: item.description ?? null,
-            image: item.image ?? null,
-            categoryId: item.categoryId ?? null,
-            brandId: item.brandId ?? null,
-            itemCode: item.itemCode ?? null,
-            skuNumber: item.skuNumber ?? null,
-            vatExempt: item.vatExempt ?? false,
-            ServiceCharge: item.ServiceCharge ?? false,
-            assembly: item.assembly ?? false,
-        })),
-        skipDuplicates: true, // skips if Item.name already exists (unique constraint)
-    });
-    return result.count;
+    const result = await prisma.$transaction(items.map((item) => {
+        const itemTotalCost = item.costLines?.reduce((sum, line) => sum + line.amount, 0) || 0;
+        return prisma.item.create({
+            data: {
+                orgId: item.orgId,
+                name: item.name,
+                barcode: item.barcode,
+                stock: item.stock ?? 0,
+                brand: item.brand ?? null,
+                sellingPrice: item.sellingPrice,
+                minQuantity: item.minQuantity ?? 0,
+                // ✅ costLines works here
+                priceB: item.priceB ?? null,
+                priceC: item.priceC ?? null,
+                totalCost: itemTotalCost,
+                opExPct: item.opExPct,
+                costLines: item.costLines?.length
+                    ? {
+                        create: item.costLines.map((line) => ({
+                            label: line.label,
+                            amount: line.amount,
+                        })),
+                    }
+                    : undefined,
+                description: item.description ?? null,
+                image: item.image ?? null,
+                categoryId: item.categoryId ?? null,
+                brandId: item.brandId ?? null,
+                itemCode: item.itemCode ?? null,
+                skuNumber: item.skuNumber ?? null,
+                vatExempt: item.vatExempt ?? false,
+                ServiceCharge: item.ServiceCharge ?? false,
+                assembly: item.assembly ?? false,
+            },
+        });
+    }));
+    return result.length;
 };
 /**
  * @description
@@ -175,9 +193,25 @@ export const getItemById = async (id) => {
     });
 };
 export const updateItem = async (id, data) => {
+    const totalCost = data.reduce((sum, item) => {
+        return (sum +
+            (item.costLines?.reduce((s, l) => s + l.amount, 0) || 0));
+    }, 0);
     return prisma.item.update({
         where: { id },
-        data: data
+        data: {
+            ...data,
+            totalCost: totalCost ? totalCost : undefined,
+            costLines: data.costLines
+                ? {
+                    deleteMany: {}, // 🧹 remove all existing
+                    create: data.costLines.map((line) => ({
+                        label: line.label,
+                        amount: line.amount,
+                    })),
+                }
+                : undefined,
+        },
     });
 };
 export const deleteItem = async (id) => {

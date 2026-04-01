@@ -8,12 +8,19 @@ export const Item = objectType({
         t.nullable.string('description');
         t.nullable.string('barcode');
         t.nullable.int('categoryId');
+        t.float('sellingPrice');
+        t.nonNull.int('stock');
         t.nullable.int('brandId');
         t.nonNull.boolean('ServiceCharge');
         t.nonNull.boolean('assembly');
         t.nullable.string('itemCode');
         t.nullable.string('skuNumber');
         t.nonNull.boolean('vatExempt');
+        t.nonNull.int("minQuantity");
+        t.nonNull.float("opExPct");
+        t.float("priceB");
+        t.float("priceC");
+        t.float("totalCost");
         t.nonNull.int('orgId'); // Added for multi-tenancy
         t.nonNull.field('org', {
             type: 'Organization',
@@ -63,6 +70,12 @@ export const Item = objectType({
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).purchaseUnit();
             }
         });
+        t.nonNull.list.nonNull.field("costLines", {
+            type: "CostLines",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).costLines();
+            }
+        });
         t.nonNull.list.nonNull.field('searchIndex', {
             type: 'OutletItemSearchIndex',
             resolve: (parent, _, ctx) => {
@@ -85,6 +98,24 @@ export const ItemUnit = objectType({
             }
         });
     },
+});
+export const CostLines = objectType({
+    name: "CostLines",
+    definition(t) {
+        t.nonNull.int("id");
+        t.nonNull.int("itemId");
+        t.nonNull.string("label");
+        t.nonNull.float("amount");
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.costLines
+                    .findUnique({
+                    where: { id: parent.id }
+                }).item();
+            }
+        });
+    }
 });
 export const OutletItemSearchIndex = objectType({
     name: "OutletItemSearchIndex",

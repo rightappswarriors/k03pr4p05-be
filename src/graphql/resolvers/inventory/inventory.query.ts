@@ -64,6 +64,33 @@ export const InventoryQuery = extendType({
         }
       },
     });
+    // Get items by outlet
+    t.list.field("getItemsByOutlet", {
+      type: "InventoryItems",
+      args: {
+        outletId: nonNull(arg({ type: "ID" })),
+      },
+      async resolve(_, { outletId }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        await requireOwnership(ctx, "Outlet", outletId);
+        try {
+          if (process.env.NODE_ENV === "development") console.log("Fetching inventory for outletId:", outletId);
+          const inventory = await ctx.prisma.inventory.findUnique({
+            where: { outletId: Number(outletId) },
+            include: { items: { include: { item: true, units: true } } },
+          });
+          if (!inventory) {
+            throw new Error("Inventory not found for outlet");
+          }
+          if (process.env.NODE_ENV === "development") console.log("Inventory fetched successfully:", inventory.inventoryItems);
+          return inventory.items;
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") console.error("Error getting items by outlet:", error);
+          throw new Error("Failed to get outlet items.");
+        }
+      },
+    });
     // !GET invetory Items
     // Get inventory items by rack
     t.list.field("getInventoryItemsByRack", {
@@ -85,6 +112,26 @@ export const InventoryQuery = extendType({
         } catch (error) {
           if (process.env.NODE_ENV === "development") console.error("Error retrieving Inventory:", error);
           throw new Error("Failed to fetch inventory items by rack.");
+        }
+      },
+    });
+
+    // Get all items for organization
+    t.list.field("getItems", {
+      type: "Item",
+      args: {
+        query: stringArg(),
+        size: intArg(),
+      },
+      async resolve(_, { query, size }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+
+        try {
+          return await inventoryService.getAllItems(ctx.user.orgId, query || undefined, size || 100);
+        } catch (error) {
+          if (process.env.NODE_ENV === "development") console.error("Error retrieving items:", error);
+          throw new Error("Failed to fetch items.");
         }
       },
     });

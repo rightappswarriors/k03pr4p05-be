@@ -1,5 +1,5 @@
 import { extendType, intArg, stringArg, floatArg } from 'nexus'
-import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
 export const gisRowMutation = extendType({
   type: 'Mutation',
@@ -14,6 +14,7 @@ export const gisRowMutation = extendType({
       },
       resolve: async (_, { orgId, accountTitleId, amount, description }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'ADMIN'])
         return ctx.prisma.gISRow.create({
           data: { orgId, accountTitleId, amount, description }
         })
@@ -29,6 +30,7 @@ export const gisRowMutation = extendType({
       },
       resolve: async (_, { id, accountTitleId, amount, description }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'ADMIN'])
         return ctx.prisma.gISRow.update({
           where: { id },
           data: { accountTitleId, amount, description }

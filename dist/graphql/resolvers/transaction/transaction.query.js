@@ -15,8 +15,35 @@ export const TransactionQuery = extendType({
             async resolve(_, { outletId, startDate, endDate }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "OWNER"]);
+                if (process.env.NODE_ENV === "development") {
+                    console.log(`Fetching transactions for outletId: ${outletId}, startDate: ${startDate}, endDate: ${endDate}`);
+                }
                 try {
                     return await transactionService.getTransactionsByOutletId(outletId, startDate, endDate);
+                }
+                catch (error) {
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error retrieving transactions:", error);
+                    throw new Error("Failed to fetch transactions.");
+                }
+            },
+        });
+        // Get transactions by orgId (with optional date range) - for all outlets
+        t.nonNull.list.nonNull.field("getTransactionsByOrgId", {
+            type: "Transaction",
+            args: {
+                orgId: nonNull(intArg()),
+                startDate: stringArg(), // optional
+                endDate: stringArg(), // optional
+            },
+            async resolve(_, { orgId, startDate, endDate }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                if (process.env.NODE_ENV === "development") {
+                    console.log(`Fetching transactions for orgId: ${orgId}, startDate: ${startDate}, endDate: ${endDate}`);
+                }
+                try {
+                    return await transactionService.getTransactionsByOrgId(orgId, startDate, endDate);
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")

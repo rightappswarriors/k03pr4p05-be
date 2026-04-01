@@ -1,4 +1,4 @@
-import {  PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient()
 
 /**
@@ -169,6 +169,149 @@ export const createInventoryItem = async (
 
   return newInventoryItems;
 };
+
+/**
+ * @description Creates a single inventory item with units for selling
+ * @param {object} itemData - The item data including units
+ * @param {number} inventoryId - The ID of the inventory
+ * @returns {Promise<InventoryItems>} The created inventory item with units
+ */
+export const addItemToInventoryWithUnits = async (
+  itemData: {
+    itemId: number;
+    quantity: number;
+    price: number;
+    units?: Array<{
+      unitName: string;
+      unitLabel: string;
+      price: number;
+      quantity: number;
+      conversionFactor: number;
+      baseUnit?: string;
+      barcode?: string;
+      isDefault?: boolean;
+      minOrderQty?: number;
+      maxOrderQty?: number;
+      reorderPoint?: number;
+    }>;
+  },
+  inventoryId: number,
+  orgId: number
+) => {
+  // --- Step 2: Validate the Item ID ---
+  const item = await prisma.item.findUnique({
+    where: { id: itemData.itemId, orgId: Number(orgId) },
+  });
+
+  if (!item) {
+    throw new Error(`Item with ID ${itemData.itemId} not found.`);
+  }
+
+  // --- Step 3: Check if item already exists in inventory ---
+  const existingItem = await prisma.inventoryItems.findUnique({
+    where: {
+      inventoryId_itemId: {
+        inventoryId,
+        itemId: itemData.itemId,
+      },
+    },
+  });
+
+  // --- Step 4: Create or update inventory item with units in transaction ---
+  return await prisma.$transaction(async (tx) => {
+    let inventoryItem;
+
+    if (existingItem) {
+      inventoryItem = await tx.inventoryItems.update({
+        where: { id: existingItem.id },
+        data: {
+          price: itemData.price,
+          quantity: existingItem.quantity + itemData.quantity,
+        },
+        include: {
+          item: true,
+          units: true,
+        },
+      });
+    } else {
+      inventoryItem = await tx.inventoryItems.create({
+        data: {
+          inventoryId,
+          itemId: itemData.itemId,
+          price: itemData.price,
+          quantity: itemData.quantity,
+        },
+        include: {
+          item: true,
+          units: true,
+        },
+      });
+    }
+
+    // Create units if provided
+    if (itemData.units && itemData.units.length > 0) {
+      // If any unit is marked as default, ensure only one is default
+      const hasDefault = itemData.units.some(u => u.isDefault);
+      if (hasDefault) {
+        // Find the first default unit, mark others as non-default
+        const defaultIndex = itemData.units.findIndex(u => u.isDefault);
+        itemData.units.forEach((unit, index) => {
+          if (index !== defaultIndex) {
+            unit.isDefault = false;
+          }
+        });
+      }
+
+      for (const unit of itemData.units) {
+        await tx.inventoryItemUnit.upsert({
+          where: {
+            inventoryItemId_unitName: {
+              inventoryItemId: inventoryItem.id,
+              unitName: unit.unitName,
+            },
+          },
+          create: {
+            inventoryItemId: inventoryItem.id,
+            unitName: unit.unitName,
+            unitLabel: unit.unitLabel,
+            price: unit.price,
+            quantity: unit.quantity,
+            conversionFactor: unit.conversionFactor,
+            baseUnit: unit.baseUnit ?? 'piece',
+            barcode: unit.barcode ?? null,
+            isDefault: unit.isDefault ?? false,
+            minOrderQty: unit.minOrderQty ?? null,
+            maxOrderQty: unit.maxOrderQty ?? null,
+            reorderPoint: unit.reorderPoint ?? null,
+          },
+          update: {
+            unitLabel: unit.unitLabel,
+            price: unit.price,
+            quantity: unit.quantity,
+            conversionFactor: unit.conversionFactor,
+            baseUnit: unit.baseUnit ?? 'piece',
+            barcode: unit.barcode ?? null,
+            isDefault: unit.isDefault ?? false,
+            minOrderQty: unit.minOrderQty ?? null,
+            maxOrderQty: unit.maxOrderQty ?? null,
+            reorderPoint: unit.reorderPoint ?? null,
+          },
+        });
+      }
+    }
+
+    if (process.env.NODE_ENV === 'development')
+      console.log('Created/updated inventory item with units:', inventoryItem);
+
+    const finalInventoryItem = await tx.inventoryItems.findUnique({
+      where: { id: inventoryItem.id },
+      include: { item: true, units: true },
+    });
+
+    return finalInventoryItem;
+  });
+};
+
 /**
  * @description Retrieves inventory items by outletId.
  * @param {number} outletId - The ID of the outlet.
@@ -268,7 +411,7 @@ export const getInventoryItemsByRack = async (inventoryId, rackName) => {
 
 
 // ─── InventoryItems ───────────────────────────────────────────────────────────
- 
+
 // Step 2 of the create-item flow: links existing Item rows to an Inventory.
 // Uses createMany — faster than looping individual creates.
 
@@ -280,18 +423,70 @@ export const updateInventoryItem = async (
     where: { id },
     data: {
       ...(data.quantity != null && { quantity: data.quantity }),
-      ...(data.price    != null && { price:    data.price }),
+      ...(data.price != null && { price: data.price }),
     },
     include: {
-      item:     { include: { category: true, brandDetails: true, media: { orderBy: { sortOrder: "asc" } } } },
+      item: { include: { category: true, brandDetails: true, media: { orderBy: { sortOrder: "asc" } } } },
       location: true,
     },
   });
 };
- 
+
 export const deleteInventoryItem = async (id: number) => {
   return prisma.inventoryItems.delete({
     where: { id },
     include: { item: true },
+  });
+};
+
+/**
+ * @description Get all items for an organization
+ */
+export const getAllItems = async (orgId: number, query?: string, size?: number) => {
+  const take = size || 100;
+  return prisma.item.findMany({
+    where: {
+      orgId,
+      ...(query && {
+        OR: [
+          { name: { contains: query, mode: "insensitive" } },
+          { barcode: { contains: query, mode: "insensitive" } },
+          { skuNumber: { contains: query, mode: "insensitive" } },
+          { brand: { contains: query, mode: "insensitive" } },
+        ],
+      }),
+    },
+    include: {
+      category: true,
+      brandDetails: true,
+      costLines: true,
+      media: { orderBy: { sortOrder: "asc" } },
+    },
+    take,
+    orderBy: { name: "asc" },
+  });
+};
+
+/**
+ * @description Update inventory item with cost breakdown and pricing
+ */
+export const updateInventoryItemFull = async (
+  id: number,
+  data: {
+    quantity?: number;
+    price?: number;
+  }
+) => {
+
+  return prisma.inventoryItems.update({
+    where: { id },
+    data: {
+      quantity: data.quantity,
+      price: data.price,
+    },
+    include: {
+      item: { include: { category: true, brandDetails: true } },
+      inventory: true,
+    },
   });
 };

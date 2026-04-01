@@ -121,14 +121,14 @@ export const loginUser = async (email, password, res) => {
 };
 /**
  * @description
- * Retrieves all Staff users owned by the manager from the database.
- * @param {number} managerId - Manager Id query.
+ * Retrieves all Staff users for a specific organization.
+ * @param {number} orgId - Organization Id to query staff for.
  * @returns {Promise<array>} An array of user objects without password
  */
-export const getAllStaffs = async (managerId) => {
+export const getAllStaffs = async (orgId) => {
     const users = await prisma.user.findMany({
         where: {
-            managerId: managerId,
+            orgId: orgId,
         },
         select: {
             id: true,
@@ -141,7 +141,7 @@ export const getAllStaffs = async (managerId) => {
         },
     });
     if (process.env.NODE_ENV === "development")
-        console.log("Manager Id:", managerId);
+        console.log("Org Id:", orgId);
     if (process.env.NODE_ENV === "development")
         console.log("Users:", users);
     return users;
