@@ -1,6 +1,6 @@
 // services/user.service.js
 // This file acts as the 'cook'. It contains the core business logic and interacts directly with the database.
-import {  PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient()
 
 import bcrypt from "bcrypt";
@@ -96,15 +96,16 @@ export const loginUser = async (email: any, password: any, res: any) => {
   }
 
   // Check if user has verified their email
-  if (!user.isVerified) {
-    console.log(`User ${email} has not verified their email`);
-    throw new Error('Please verify your email before logging in');
-  }
-
-  if (process.env.NODE_ENV === "development") {
-    console.log("User: ", user.username);
-    console.log("User Role: ", user.role);
-    console.log("User fullname: ", user.fullname);
+  if (user.role !== "ADMIN") {
+    if (!user.isVerified) {
+      console.log(`User ${email} has not verified their email`);
+      throw new Error('Please verify your email before logging in');
+    }
+    if (process.env.NODE_ENV === "development") {
+      console.log("User: ", user.username);
+      console.log("User Role: ", user.role);
+      console.log("User fullname: ", user.fullname);
+    }
   }
 
   const staffexists = await prisma.outletStaff.findFirst({
@@ -162,7 +163,9 @@ export const getAllStaffs = async (orgId: number) => {
       username: true,
       role: true,
       profilePhoto: true,
-      createdAt: true
+      createdAt: true,
+      positionId: true,
+      departmentId: true,
     },
   });
   if (process.env.NODE_ENV === "development") console.log("Org Id:", orgId)

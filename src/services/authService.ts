@@ -26,7 +26,7 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-export async function registerUser({ fullname, email, password, contactNumber }) {
+export async function registerUser({ fullname, role, email, password, contactNumber } : { fullname: string, role?: string, password: string, contactNumber: string, email: string}) {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     throw new Error('User with this email already exists')
@@ -44,7 +44,7 @@ export async function registerUser({ fullname, email, password, contactNumber })
       contactNumber,
       isVerified: false,
       verificationCode,
-      role: 'OWNER',
+      role: role ? role : "OWNER",
       enabledPaymentMethod: false,
       orgId: null,
     } as any,

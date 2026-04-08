@@ -81,14 +81,16 @@ export const loginUser = async (email, password, res) => {
         return null;
     }
     // Check if user has verified their email
-    if (!user.isVerified) {
-        console.log(`User ${email} has not verified their email`);
-        throw new Error('Please verify your email before logging in');
-    }
-    if (process.env.NODE_ENV === "development") {
-        console.log("User: ", user.username);
-        console.log("User Role: ", user.role);
-        console.log("User fullname: ", user.fullname);
+    if (user.role !== "ADMIN") {
+        if (!user.isVerified) {
+            console.log(`User ${email} has not verified their email`);
+            throw new Error('Please verify your email before logging in');
+        }
+        if (process.env.NODE_ENV === "development") {
+            console.log("User: ", user.username);
+            console.log("User Role: ", user.role);
+            console.log("User fullname: ", user.fullname);
+        }
     }
     const staffexists = await prisma.outletStaff.findFirst({
         where: { userId: user.id }
@@ -137,7 +139,9 @@ export const getAllStaffs = async (orgId) => {
             username: true,
             role: true,
             profilePhoto: true,
-            createdAt: true
+            createdAt: true,
+            positionId: true,
+            departmentId: true,
         },
     });
     if (process.env.NODE_ENV === "development")

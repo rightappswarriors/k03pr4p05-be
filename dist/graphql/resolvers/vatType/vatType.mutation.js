@@ -1,15 +1,16 @@
-import { extendType, intArg, stringArg } from 'nexus';
+import { extendType, floatArg, intArg, stringArg } from 'nexus';
 export const vatTypeMutation = extendType({
     type: 'Mutation',
     definition(t) {
         t.field('createVatType', {
             type: 'VatType',
             args: {
-                orgId: intArg(),
                 name: stringArg(),
-                rate: intArg()
+                rate: floatArg()
             },
-            resolve: async (_, { orgId, name, rate }, ctx) => {
+            resolve: async (_, { name, rate }, ctx) => {
+                const orgId = ctx.user.orgId;
+                rate = rate / 100;
                 return ctx.prisma.vatType.create({
                     data: { orgId, name, rate }
                 });
@@ -20,14 +21,20 @@ export const vatTypeMutation = extendType({
             args: {
                 id: intArg(),
                 name: stringArg(),
-                rate: intArg()
+                rate: floatArg()
             },
             resolve: async (_, { id, name, rate }, ctx) => {
+                const orgId = ctx.user.orgId;
+                rate = rate / 100;
+                // verify ownership first
+                const existing = await ctx.prisma.vatType.findFirst({ where: { id, orgId } });
+                if (!existing)
+                    throw new Error('VAT type not found.');
                 return ctx.prisma.vatType.update({
-                    where: { id },
-                    data: { name, rate }
+                    where: { id }, // ✅ just id — it's the primary key
+                    data: { name, rate },
                 });
-            }
+            },
         });
         t.field('deleteVatType', {
             type: 'VatType',

@@ -1,10 +1,10 @@
 import { extendType, arg, nonNull, list } from "nexus";
-import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as categoryService from "../../../services/category.service.js";
 export const categoryMutation = extendType({
     type: "Mutation",
     definition(t) {
-        //!SECTION Create Category
+        // Super admin creates global categories
         t.nonNull.list.nonNull.field("createCategories", {
             type: "ItemCategory",
             args: {
@@ -12,17 +12,16 @@ export const categoryMutation = extendType({
             },
             async resolve(_, { categories }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN"]); // ✅ only super admin
                 if (!categories.length) {
                     throw new Error("Request body must be a non-empty array of categories.");
                 }
                 try {
-                    // map into objects that Prisma expects
                     const data = categories.map((name) => ({ name }));
                     return await categoryService.createCategories(data);
                 }
                 catch (error) {
-                    if (error.code === "P2002") {
+                    if (error?.code === "P2002") {
                         throw new Error("One or more categories already exist.");
                     }
                     if (process.env.NODE_ENV === "development")
@@ -31,7 +30,6 @@ export const categoryMutation = extendType({
                 }
             },
         });
-        //!SECTION updateCategory
         t.nonNull.field("updateCategory", {
             type: "ItemCategory",
             args: {
@@ -40,12 +38,11 @@ export const categoryMutation = extendType({
             },
             async resolve(_, { id, name }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN"]); // ✅ only super admin
                 try {
                     const category = await categoryService.updateCategoryById(Number(id), name);
-                    if (!category) {
+                    if (!category)
                         throw new Error(`Category with id ${id} not found`);
-                    }
                     return category;
                 }
                 catch (error) {
@@ -55,7 +52,6 @@ export const categoryMutation = extendType({
                 }
             },
         });
-        //!SECTION Delete Category
         t.nonNull.field("deleteCategory", {
             type: "ItemCategory",
             args: {
@@ -63,12 +59,11 @@ export const categoryMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN"]); // ✅ only super admin
                 try {
                     const category = await categoryService.deleteCategory(Number(id));
-                    if (!category) {
+                    if (!category)
                         throw new Error("Error Deleting Category: Category not found");
-                    }
                     return category;
                 }
                 catch (error) {

@@ -31,7 +31,14 @@ export async function createOrganization(userId: number, name: string) {
         name: name.trim(),
       },
     });
-    
+    // When org is created, auto-seed standard PH VAT types
+    await prisma.vatType.createMany({
+      data: [
+        { orgId: organization.id, name: 'VAT Inclusive (12%)', rate: 0.12 },
+        { orgId: organization.id, name: 'VAT Exempt', rate: 0.0 },
+        { orgId: organization.id, name: 'Zero-Rated (0%)', rate: 0.0 },
+      ]
+    });
     await prisma.user.update({
       where: { id: userId },
       data: {

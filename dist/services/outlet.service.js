@@ -173,17 +173,27 @@ export const removeStaffsFromOutlet = async (outletId, userIds) => {
  * Retrieves all outlets belonging to a specific branch.
  * This is a corrected version of the original getBranchOutlet.
  * @param {number} branchId - The ID of the branch.
+ * @param {string} search - Optional search string to filter by name or address.
  * @returns {Promise<object[]>} An array of outlet objects.
  */
-export const getOutletsByBranchId = async (branchId) => {
+export const getOutletsByBranchId = async (branchId, search) => {
     const outlets = await prisma.outlet.findMany({
-        where: { branchId },
+        where: {
+            branchId,
+            ...(search && {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { address: { contains: search, mode: 'insensitive' } },
+                ],
+            }),
+        },
         select: {
             id: true,
             name: true,
             address: true,
             phone: true,
             code: true,
+            bannerImage: true,
             governmentTax: true,
             serviceCharge: true,
             outletType: true,

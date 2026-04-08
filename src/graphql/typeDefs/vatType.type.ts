@@ -4,7 +4,8 @@ export const VatType = objectType({
     name: 'VatType',
     definition(t) {
         t.nonNull.int('id')
-        t.nonNull.string('label')
+        t.nonNull.string('name')
+        t.nonNull.float('rate')
         t.nonNull.int('orgId')
         t.nonNull.field('org', {
             type: 'Organization',

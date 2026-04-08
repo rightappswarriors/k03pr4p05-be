@@ -103,7 +103,9 @@ async function startApolloServer() {
                                 orgId: true,
                                 isVerified: true,
                                 fullname: true,
-                                username: true
+                                username: true,
+                                isOwner: true,
+                                position: true,
                             }
                         });
                         // Add userId for backward compatibility

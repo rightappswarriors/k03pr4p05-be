@@ -1,31 +1,39 @@
 // rai-pos-backend/src/services/email/supplier.email.ts
 
 interface SupplierEmailOptions {
-    items: { name: string; requestedQty: number }[];
-    portalUrl: string;
-    tempPassword: string;
-    userMessage?: string;
-    expectedArrival: Date;
+  items: { name: string; requestedQty: number }[];
+  portalUrl: string;
+  tempPassword: string;
+  userMessage?: string;
+  expectedArrival: Date;
+  location?: {
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export function generateSupplierEmail(opts: SupplierEmailOptions): string {
-    const itemRows = opts.items
-        .map(
-            (item) => `
+  const itemRows = opts.items
+    .map(
+      (item) => `
       <tr>
         <td style="padding:10px 14px;border-bottom:1px solid #eee;">${item.name}</td>
         <td style="padding:10px 14px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">
           ${item.requestedQty}
         </td>
       </tr>`
-        )
-        .join('');
+    )
+    .join('');
 
-    const arrivalDate = opts.expectedArrival.toLocaleDateString('en-PH', {
-        year: 'numeric', month: 'long', day: 'numeric',
-    });
-
-    return `
+  const arrivalDate = opts.expectedArrival.toLocaleDateString('en-PH', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+  if (process.env.NODE_ENV === "development") {
+    console.log('Generating email with expected arrival:', arrivalDate);
+    console.log("URL: ", opts.portalUrl);
+  }
+  return `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#222;">
       <div style="background:#1D9E75;padding:24px;border-radius:8px 8px 0 0;">
         <h2 style="color:#fff;margin:0;">New Restock Order</h2>
@@ -45,6 +53,20 @@ export function generateSupplierEmail(opts: SupplierEmailOptions): string {
           </thead>
           <tbody>${itemRows}</tbody>
         </table>
+
+        ${opts.location ? `
+        <div style="margin:28px 0;padding:20px;background:#f0f8ff;border-radius:8px;border:1px solid #b3d9ff;">
+          <h3 style="margin:0 0 12px;color:#1976d2;">Delivery Location</h3>
+          <p style="margin:0 0 12px;font-size:14px;"><strong>Address:</strong> ${opts.location.address}</p>
+          <iframe
+            src="https://www.google.com/maps?q=${opts.location.latitude},${opts.location.longitude}&z=15&output=embed"
+            width="100%"
+            height="200"
+            style="border:0;border-radius:6px;"
+            loading="lazy">
+          </iframe>
+        </div>
+        ` : ''}
 
         <div style="margin:28px 0;padding:20px;background:#f9f6ff;border-radius:8px;border:1px solid #c9bff5;">
           <p style="margin:0 0 6px;font-size:13px;color:#666;">Your portal access credentials:</p>

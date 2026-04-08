@@ -78,6 +78,7 @@ input AddDeliveryAddressInput {
 }
 
 input AddItemToInventoryInput {
+  categoryId: Int
   itemId: Int!
   price: Float!
   quantity: Int!
@@ -107,6 +108,19 @@ type AddedOutletStaffs {
   staff: [User!]!
 }
 
+type AnalyticsSummary {
+  grossProfit: Float!
+  profitChange: Float!
+  profitMargin: Float!
+  profitableBranches: Int!
+  revenueChange: Float!
+  totalBranches: Int!
+  totalCost: Float!
+  totalItemsSold: Int!
+  totalOrders: Int!
+  totalRevenue: Float!
+}
+
 type Attendance {
   breakEnd: DateTime
   breakStart: DateTime
@@ -133,6 +147,40 @@ enum AttendanceStatus {
   PRESENT
 }
 
+enum AuditAction {
+  CREATE
+  DELETE
+  EDIT
+  LOGIN
+  LOGOUT
+  PERMISSION_CHANGE
+  VIEW
+}
+
+input AuditLogFiltersInput {
+  action: AuditAction
+  dateFrom: DateTime
+  dateTo: DateTime
+  pageKey: String
+  userId: Int
+}
+
+type AuditLogType {
+  action: AuditAction!
+  createdAt: DateTime!
+  id: String!
+  ipAddress: String
+  newValue: Json
+  oldValue: Json
+  orgId: Int!
+  pageKey: String!
+  recordId: String
+  recordType: String
+  user: User
+  userAgent: String
+  userId: Int!
+}
+
 type AuthPayload {
   refresh_token: String!
   token: String!
@@ -157,6 +205,25 @@ type Branch {
   owner: User!
   ownerId: Int!
   phone: String
+}
+
+type BranchAnalyticsPayload {
+  branch: BranchPerformance!
+  trend: [SalesTrendPoint!]!
+}
+
+type BranchPerformance {
+  branchId: Int!
+  branchName: String!
+  deltaProfit: Float!
+  deltaRevenue: Float!
+  grossProfit: Float!
+  isProfitable: Boolean!
+  profitMargin: Float!
+  totalCost: Float!
+  totalOrders: Int!
+  totalRevenue: Float!
+  trend: [Float!]!
 }
 
 type Brand {
@@ -239,12 +306,14 @@ input CreateItemInput {
   minQuantity: Int
   name: String!
   opExPct: Float
+  orgCategoryId: Int
   priceB: Float
   priceC: Float
   sellingPrice: Float!
   skuNumber: String
   stock: Int!
   vatExempt: Boolean
+  vatTypeId: Int
 }
 
 input CreateOutletPromoInput {
@@ -300,6 +369,14 @@ type CustomerDeviceToken {
   id: Int!
   platform: String!
   token: String!
+}
+
+enum DateRangePreset {
+  all
+  custom
+  this_month
+  this_week
+  today
 }
 
 """ISO 8601 DateTime string"""
@@ -560,6 +637,9 @@ type Item {
   color: [Color!]!
   costLines: [CostLines!]!
   description: String
+  exactExpiryDate: DateTime!
+  expiryEndDate: DateTime
+  expiryStartDate: DateTime
   id: Int!
   image: String
   itemCode: String
@@ -568,6 +648,8 @@ type Item {
   name: String!
   opExPct: Float!
   org: Organization!
+  orgCategory: OrgItemCategory
+  orgCategoryId: Int
   orgId: Int!
   priceB: Float
   priceC: Float
@@ -577,27 +659,24 @@ type Item {
   skuNumber: String
   stock: Float!
   totalCost: Float
-  vatExempt: Boolean!
+  vatExempt: Boolean
+  vatType: VatType!
+  vatTypeId: Int
+}
+
+type ItemAnalyticsPayload {
+  bottomItems: [ItemPerformance!]!
+  topItems: [ItemPerformance!]!
 }
 
 type ItemCategory {
-  _count: ItemCategoryCount
-  cost_of_sale: String
+  createdAt: DateTime
   description: String
-  group: ItemGroup
-  groupId: Int
   groupType: String
+  icon: String
   id: Int!
-  items: [Item!]!
   name: String!
-  org: Organization!
-  orgId: Int!
-  sales: String
-  stocks: String
-}
-
-type ItemCategoryCount {
-  itemCount: Int
+  orgCategories: [OrgItemCategory!]!
 }
 
 type ItemCategoryMap {
@@ -608,7 +687,7 @@ type ItemCategoryMap {
 }
 
 type ItemGroup {
-  categories: [ItemCategory!]!
+  categories: [OrgItemCategory!]!
   createdAt: DateTime!
   description: String
   icon: String
@@ -621,6 +700,35 @@ type ItemGroup {
 
 input ItemInput {
   id: Int!
+}
+
+type ItemPerformance {
+  categoryName: String
+  grossProfit: Float!
+  itemId: Int!
+  itemImage: String
+  itemName: String!
+  profitMargin: Float!
+  revenuePerUnit: Float!
+  status: ItemStatus!
+  totalCost: Float!
+  totalRevenue: Float!
+  trend: ItemTrend!
+  trendPct: Float!
+  unitsSold: Int!
+}
+
+enum ItemStatus {
+  loss_item
+  slow_mover
+  stable
+  top_seller
+}
+
+enum ItemTrend {
+  down
+  stable
+  up
 }
 
 type ItemUnit {
@@ -680,35 +788,42 @@ type Mutation {
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelEkumpraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): EkumpraCOrder!
+  confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
   confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
   createAccountTitle(code: String, name: String, orgId: Int): AccountTitle
   createBranch(address: String!, name: String!, phone: String): Branch!
+  createCategories(categories: [String!]!): [ItemCategory!]!
   createCenter(name: String, orgId: Int): Center
   createDepartment(name: String, orgId: Int): Department
   createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
   createGISRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): GISRow
+  createHRUser(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String, role: Role): User!
   createInventory(name: String, outletId: Int!): Inventory
   createInventoryItem(itemGroupId: Int, name: String, orgId: Int, price: Float, quantity: Int): InventoryItem
   createItem(data: CreateItemInput!): Item
-  createItemGroup(name: String, orgId: Int): ItemGroup
+  createItemGroup(name: String): ItemGroup
   createItems(items: [CreateItemInput!]!): BatchPayload!
+  createOrgItemCategory(categoryId: Int, cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, name: String!, sales: String, stocks: String): OrgItemCategory!
   createOrganization(name: String!): Organization
   createOutlet(address: String!, bannerImage: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String, serviceCharge: Float!, status: OutletStatus): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
-  createPosition(name: String, orgId: Int): Position
+  createPosition(input: PositionInput!): Position!
   createPromoType(data: CreatePromoTypeInput!): PromoType!
+  createRestockCycle(data: RestockCycleInput!): RestockCycle
+  createRestockSchedule(data: RestockScheduleInput!): RestockSchedule
   createSalesOrder(customerName: String, orgId: Int, status: String, totalAmount: Float): SalesOrder
-  createStaff(email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
+  createStaff(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String, role: Role, username: String!): User!
   createSubCenter(centerId: Int, name: String, orgId: Int): SubCenter
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): SummaryRow
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
-  createVatType(name: String, orgId: Int, rate: Int): VatType
+  createVatType(name: String, rate: Float): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
   deleteAccountTitle(id: Int): AccountTitle
   deleteBranch(id: ID!): Branch!
+  deleteCategory(id: ID!): ItemCategory!
   deleteCenter(id: Int): Center
   deleteDepartment(id: Int): Department
   deleteEmployee(id: Int): Employee
@@ -718,12 +833,15 @@ type Mutation {
   deleteItem(id: ID!): Item!
   deleteItemGroup(id: Int): ItemGroup
   deleteItemMedia(id: Int!): Media!
+  deleteOrgItemCategory(id: Int!): OrgItemCategory!
   deleteOutlet(id: ID!): Outlet!
   deleteOutletPromo(id: Int!): OutletPromo!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
   deletePlaceLocation(id: Int): PlaceLocation
-  deletePosition(id: Int): Position
+  deletePosition(id: String!): Position!
   deletePromoType(id: Int!): PromoType!
+  deleteRestockCycle(id: Int!): RestockCycle
+  deleteRestockSchedule(id: Int!): RestockSchedule
   deleteSalesOrder(id: Int): SalesOrder
   deleteSubCenter(id: Int): SubCenter
   deleteSummaryRow(id: Int): SummaryRow
@@ -737,17 +855,25 @@ type Mutation {
   me: User!
   placeEkumpraOrder(customerId: Int!, input: PlaceOrderInput!): EkumpraCOrder!
   refreshToken(refresh_token: String!): AuthPayload!
+  registerAdmin(contactNumber: String, email: String!, fullname: String!, password: String!, role: String): User!
   registerEkumpraCustomer(input: RegisterCustomerInput!): EkumpraCustomer!
   registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   resendOTP(email: String!): String!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
+  setPositionPermissions(permissions: [PermissionInput!]!, positionId: String!): [PositionPermission!]!
+  setUserPermissionOverride(canCreate: Boolean, canDelete: Boolean, canEdit: Boolean, canView: Boolean, pageId: String!, userId: Int!): UserPermissionOverride!
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   startBreak(photo: String): Attendance
+  supplierAcknowledgeOrder(token: String!): SupplierOrder
+  supplierSubmitOrder(action: String!, items: [SupplierOrderItemInput!]!, message: String, token: String!): SupplierOrder
   timeIn(photo: String): Attendance
   timeOut(photo: String): Attendance
+  toggleRestockCycle(id: Int!): RestockCycle
+  toggleRestockSchedule(id: Int!): RestockSchedule
   updateAccountTitle(code: String, id: Int, name: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
+  updateCategory(id: ID!, name: String!): ItemCategory!
   updateCenter(id: Int, name: String): Center
   updateDepartment(id: Int, name: String): Department
   updateEmployee(departmentId: Int, id: Int, name: String, positionId: Int): Employee
@@ -755,20 +881,23 @@ type Mutation {
   updateInventory(id: Int!, name: String!): Inventory
   updateInventoryItem(id: Int, itemGroupId: Int, name: String, price: Float, quantity: Int): InventoryItem
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
-  updateItem(id: ID!, item: UpdateItemInput!): Item!
+  updateItem(data: UpdateItemInput!, id: ID!): Item!
   updateItemGroup(id: Int, name: String): ItemGroup
+  updateOrgItemCategory(cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, id: Int!, isActive: Boolean, name: String, sales: String, stocks: String): OrgItemCategory!
   updateOrganization(id: Int, name: String): Organization
-  updateOutlet(address: String!, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletId: ID!, outletType: OutletType!, phone: String!, serviceCharge: Float!, status: OutletStatus): Outlet!
+  updateOutlet(address: String, bannerImage: String, code: String, governmentTax: Float, isActive: Boolean, latitude: Float, longitude: Float, name: String, outletId: ID!, outletType: OutletType, phone: String, serviceCharge: Float, status: OutletStatus): Outlet!
   updateOutletPromo(data: UpdateOutletPromoInput!, id: Int!): OutletPromo!
   updatePlaceLocation(address: String, id: Int, name: String): PlaceLocation
-  updatePosition(id: Int, name: String): Position
+  updatePosition(id: String!, input: PositionInput!): Position!
   updatePromoType(data: UpdatePromoTypeInput!, id: Int!): PromoType!
+  updateRestockCycle(data: RestockCycleInput!, id: Int!): RestockCycle
+  updateRestockSchedule(data: RestockScheduleInput!, id: Int!): RestockSchedule
   updateSalesOrder(customerName: String, id: Int, status: String, totalAmount: Float): SalesOrder
   updateSubCenter(centerId: Int, id: Int, name: String): SubCenter
   updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSummaryRow(accountTitleId: Int, amount: Float, description: String, id: Int): SummaryRow
-  updateUser(fullname: String, id: ID!, username: String): User!
-  updateVatType(id: Int, name: String, rate: Int): VatType
+  updateUser(fullname: String, id: ID!, positionId: String, username: String): User!
+  updateVatType(id: Int, name: String, rate: Float): VatType
   verifyEmail(code: String!, email: String!): AuthPayload!
 }
 
@@ -786,6 +915,26 @@ enum OrderStatus {
   preparing
   received
   returned
+}
+
+type OrgItemCategory {
+  categoryId: Int
+  cost_of_sale: String
+  createdAt: DateTime!
+  description: String
+  globalCategory: ItemCategory
+  group: ItemGroup
+  groupId: Int
+  groupType: String
+  icon: String
+  id: Int!
+  isActive: Boolean!
+  items: [Item!]!
+  name: String
+  org: Organization!
+  orgId: Int!
+  sales: String
+  stocks: String
 }
 
 type Organization {
@@ -973,6 +1122,19 @@ type OutletsWithStaff {
   staff: [User!]!
 }
 
+type Page {
+  id: String!
+  key: String!
+  label: String!
+  parentKey: String
+  sortOrder: Int!
+}
+
+input PaginationInput {
+  page: Int
+  pageSize: Int
+}
+
 type PaymentInitiation {
   client_key: String!
   paymentIntentId: String!
@@ -1009,6 +1171,14 @@ type PaymongoAPIKeys {
   public_key: String!
 }
 
+input PermissionInput {
+  canCreate: Boolean!
+  canDelete: Boolean!
+  canEdit: Boolean!
+  canView: Boolean!
+  pageId: String!
+}
+
 type PlaceLocation {
   address: String!
   branch: Branch!
@@ -1028,10 +1198,39 @@ input PlaceOrderInput {
 }
 
 type Position {
-  id: Int!
-  label: String!
+  controlPermissions: [PositionControlPermission!]!
+  description: String
+  id: String!
+  name: String!
   org: Organization!
   orgId: Int!
+  permissions: [PositionPermission!]!
+  users: [User!]!
+}
+
+type PositionControlPermission {
+  controlKey: String!
+  id: String!
+  isAllowed: Boolean!
+  position: Position
+  positionId: String!
+}
+
+input PositionInput {
+  description: String
+  name: String!
+}
+
+type PositionPermission {
+  canCreate: Boolean!
+  canDelete: Boolean!
+  canEdit: Boolean!
+  canView: Boolean!
+  id: String!
+  page: Page
+  pageId: String!
+  position: Position
+  positionId: String!
 }
 
 type PromoType {
@@ -1051,6 +1250,7 @@ type Query {
   ME: User!
   accountTitle(id: Int): AccountTitle
   accountTitles(orgId: Int): [AccountTitle]
+  auditLogs(filters: AuditLogFiltersInput, orgId: Int!, pagination: PaginationInput): [AuditLogType!]!
   center(id: Int): Center
   centers(orgId: Int): [Center]
   checkUserTimeInStatus(userId: ID!): TimeInStatus
@@ -1060,26 +1260,39 @@ type Query {
   employee(id: Int): Employee
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
+  getAllCategories(orderBy: String, pageSize: Int, query: String): [ItemCategory!]!
   getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs(orgId: Int): [User!]!
   getAllUsers: [User!]!
+  getBranchAnalytics(branchId: Int!, endDate: String, preset: DateRangePreset!, startDate: String): BranchAnalyticsPayload!
   getBranchById(id: ID!): Branch!
   getBranchTransactions(endDate: DateTime, id: ID!, startDate: DateTime): [Transaction!]!
+  getCategoryById(id: ID!): ItemCategory!
   getInventoryByOutletId(outletId: Int!): Outlet
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
+  getItemAnalytics(endDate: String, limit: Int, preset: DateRangePreset!, startDate: String): ItemAnalyticsPayload!
   getItemById(id: ID!): Item!
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
   getItemsByOutlet(outletId: ID!): [InventoryItems]
   getMyAttendanceToday: Attendance
+  getOrgBranches: [Branch!]!
+  getOrgCategories(groupId: Int, isActive: Boolean, orderBy: String, pageSize: Int, query: String): [OrgItemCategory!]!
+  getOrgCategoryById(id: Int!): OrgItemCategory
+  getOrgCategoryItems(id: Int!): [Item!]!
   getOutletById(id: ID!): Outlet
   getOutletItems: OutletWithItems!
   getOutletStaff(outletId: ID!): [User!]!
   getOutletTransactions(endDate: DateTime, outletId: ID!, startDate: DateTime): [Transaction!]!
   getOutlets: [Outlet!]!
-  getOutletsByBranch(branchId: ID!): [Outlet!]!
-  getOwnedBranches: [Branch!]!
+  getOutletsByBranch(branchId: ID!, search: String): [Outlet!]!
+  getOwnedBranches(search: String): [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
+  getRestockCycles(scheduleId: Int!): [RestockCycle!]!
+  getRestockSchedule(id: Int!): RestockSchedule
+  getRestockSchedules: [RestockSchedule!]!
+  getSalesAnalytics(endDate: String, preset: DateRangePreset!, startDate: String): SalesAnalyticsPayload!
   getStaffByOutletId(outletId: ID!): [UserStaff!]!
+  getSupplierOrder(token: String!): SupplierOrder
   getTodayAttendanceByOrganization(orgId: Int): [Attendance]
   getTransactionsByOrgId(endDate: String, orgId: Int!, startDate: String): [Transaction!]!
   getTransactionsByStoreId(endDate: String, outletId: Int!, startDate: String): [Transaction!]!
@@ -1105,10 +1318,11 @@ type Query {
   outletPromos: [OutletPromo!]!
   outletPromosByOutlet(outletId: Int!): [OutletPromo!]!
   outletPromosByPromoType(promoTypeId: Int!): [OutletPromo!]!
+  pages: [Page!]!
   placeLocation(id: Int): PlaceLocation
   placeLocations(orgId: Int): [PlaceLocation]
-  position(id: Int): Position
-  positions(orgId: Int): [Position]
+  position(id: String!): Position
+  positions: [Position!]!
   promoType(id: Int!): PromoType
   promoTypes: [PromoType!]!
   promoTypesByOrg(orgId: Int!): [PromoType!]!
@@ -1120,10 +1334,11 @@ type Query {
   summaryRow(id: Int): SummaryRow
   summaryRows(orgId: Int): [SummaryRow]
   vatType(id: Int): VatType
-  vatTypes(orgId: Int): [VatType]
+  vatTypes: [VatType]
 }
 
 enum RecurrenceType {
+  custom
   daily
   monthly
   once
@@ -1137,34 +1352,118 @@ input RegisterCustomerInput {
   phone: String!
 }
 
+type RestockCycle {
+  address: String
+  branch: Branch
+  branchId: Int
+  createdAt: DateTime!
+  cycleItems: [RestockCycleItem!]!
+  emailBody: String
+  emailRecipient: String!
+  emailSubject: String
+  firedAt: DateTime
+  id: Int!
+  isActive: Boolean!
+  latitude: Float
+  longitude: Float
+  orgId: Int!
+  outlet: Outlet
+  outletId: Int
+  scheduleId: Int!
+  scheduledAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input RestockCycleInput {
+  address: String
+  branchId: Int
+  emailBody: String
+  emailRecipient: String!
+  emailSubject: String
+  items: [RestockCycleItemInput!]!
+  latitude: Float
+  longitude: Float
+  outletId: Int
+  scheduleId: Int!
+  scheduledAt: DateTime!
+}
+
+type RestockCycleItem {
+  cycleId: Int!
+  id: Int!
+  item: Item!
+  itemId: Int!
+  quantity: Float!
+}
+
+input RestockCycleItemInput {
+  itemId: Int!
+  quantity: Float!
+}
+
 type RestockSchedule {
-  createdAt: DateTime
+  address: String
+  branch: Branch
+  branchId: Int
+  createdAt: DateTime!
+  customTimes: Json
+  cycles: [RestockCycle!]!
   dayOfMonth: Int
   dayOfWeek: Int
   emailBody: String
-  emailRecipient: String
+  emailRecipient: String!
   emailSubject: String
   endDate: DateTime
-  id: Int
-  isActive: Boolean
-  itemId: Int
+  id: Int!
+  isActive: Boolean!
   lastTriggeredAt: DateTime
-  orgId: Int
-  recurrence: RecurrenceType
+  latitude: Float
+  longitude: Float
+  orgId: Int!
+  outlet: Outlet
+  outletId: Int
+  recurrence: RecurrenceType!
+  scheduleItems: [RestockScheduleItem!]!
   startDate: DateTime
-  timeOfDay: String
+  timeOfDay: String!
+  updatedAt: DateTime!
 }
 
 input RestockScheduleInput {
+  address: String
+  branchId: Int
+  customTimes: Json
   dayOfMonth: Int
   dayOfWeek: Int
   emailBody: String
-  emailRecipient: String
+  emailRecipient: String!
   emailSubject: String
-  endDate: DateTime!
-  itemId: Int
-  recurrence: RecurrenceType
+  endDate: DateTime
+  items: [RestockScheduleItemInput!]!
+  latitude: Float
+  longitude: Float
+  outletId: Int
+  recurrence: RecurrenceType!
   startDate: DateTime!
+  timeOfDay: String!
+}
+
+type RestockScheduleItem {
+  dayOfMonth: Int
+  dayOfWeek: Int
+  id: Int!
+  item: Item!
+  itemId: Int!
+  quantity: Float!
+  scheduleId: Int!
+  timeOfDay: String
+}
+
+input RestockScheduleItemInput {
+  dayOfMonth: Int
+  dayOfWeek: Int
+  itemId: Int!
+  quantity: Float!
   timeOfDay: String
 }
 
@@ -1174,6 +1473,14 @@ enum Role {
   MANAGER
   OWNER
   STAFF
+}
+
+type SalesAnalyticsPayload {
+  bottomItems: [ItemPerformance!]!
+  branches: [BranchPerformance!]!
+  summary: AnalyticsSummary!
+  topItems: [ItemPerformance!]!
+  trend: [SalesTrendPoint!]!
 }
 
 type SalesOrder {
@@ -1189,6 +1496,14 @@ type SalesOrder {
   total: Float!
   user: User
   userId: Int
+}
+
+type SalesTrendPoint {
+  cost: Float!
+  label: String!
+  orders: Int!
+  profit: Float!
+  revenue: Float!
 }
 
 input SearchItemInput {
@@ -1254,6 +1569,49 @@ type SummaryRow {
   userId: Int
 }
 
+type SupplierOrder {
+  createdAt: DateTime!
+  expectedArrival: DateTime!
+  id: Int!
+  items: [SupplierOrderItem!]!
+  orgId: Int!
+  scheduleId: Int
+  status: SupplierOrderStatus!
+  supplierEmail: String!
+  supplierMessage: String
+  updatedAt: DateTime!
+  userMessage: String
+}
+
+type SupplierOrderItem {
+  confirmedQty: Float
+  deliveredQty: Float
+  exactExpiryDate: DateTime
+  expiryEndDate: DateTime
+  expiryStartDate: DateTime
+  id: Int!
+  item: Item!
+  itemId: Int!
+  orderId: Int!
+  requestedQty: Float!
+}
+
+input SupplierOrderItemInput {
+  deliveredQty: Float!
+  exactExpiryDate: DateTime
+  expiryEndDate: DateTime
+  expiryStartDate: DateTime
+  orderItemId: Int!
+}
+
+enum SupplierOrderStatus {
+  acknowledged
+  cancelled
+  delivered
+  pending
+  sent
+}
+
 type TimeInStatus {
   hasTimeIn: Boolean!
   lastTimeIn: DateTime
@@ -1314,12 +1672,14 @@ input UpdateItemInput {
   minQuantity: Int
   name: String
   opExPct: Float
+  orgCategoryId: Int
   priceB: Float
   priceC: Float
   sellingPrice: Float!
   skuNumber: String
   stock: Int
   vatExempt: Boolean
+  vatTypeId: Int
 }
 
 input UpdateOutletPromoInput {
@@ -1337,6 +1697,8 @@ type User {
   branchesOwned: [Branch!]!
   contactNumber: String
   createdAt: DateTime!
+  department: Department
+  departmentId: Int
   email: String!
   employees: [Employee]!
   enabledPaymentMethod: Boolean!
@@ -1353,6 +1715,8 @@ type User {
   outletPromo: [OutletPromo]!
   password: String!
   paymongoAPIKeys: PaymongoAPIKeys
+  position: Position
+  positionId: String
   profilePhoto: String
   promoType: [PromoType]!
   role: Role!
@@ -1362,6 +1726,18 @@ type User {
   transaction: [Transaction]!
   username: String!
   verificationCode: String
+}
+
+type UserPermissionOverride {
+  canCreate: Boolean
+  canDelete: Boolean
+  canEdit: Boolean
+  canView: Boolean
+  id: String!
+  page: Page
+  pageId: String!
+  user: User
+  userId: Int!
 }
 
 type UserShift {
@@ -1382,9 +1758,10 @@ type UserStaff {
 
 type VatType {
   id: Int!
-  label: String!
+  name: String!
   org: Organization!
   orgId: Int!
+  rate: Float!
 }
 
 enum orderBy {

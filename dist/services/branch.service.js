@@ -46,12 +46,21 @@ export const getBranchById = async (id) => {
  * @description
  * Retrieves all branches owned by a specific user.
  * @param {number} ownerId - The ID of the user who owns the branches.
+ * @param {string} search - Optional search string to filter by name or address.
  * @returns {Promise<object[]>} An array of branch objects.
  */
-export const getOwnedBranches = async (ownerId) => {
+export const getOwnedBranches = async (orgId, search) => {
     // Corrected the method name to findMany
     const branches = await prisma.branch.findMany({
-        where: { ownerId },
+        where: {
+            orgId,
+            ...(search && {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { address: { contains: search, mode: 'insensitive' } },
+                ],
+            }),
+        },
         select: {
             id: true, // It's a good practice to always select the ID
             name: true,

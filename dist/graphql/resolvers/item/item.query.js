@@ -1,3 +1,4 @@
+// rai-pos-backend\src\graphql\resolvers\item\item.query.ts
 import { extendType, nonNull, intArg, objectType, nullable, stringArg, enumType, arg, list } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as itemService from "../../../services/item.service.js";

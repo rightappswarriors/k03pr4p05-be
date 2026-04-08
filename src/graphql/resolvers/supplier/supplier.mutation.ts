@@ -266,6 +266,20 @@ export const SupplierMutation = extendType({
           });
         });
 
+        // Notify supplier that their order was received by the client.
+        await sendEmail({
+          to: order.supplierEmail,
+          from: 'noreply@yourdomain.com',
+          subject: `Order #${order.id} Confirmed Received`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+              <h2>Order Received</h2>
+              <p>Your order (ID: ${order.id}) has been marked as <strong>delivered</strong> by the customer.</p>
+              <p>Thank you for fulfilling the delivery.</p>
+            </div>
+          `,
+        });
+
         return prisma.supplierOrder.findUnique({ where: { id: orderId } });
       },
     });

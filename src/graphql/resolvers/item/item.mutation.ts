@@ -33,6 +33,8 @@ export const CreateItemInput = inputObjectType({
     t.nullable.string("brand")
     t.nullable.int("categoryId")
     t.nonNull.float("sellingPrice")
+    t.nullable.int("categoryId")        // global category
+    t.nullable.int("orgCategoryId")     // ✅ org category
     t.nonNull.int("stock")          // ← new required field
     t.nullable.int("brandId")       // ← missing
     t.nullable.string("itemCode")   // ← missing
@@ -45,6 +47,7 @@ export const CreateItemInput = inputObjectType({
     t.nullable.float("priceB")          // ← new field
     t.nullable.float("priceC")          // ← new field
     t.nullable.int("minQuantity")       // ← new field
+    t.nullable.int("vatTypeId")
   },
 })
 export const ItemInput = inputObjectType({
@@ -92,13 +95,16 @@ export const UpdateItemInput = inputObjectType({
     t.nullable.int("categoryId");
     t.nullable.int("stock");
     t.nullable.float("priceB")
+    t.nullable.int("categoryId")        // global
+    t.nullable.int("orgCategoryId")     // ✅ org
     t.nullable.float("priceC")
-    t.nullable.float("opExPct") 
+    t.nullable.float("opExPct")
     t.nullable.int("minQuantity")
     t.nullable.boolean("vatExempt");
     t.nullable.boolean("ServiceCharge");
     t.nullable.boolean("assembly");
     t.nullable.string("skuNumber");
+    t.nullable.int("vatTypeId")
   },
 });
 
@@ -133,13 +139,13 @@ export const ItemMutation = extendType({
       type: "Item",
       args: {
         id: nonNull(arg({ type: "ID" })),
-        item: nonNull(arg({ type: "UpdateItemInput" })),
+        data: nonNull(arg({ type: "UpdateItemInput" })),
       },
-      async resolve(_, { id, item }, ctx) {
+      async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER"]);
         // check if all fields are null/undefined
-        const hasAtLeastOneField = Object.values(item).some(
+        const hasAtLeastOneField = Object.values(data).some(
           (value) => value !== null && value !== undefined
         );
 
@@ -147,7 +153,7 @@ export const ItemMutation = extendType({
           throw new Error("You must provide at least one field to update.");
         }
         try {
-          const updatedItem = await itemService.updateItem(Number(id), item);
+          const updatedItem = await itemService.updateItem(Number(id), data);
           if (!updatedItem) {
             throw new Error("Item not found")
           }

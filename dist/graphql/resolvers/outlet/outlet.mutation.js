@@ -139,31 +139,36 @@ export const outletMutation = extendType({
             type: "Outlet",
             args: {
                 outletId: nonNull(arg({ type: "ID" })),
-                name: nonNull(arg({ type: "String" })),
-                address: nonNull(arg({ type: "String" })),
-                branchId: nonNull(arg({ type: "ID" })),
-                phone: nonNull(arg({ type: "String" })),
-                code: nonNull(arg({ type: "String" })),
+                name: nullable(arg({ type: "String" })),
+                address: nullable(arg({ type: "String" })),
+                phone: nullable(arg({ type: "String" })),
+                code: nullable(arg({ type: "String" })),
                 status: nullable(arg({ type: "OutletStatus" })),
                 isActive: nullable(booleanArg()),
-                governmentTax: nonNull(arg({ type: "Float" })),
-                serviceCharge: nonNull(arg({ type: "Float" })),
-                outletType: nonNull(arg({ type: "OutletType" })),
+                governmentTax: nullable(arg({ type: "Float" })),
+                serviceCharge: nullable(arg({ type: "Float" })),
+                outletType: nullable(arg({ type: "OutletType" })),
                 longitude: nullable(arg({ type: "Float" })),
                 latitude: nullable(floatArg()),
+                bannerImage: nullable(arg({ type: "String" })),
             },
-            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive }, ctx) {
+            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", outletId);
                 // Ensure at least one field to update
-                if (!name &&
-                    !address &&
-                    !phone &&
-                    !code &&
-                    !governmentTax &&
-                    !serviceCharge &&
-                    !outletType) {
+                if (name === undefined &&
+                    address === undefined &&
+                    phone === undefined &&
+                    code === undefined &&
+                    governmentTax === undefined &&
+                    serviceCharge === undefined &&
+                    outletType === undefined &&
+                    status === undefined &&
+                    latitude === undefined &&
+                    longitude === undefined &&
+                    isActive === undefined &&
+                    bannerImage === undefined) {
                     throw new Error("At least one field is required to update the outlet.");
                 }
                 try {
@@ -182,13 +187,17 @@ export const outletMutation = extendType({
                         updateData.serviceCharge = serviceCharge;
                     if (outletType !== undefined && outletType !== null)
                         updateData.outletType = outletType;
-                    return await outletService.updateOutlet(Number(outletId), {
-                        ...updateData,
-                        status,
-                        latitude,
-                        longitude,
-                        isActive
-                    });
+                    if (status !== undefined && status !== null)
+                        updateData.status = status;
+                    if (latitude !== undefined && latitude !== null)
+                        updateData.latitude = latitude;
+                    if (longitude !== undefined && longitude !== null)
+                        updateData.longitude = longitude;
+                    if (isActive !== undefined && isActive !== null)
+                        updateData.isActive = isActive;
+                    if (bannerImage !== undefined && bannerImage !== null)
+                        updateData.bannerImage = bannerImage;
+                    return await outletService.updateOutlet(Number(outletId), updateData);
                 }
                 catch (error) {
                     if (error.code === "P2002") {

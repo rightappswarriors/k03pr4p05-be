@@ -13,8 +13,8 @@ export interface EmailData {
 export async function sendEmail(data: EmailData): Promise<boolean> {
   try {
     const result = await resend.emails.send({
-      from: data.from,
-      to: data.to,
+      from: "onboarding@resend.dev", // data.from,
+      to: "rai.rusianaemmanuel@gmail.com",//data.to,
       subject: data.subject,
       html: data.html,
     });

@@ -10,7 +10,7 @@ const prisma = new PrismaClient()
  * @param {object} categoryData - The data for the new category.
  * @returns {Promise<object>} The newly created category.
  */
-export const createCategory = async (categoryData) => {
+export const createCategory = async (categoryData: any) => {
   const newCategory = await prisma.itemCategory.create({
     data: {
       ...categoryData,
@@ -25,8 +25,8 @@ export const createCategory = async (categoryData) => {
  * @param {Array<object>} categories - An array of category objects.
  * @returns {Promise<object>} An object containing the count of created categories.
  */
-export const createCategories = async (categories) => {
-  const names = categories.map((c) => c.name);
+export const createCategories = async (categories: any) => {
+  const names = categories.map((c: any) => c.name);
 
   // Insert new categories (skip duplicates)
   await prisma.itemCategory.createMany({
@@ -74,15 +74,15 @@ export const getAllCategories = async (
     select: {
       id: true,
       name: true,
-      _count: {
-        select: { items: true },
-      },
+      //_count: {
+      //  select: { items: true },
+      //},
     },
-    orderBy: {
-      items: {
-        _count: orderBy, // ✅ correct way to order by relation count
-      },
-    },
+    //orderBy: {
+    //  items: {
+    //    _count: orderBy, // ✅ correct way to order by relation count
+    //  },
+    // },
   });
   return categories;
 };
@@ -92,17 +92,17 @@ export const getAllCategories = async (
  * @param {number} id - The ID of the category.
  * @returns {Promise<object[]|null>} An array of items in that category or null if not found.
  */
-export const getItemsByCategoryId = async (id) => {
+export const getItemsByCategoryId = async (id: any) => {
   // Using findUnique is more efficient here since an ID is a unique key.
-  const categoryWithItems = await prisma.itemCategory.findUnique({
+  const categories = await prisma.itemCategory.findUnique({
     where: { id },
     select: {
-      items: true, // Selects the items related to this category.
+      name: true, // Selects the items related to this category.
     },
   });
 
   // Return the array of items, or null if the category wasn't found.
-  return categoryWithItems?.items || null;
+  return categories;
 };
 
 /**
@@ -112,7 +112,7 @@ export const getItemsByCategoryId = async (id) => {
  * @param {object} categoryData - The data to update the category with.
  * @returns {Promise<object>} The updated category record.
  */
-export const updateCategoryById = async (id, name) => {
+export const updateCategoryById = async (id: any, name: string) => {
   const updatedCategory = await prisma.itemCategory.update({
     where: { id },
     data: { name }, // Corrected: use categoryData instead of storeData
@@ -126,7 +126,7 @@ export const updateCategoryById = async (id, name) => {
  * @param {number} id - The ID of the category to delete.
  * @returns {Promise<void>}
  */
-export const deleteCategory = async (id) => {
+export const deleteCategory = async (id: any) => {
   // Use a transaction to ensure both deletions succeed or fail together.
   return await prisma.$transaction(async (tx) => {
     return await tx.itemCategory.delete({

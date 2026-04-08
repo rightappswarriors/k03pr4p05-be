@@ -19,6 +19,7 @@ export const AddItemToInventoryInput = inputObjectType({
     t.nonNull.int("itemId")
     t.nonNull.int("quantity")
     t.nonNull.float("price")
+    t.nullable.int("categoryId")
   }
 })
 

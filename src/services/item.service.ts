@@ -4,6 +4,63 @@ import { Item } from "../graphql/typeDefs";
 const prisma = new PrismaClient()
 
 
+interface CostLineInput {
+  label: string;
+  amount: number;
+}
+
+interface CreateItemInput {
+  orgId: number;
+  name: string;
+  barcode: string;
+  stock?: number | null;
+  brand?: string | null;
+  description?: string | null;
+  sellingPrice: number;
+  image?: string | null;
+  costLines?: CostLineInput[];
+  categoryId?: number | null;
+  brandId?: number | null;
+  itemCode?: string | null;
+  skuNumber?: string | null;
+  vatExempt?: boolean | null;
+  ServiceCharge?: boolean | null;
+  assembly?: boolean | null;
+  minQuantity?: number | null;
+  opExPct?: number;
+  priceB?: number | null;
+  priceC?: number | null;
+}
+
+interface UpdateItemInput {
+  name?: string | null;
+  image?: string | null;
+  description?: string | null;
+  barcode?: string | null;
+  brand?: string | null;
+  sellingPrice: number; // nonNull in schema — always required
+  costLines?: CostLineInput[];
+  brandId?: number | null;
+  itemCode?: string | null;
+  categoryId?: number | null;
+  stock?: number | null;
+  priceB?: number | null;
+  priceC?: number | null;
+  opExPct?: number | null;
+  minQuantity?: number | null;
+  vatExempt?: boolean | null;
+  ServiceCharge?: boolean | null;
+  assembly?: boolean | null;
+  skuNumber?: string | null;
+}
+
+interface InventoryItemUpdateInput {
+  quantity?: number | null;
+  price?: number | null;
+  name?: string | null;
+  locationData?: { aisle?: string; rack?: string; shelf?: string } | null;
+  itemData?: { id: number } | null;
+}
 // Your existing service functions...
 
 /**
@@ -24,9 +81,10 @@ export const bulkCreateItems = async (
     brand?: string | null;
     description?: string | null;
     sellingPrice: number;
-    costLines: { label: string; amount: number }[]
+    costLines?: { label: string; amount: number }[];
     image?: string | null;
     categoryId?: number | null;
+    orgCategoryId?: number | null;      // ✅ add
     brandId?: number | null;
     itemCode?: string | null;
     skuNumber?: string | null;
@@ -34,17 +92,16 @@ export const bulkCreateItems = async (
     ServiceCharge?: boolean | null;
     assembly?: boolean | null;
     minQuantity?: number | null;
-    opExPct: number
+    opExPct?: number | null;
     priceB?: number | null;
     priceC?: number | null;
+    vatTypeId?: number | null;          // ✅ optional
   }>
 ) => {
-
   const result = await prisma.$transaction(
-
     items.map((item) => {
       const itemTotalCost =
-        item.costLines?.reduce((sum, line) => sum + line.amount, 0) || 0
+        item.costLines?.reduce((sum, line) => sum + line.amount, 0) || 0;
 
       return prisma.item.create({
         data: {
@@ -55,11 +112,11 @@ export const bulkCreateItems = async (
           brand: item.brand ?? null,
           sellingPrice: item.sellingPrice,
           minQuantity: item.minQuantity ?? 0,
-          // ✅ costLines works here
           priceB: item.priceB ?? null,
           priceC: item.priceC ?? null,
           totalCost: itemTotalCost,
-          opExPct: item.opExPct,
+          opExPct: item.opExPct ?? 0.1,
+          vatTypeId: item.vatTypeId ?? null,    // ✅ optional
           costLines: item.costLines?.length
             ? {
               create: item.costLines.map((line) => ({
@@ -68,10 +125,10 @@ export const bulkCreateItems = async (
               })),
             }
             : undefined,
-
           description: item.description ?? null,
           image: item.image ?? null,
           categoryId: item.categoryId ?? null,
+          orgCategoryId: item.orgCategoryId ?? null, // ✅ add
           brandId: item.brandId ?? null,
           itemCode: item.itemCode ?? null,
           skuNumber: item.skuNumber ?? null,
@@ -79,12 +136,10 @@ export const bulkCreateItems = async (
           ServiceCharge: item.ServiceCharge ?? false,
           assembly: item.assembly ?? false,
         },
-      })
-    }
-    )
-  )
-
-  return result.length
+      });
+    })
+  );
+  return result.length;
 };
 /**
  * @description
@@ -232,31 +287,62 @@ export const getItemById = async (id) => {
     where: { id: id }
   })
 }
-export const updateItem = async (id, data) => {
 
-  const totalCost = data.reduce((sum, item) => {
-    return (
-      sum +
-      (item.costLines?.reduce((s, l) => s + l.amount, 0) || 0)
-    )
-  }, 0)
+/**
+ * Updates a single Item by id.
+ * Replaces all costLines in one transaction (deleteMany + create).
+ * totalCost is recalculated from the incoming costLines when provided.
+ */
+export const updateItem = async (id: number, data: UpdateItemInput) => {
+  // Only recalculate totalCost when costLines are explicitly provided
+  const totalCost =
+    data.costLines != null
+      ? data.costLines.reduce((sum, line) => sum + line.amount, 0)
+      : undefined;
+
   return prisma.item.update({
     where: { id },
     data: {
-      ...data,
-      totalCost: totalCost ? totalCost : undefined,
-      costLines: data.costLines
-        ? {
-          deleteMany: {}, // 🧹 remove all existing
-          create: data.costLines.map((line) => ({
+      // Spread scalar fields — Prisma ignores undefined values
+      name: data.name ?? undefined,
+      image: data.image ?? undefined,
+      description: data.description ?? undefined,
+      barcode: data.barcode ?? undefined,
+      brand: data.brand ?? undefined,
+      sellingPrice: data.sellingPrice,
+      brandId: data.brandId ?? undefined,
+      itemCode: data.itemCode ?? undefined,
+      categoryId: data.categoryId ?? undefined,
+      stock: data.stock ?? undefined,
+      priceB: data.priceB ?? undefined,
+      priceC: data.priceC ?? undefined,
+      opExPct: data.opExPct ?? undefined,
+      minQuantity: data.minQuantity ?? undefined,
+      vatExempt: data.vatExempt ?? undefined,
+      ServiceCharge: data.ServiceCharge ?? undefined,
+      assembly: data.assembly ?? undefined,
+      skuNumber: data.skuNumber ?? undefined,
+      // Only touch totalCost / costLines when caller provided costLines
+      ...(totalCost !== undefined && { totalCost }),
+      ...(data.costLines != null && {
+        costLines: {
+          deleteMany: {}, // wipe existing lines
+          create: data.costLines.map((line: { label: string, amount: number }) => ({
             label: line.label,
             amount: line.amount,
           })),
-        }
-        : undefined,
+        },
+      }),
     },
-  })
-}
+    include: {
+      category: true,
+      brandDetails: true,
+      costLines: true,
+      media: { orderBy: { sortOrder: "asc" } },
+    },
+  });
+};
+
 export const deleteItem = async (id) => {
   return prisma.item.delete({
     where: { id: id }

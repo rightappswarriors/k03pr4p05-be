@@ -1,102 +1,79 @@
-import { restockQueue } from '../queue/restock.queue';
-import { RecurrenceType } from '@prisma/client';
-function generateCronPattern(schedule) {
-    const [hours, minutes] = schedule.timeOfDay.split(':');
-    switch (schedule.recurrence) {
-        case RecurrenceType.once:
-            // For once, we don't use cron, we use delay
-            return '';
-        case RecurrenceType.daily:
-            // Daily at specific time: "0 22 * * *" (10 PM every day)
-            return `${minutes} ${hours} * * *`;
-        case RecurrenceType.weekly:
-            // Weekly on specific day: "0 22 * * 1" (Monday at 10 PM)
-            if (schedule.dayOfWeek === undefined || schedule.dayOfWeek === null) {
-                throw new Error('dayOfWeek is required for weekly recurrence');
-            }
-            return `${minutes} ${hours} * * ${schedule.dayOfWeek}`;
-        case RecurrenceType.monthly:
-            // Monthly on specific day: "0 22 1 * *" (1st of month at 10 PM)
-            if (schedule.dayOfMonth === undefined || schedule.dayOfMonth === null) {
-                throw new Error('dayOfMonth is required for monthly recurrence');
-            }
-            return `${minutes} ${hours} ${schedule.dayOfMonth} * *`;
-        default:
-            throw new Error(`Unsupported recurrence type: ${schedule.recurrence}`);
-    }
-}
-function calculateDelay(schedule) {
+// rai-pos-backend/src/utils/scheduler.ts
+// Registers one BullMQ job per RestockCycle (not per schedule).
+// Schedules are just envelopes; cycles are the actual work units.
+import { restockQueue } from '../queue/restock.queue.js';
+// ─── Cycle-level job registration ─────────────────────────────────────────────
+/** Register a single BullMQ job for one cycle. */
+export async function registerCycleJob(cycle) {
+    const jobId = `restock-cycle-${cycle.id}`;
     const now = new Date();
-    const [hours, minutes] = schedule.timeOfDay.split(':').map(Number);
-    const targetTime = new Date(schedule.startDate);
-    targetTime.setHours(hours, minutes, 0, 0);
-    // If the target time is in the past, schedule for next occurrence
-    if (targetTime <= now) {
-        switch (schedule.recurrence) {
-            case RecurrenceType.once:
-                // If once and already passed, don't schedule
-                return -1;
-            case RecurrenceType.daily:
-                targetTime.setDate(targetTime.getDate() + 1);
-                break;
-            case RecurrenceType.weekly:
-                targetTime.setDate(targetTime.getDate() + 7);
-                break;
-            case RecurrenceType.monthly:
-                targetTime.setMonth(targetTime.getMonth() + 1);
-                break;
-        }
+    const delay = cycle.scheduledAt.getTime() - now.getTime();
+    if (!cycle.isActive) {
+        console.log(`Cycle ${cycle.id} is inactive, skipping`);
+        return;
     }
-    return targetTime.getTime() - now.getTime();
-}
-export async function registerRestockJob(schedule) {
+    if (delay <= 0) {
+        console.log(`Cycle ${cycle.id} scheduledAt is in the past (${cycle.scheduledAt.toISOString()}), skipping`);
+        return;
+    }
+    // Remove any existing job for this cycle first
     try {
-        // Remove existing job if it exists
-        await restockQueue.remove(schedule.id.toString());
-        if (!schedule.isActive) {
-            console.log(`Schedule ${schedule.id} is inactive, skipping job registration`);
-            return;
+        const existing = await restockQueue.getJob(jobId);
+        if (existing)
+            await existing.remove();
+    }
+    catch { }
+    await restockQueue.add('process-restock-cycle', { cycleId: cycle.id }, {
+        jobId,
+        delay,
+    });
+    console.log(`Registered cycle job ${jobId} → fires in ${Math.round(delay / 1000)}s at ${cycle.scheduledAt.toISOString()}`);
+}
+/** Remove a cycle's BullMQ job (e.g. when cycle is deleted or deactivated). */
+export async function removeCycleJob(cycleId) {
+    const jobId = `restock-cycle-${cycleId}`;
+    try {
+        const existing = await restockQueue.getJob(jobId);
+        if (existing) {
+            await existing.remove();
+            console.log(`Removed cycle job ${jobId}`);
         }
-        const jobData = {
-            scheduleId: schedule.id,
-        };
-        if (schedule.recurrence === RecurrenceType.once) {
-            const delay = calculateDelay(schedule);
-            if (delay === -1) {
-                console.log(`Schedule ${schedule.id} start time has passed, skipping one-time job`);
-                return;
-            }
-            await restockQueue.add('process-restock', jobData, {
-                jobId: schedule.id.toString(),
-                delay,
-            });
-        }
-        else {
-            // Recurring job
-            const pattern = generateCronPattern(schedule);
-            const endDate = schedule.endDate ? new Date(schedule.endDate) : undefined;
-            await restockQueue.add('process-restock', jobData, {
-                jobId: schedule.id.toString(),
-                repeat: {
-                    pattern,
-                    endDate,
-                },
-            });
-        }
-        console.log(`Registered restock job for schedule ${schedule.id} (${schedule.recurrence})`);
     }
     catch (error) {
-        console.error(`Failed to register restock job for schedule ${schedule.id}:`, error);
-        throw error;
+        console.error(`Failed to remove cycle job ${jobId}:`, error);
     }
+}
+/** Remove all cycle jobs for a schedule (e.g. when schedule is deleted). */
+export async function removeScheduleCycleJobs(scheduleId) {
+    try {
+        const jobs = await restockQueue.getJobs([
+            'waiting', 'delayed', 'active', 'paused', 'completed', 'failed',
+        ]);
+        await Promise.all(jobs
+            .filter(j => {
+            const data = j.data;
+            return data?.scheduleId === scheduleId || String(j.id).startsWith(`restock-cycle-`);
+        })
+            .map(async (j) => {
+            // Only remove if it belongs to this schedule — check via job data
+            const data = j.data;
+            if (data?.scheduleId === scheduleId)
+                await j.remove();
+        }));
+        console.log(`Removed all cycle jobs for schedule ${scheduleId}`);
+    }
+    catch (error) {
+        console.error(`Failed to remove cycle jobs for schedule ${scheduleId}:`, error);
+    }
+}
+// ─── Legacy schedule-level helpers (kept for backwards compat) ────────────────
+// These are no longer used for new cycle-based flow but kept so existing
+// schedule-only records (if any) don't break.
+export async function registerRestockJob(schedule) {
+    // No-op for new cycle-based flow.
+    // Called from mutations but actual scheduling is now done per-cycle.
+    console.log(`registerRestockJob called for schedule ${schedule.id} — scheduling is now handled per-cycle`);
 }
 export async function removeRestockJob(scheduleId) {
-    try {
-        await restockQueue.remove(scheduleId.toString());
-        console.log(`Removed restock job for schedule ${scheduleId}`);
-    }
-    catch (error) {
-        console.error(`Failed to remove restock job for schedule ${scheduleId}:`, error);
-        throw error;
-    }
+    await removeScheduleCycleJobs(scheduleId);
 }

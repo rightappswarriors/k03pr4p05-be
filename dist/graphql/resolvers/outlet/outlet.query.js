@@ -1,4 +1,5 @@
-import { objectType, extendType, arg, nonNull, nullable } from "nexus";
+//rai-pos-backend\src\graphql\resolvers\outlet\outlet.query.ts
+import { objectType, extendType, arg, nonNull, nullable, stringArg } from "nexus";
 import * as outletService from "../../../services/outlet.service.js";
 import { requireAuth, requireRole, requireOwnership, } from "../../../middleware/auth.middleware.js";
 export const OutletWithItems = objectType({
@@ -52,13 +53,14 @@ export const OutletQuery = extendType({
             type: "Outlet",
             args: {
                 branchId: nonNull(arg({ type: "ID" })),
+                search: nullable(stringArg()),
             },
-            async resolve(_, { branchId }, ctx) {
+            async resolve(_, { branchId, search }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "branch", branchId);
                 try {
-                    return await outletService.getOutletsByBranchId(Number(branchId));
+                    return await outletService.getOutletsByBranchId(Number(branchId), search);
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")

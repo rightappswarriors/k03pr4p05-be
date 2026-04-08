@@ -8,34 +8,35 @@ datasource db {
 }
 
 model Organization {
-  id             Int             @id @default(autoincrement())
-  name           String
-  createdAt      DateTime        @default(now())
-  accountTitles  AccountTitle[]
-  attendances    Attendance[]
-  branches       Branch[]
-  brands         Brand[]
-  centers        Center[]
-  departments    Department[]
-  employees      Employee[]
-  gisRows        GISRow[]
-  inventoryItems InventoryItem[]
-  items          Item[]
-  itemCategories ItemCategory[]
-  itemGroups     ItemGroup[]
-  outlets        Outlet[]
-  positions      Position[]
-  promoTypes     PromoType[]
-  salesOrders    SalesOrder[]
-  shifts         Shift[]
-  subCenters     SubCenter[]
-  subscription   Subscription?
-  summaryRows    SummaryRow[]
-  supplierOrders SupplierOrder[]
-  stockBatches   StockBatch[]
+  id               Int               @id @default(autoincrement())
+  name             String
+  createdAt        DateTime          @default(now())
+  accountTitles    AccountTitle[]
+  attendances      Attendance[]
+  branches         Branch[]
+  brands           Brand[]
+  centers          Center[]
+  departments      Department[]
+  employees        Employee[]
+  gisRows          GISRow[]
+  inventoryItems   InventoryItem[]
+  items            Item[]
+  outlets          Outlet[]
+  positions        Position[]
+  promoTypes       PromoType[]
+  salesOrders      SalesOrder[]
+  shifts           Shift[]
+  subCenters       SubCenter[]
+  subscription     Subscription?
+  summaryRows      SummaryRow[]
+  supplierOrders   SupplierOrder[]
+  stockBatches     StockBatch[]
   restockSchedules RestockSchedule[]
-  users          User[]
-  vatTypes       VatType[]
+  users            User[]
+  vatTypes         VatType[]
+  restockCycles    RestockCycle[]
+  itemGroups       ItemGroup[]
+  orgCategories    OrgItemCategory[]
 }
 
 model Subscription {
@@ -49,37 +50,44 @@ model Subscription {
 }
 
 model User {
-  id                   Int              @id @default(autoincrement())
+  id                   Int                      @id @default(autoincrement())
   fullname             String
-  username             String           @unique
-  email                String           @unique
-  role                 Role             @default(CASHIER)
+  username             String                   @unique
+  email                String                   @unique
+  role                 Role                     @default(CASHIER)
   password             String
-  createdAt            DateTime         @default(now())
+  createdAt            DateTime                 @default(now())
   profilePhoto         String?
   managerId            Int?
-  enabledPaymentMethod Boolean          @default(false)
+  enabledPaymentMethod Boolean                  @default(false)
   contactNumber        String?
   orgId                Int?
-  isVerified           Boolean          @default(false)
+  isVerified           Boolean                  @default(false)
   verificationCode     String?
   attendances          Attendance[]
-  branchesOwned        Branch[]         @relation("UserBranches")
+  branchesOwned        Branch[]                 @relation("UserBranches")
   employees            Employee[]
   gisRows              GISRow[]
   inventoryItems       InventoryItem[]
-  outletOwned          Outlet[]         @relation("UserOutlets")
-  outletPromo          OutletPromo[]    @relation("UserOutletPromos")
+  outletOwned          Outlet[]                 @relation("UserOutlets")
+  outletPromo          OutletPromo[]            @relation("UserOutletPromos")
   outletStaff          OutletStaff[]
   paymongoAPIKeys      PaymongoAPIKeys?
-  promoType            PromoType[]      @relation("UserPromoTypes")
+  promoType            PromoType[]              @relation("UserPromoTypes")
   salesOrders          SalesOrder[]
   summaryRows          SummaryRow[]
   Transaction          Transaction[]
-  manager              User?            @relation("ManagerToStaff", fields: [managerId], references: [id])
-  staff                User[]           @relation("ManagerToStaff")
-  org                  Organization?    @relation(fields: [orgId], references: [id])
+  manager              User?                    @relation("ManagerToStaff", fields: [managerId], references: [id])
+  staff                User[]                   @relation("ManagerToStaff")
+  org                  Organization?            @relation(fields: [orgId], references: [id])
   userShifts           UserShift[]
+  departmentId         Int?
+  department           Department?              @relation(fields: [departmentId], references: [id])
+  positionId           String?
+  isOwner              Boolean                  @default(false)
+  position             Position?                @relation(fields: [positionId], references: [id])
+  auditLogs            AuditLog[]
+  permissionOverrides  UserPermissionOverride[]
 
   @@unique([orgId, username])
   @@unique([orgId, email])
@@ -95,19 +103,21 @@ model PaymongoAPIKeys {
 }
 
 model Branch {
-  id         Int            @id @default(autoincrement())
-  name       String
-  address    String
-  phone      String?
-  isActive   Boolean        @default(true)
-  createdAt  DateTime       @default(now())
-  orgId      Int
-  ownerId    Int
-  locationId Int?
-  org        Organization   @relation(fields: [orgId], references: [id])
-  owner      User           @relation("UserBranches", fields: [ownerId], references: [id])
-  outlets    Outlet[]
-  location   PlaceLocation?
+  id               Int               @id @default(autoincrement())
+  name             String
+  address          String
+  phone            String?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  orgId            Int
+  ownerId          Int
+  locationId       Int?
+  org              Organization      @relation(fields: [orgId], references: [id])
+  owner            User              @relation("UserBranches", fields: [ownerId], references: [id])
+  outlets          Outlet[]
+  location         PlaceLocation?
+  restockCycles    RestockCycle[]
+  restockSchedules RestockSchedule[]
 
   @@unique([orgId, name])
 }
@@ -142,7 +152,6 @@ model Outlet {
   status                OutletStatus            @default(open)
   latitude              Float?
   longitude             Float?
-  imageBanner           String?
   bannerImage           String?
   inventory             Inventory?
   kompraCOrders         KompraCOrder[]
@@ -155,6 +164,8 @@ model Outlet {
   outletPromos          OutletPromo[]
   staff                 OutletStaff[]
   Transaction           Transaction[]
+  restockCycles         RestockCycle[]
+  restockSchedules      RestockSchedule[]
 
   @@unique([orgId, code])
 }
@@ -238,88 +249,106 @@ model InventoryItems {
   location    Location?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
   orderItems  KompraCOrderItem[]
   searchIndex OutletItemSearchIndex?
+  categoryId  Int? // ✅ global category for this inventory item
+  category    ItemCategory?          @relation(fields: [categoryId], references: [id])
 
   @@unique([inventoryId, itemId])
 }
 
-model ItemGroup {
-  id          Int            @id @default(autoincrement())
-  name        String         @unique
-  description String?
-  icon        String?
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  orgId       Int
-  categories  ItemCategory[]
-  org         Organization   @relation(fields: [orgId], references: [id])
-
-  @@unique([orgId, name])
-}
-
+// Global - super admin managed (no orgId)
 model ItemCategory {
   id             Int               @id @default(autoincrement())
   name           String            @unique
-  cost_of_sale   String?
   description    String?
+  icon           String?
   groupType      String?
   sales          String?
   stocks         String?
+  items          Item[]            @relation("GlobalItemCategory")
+  createdAt      DateTime          @default(now())
+  orgCategories  OrgItemCategory[] // orgs customize from this
+  inventoryItems InventoryItems[]
+}
+
+// Org's customized version of a global category
+model OrgItemCategory {
+  id             Int               @id @default(autoincrement())
   orgId          Int
+  categoryId     Int? // ✅ make optional — org doesn't need a global template
+  name           String // required now — org must provide their own name
+  description    String?
+  icon           String?
+  cost_of_sale   String?
+  groupType      String?
+  sales          String?
+  stocks         String?
   groupId        Int?
-  items          Item[]
-  group          ItemGroup?        @relation(fields: [groupId], references: [id])
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
   org            Organization      @relation(fields: [orgId], references: [id])
+  globalCategory ItemCategory?     @relation(fields: [categoryId], references: [id]) // ✅ optional
+  group          ItemGroup?        @relation(fields: [groupId], references: [id])
+  items          Item[]
   itemCategories ItemCategoryMap[]
+
+  @@unique([orgId, name]) // ✅ unique per org by name, not by categoryId
+}
+
+// Org-specific groups
+model ItemGroup {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String?
+  icon        String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  orgId       Int
+  org         Organization      @relation(fields: [orgId], references: [id])
+  categories  OrgItemCategory[]
 
   @@unique([orgId, name])
 }
 
+// Update ItemCategoryMap to point to OrgItemCategory
 model ItemCategoryMap {
   itemId     Int
   categoryId Int
-  category   ItemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  item       Item         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  category   OrgItemCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  item       Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@id([itemId, categoryId])
 }
 
-model Color {
-  id      Int     @id @default(autoincrement())
-  name    String  @unique
-  hexCode String?
-  items   Item[]  @relation("ColorToItem")
-}
-
 model Item {
-  id               Int                     @id @default(autoincrement())
-  name             String                  @unique
-  image            String?
-  description      String?
-  barcode          String
-  brand            String?
-  orgId            Int
-  categoryId       Int?
-  brandId          Int?
-  ServiceCharge    Boolean                 @default(false)
-  assembly         Boolean                 @default(false)
-  itemCode         String?
-  skuNumber        String?
-  vatExempt        Boolean                 @default(false)
-  stock            Float                   @default(0)
-  sellingPrice     Float                   @default(0)
-  minQuantity      Float                   @default(0)
-  opExPct          Float                   @default(0.1)
-  priceB           Float?
-  priceC           Float?
-  totalCost        Float                   @default(0)
-  expiryStartDate  DateTime?
-  expiryEndDate    DateTime?
-  exactExpiryDate  DateTime?
+  id                   Int                     @id @default(autoincrement())
+  name                 String                  @unique
+  image                String?
+  description          String?
+  barcode              String
+  brand                String?
+  orgId                Int
+  brandId              Int?
+  ServiceCharge        Boolean                 @default(false)
+  assembly             Boolean                 @default(false)
+  itemCode             String?
+  skuNumber            String?
+  vatExempt            Boolean?
+  stock                Float                   @default(0)
+  sellingPrice         Float                   @default(0)
+  minQuantity          Float                   @default(0)
+  opExPct              Float                   @default(0.1)
+  priceB               Float?
+  priceC               Float?
+  totalCost            Float                   @default(0)
+  expiryStartDate      DateTime?
+  expiryEndDate        DateTime?
+  exactExpiryDate      DateTime?
   cartItems            CartItem[]
   costLines            CostLines[]
   InventoryItems       InventoryItems[]
   brandDetails         Brand?                  @relation(fields: [brandId], references: [id])
-  category             ItemCategory?           @relation(fields: [categoryId], references: [id])
+  categoryId           Int?
+  category             ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id]) // ✅ matches
   org                  Organization            @relation(fields: [orgId], references: [id])
   categories           ItemCategoryMap[]
   orderItems           KompraCOrderItem[]
@@ -330,8 +359,20 @@ model Item {
   supplierOrderItems   SupplierOrderItem[]
   stockBatches         StockBatch[]
   restockScheduleItems RestockScheduleItem[]
+  restockCycleItems    RestockCycleItem[]
+  orgCategoryId        Int? // → OrgItemCategory ✅ new
+  orgCategory          OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
+  vatTypeId            Int?
+  vatType              VatType?                @relation(fields: [vatTypeId], references: [id])
 
   @@unique([orgId, name])
+}
+
+model Color {
+  id      Int     @id @default(autoincrement())
+  name    String  @unique
+  hexCode String?
+  items   Item[]  @relation("ColorToItem")
 }
 
 model CostLines {
@@ -345,50 +386,93 @@ model CostLines {
 }
 
 enum SupplierOrderStatus {
-  pending       // email sent, waiting for supplier
-  acknowledged  // supplier opened portal
-  sent          // supplier confirmed dispatch
-  delivered     // user confirmed receipt
+  pending // email sent, waiting for supplier
+  acknowledged // supplier opened portal
+  sent // supplier confirmed dispatch
+  delivered // user confirmed receipt
   cancelled
 }
 
 model SupplierOrder {
-  id              Int                  @id @default(autoincrement())
+  id              Int                 @id @default(autoincrement())
   orgId           Int
   scheduleId      Int?
   supplierEmail   String
-  supplierToken   String               @unique  // JWT or UUID stored here
+  supplierToken   String              @unique // JWT or UUID stored here
   tokenExpiresAt  DateTime
-  status          SupplierOrderStatus  @default(pending)
-  supplierMessage String?              // supplier's reply message
-  userMessage     String?              // message from user to supplier
+  status          SupplierOrderStatus @default(pending)
+  supplierMessage String? // supplier's reply message
+  userMessage     String? // message from user to supplier
   expectedArrival DateTime
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 
-  org             Organization         @relation(fields: [orgId], references: [id])
-  schedule        RestockSchedule?     @relation(fields: [scheduleId], references: [id])
-  items           SupplierOrderItem[]
+  org      Organization        @relation(fields: [orgId], references: [id])
+  schedule RestockSchedule?    @relation(fields: [scheduleId], references: [id])
+  items    SupplierOrderItem[]
+  cycleId  Int?
+  cycle    RestockCycle?       @relation(fields: [cycleId], references: [id])
 
   @@index([orgId, status])
   @@index([supplierToken])
 }
 
 model SupplierOrderItem {
-  id               Int            @id @default(autoincrement())
-  orderId          Int
-  itemId           Int
-  requestedQty     Float          // what we asked for
-  deliveredQty     Float?         // what supplier says they'll send
-  confirmedQty     Float?         // what user confirms on arrival
-  expiryStartDate  DateTime?
-  expiryEndDate    DateTime?
-  exactExpiryDate  DateTime?
+  id              Int       @id @default(autoincrement())
+  orderId         Int
+  itemId          Int
+  requestedQty    Float // what we asked for
+  deliveredQty    Float? // what supplier says they'll send
+  confirmedQty    Float? // what user confirms on arrival
+  expiryStartDate DateTime?
+  expiryEndDate   DateTime?
+  exactExpiryDate DateTime?
 
-  order            SupplierOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  item             Item           @relation(fields: [itemId], references: [id])
+  order SupplierOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item  Item          @relation(fields: [itemId], references: [id])
 
   @@index([orderId])
+}
+
+model RestockCycle {
+  id             Int       @id @default(autoincrement())
+  scheduleId     Int
+  orgId          Int
+  branchId       Int?
+  outletId       Int?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  scheduledAt    DateTime // exact UTC moment this cycle fires
+  emailRecipient String // may override schedule.emailRecipient
+  emailSubject   String?
+  emailBody      String?
+  isActive       Boolean   @default(true)
+  firedAt        DateTime? // set when BullMQ actually processed it
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  schedule       RestockSchedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  org            Organization       @relation(fields: [orgId], references: [id])
+  branch         Branch?            @relation(fields: [branchId], references: [id])
+  outlet         Outlet?            @relation(fields: [outletId], references: [id])
+  cycleItems     RestockCycleItem[]
+  supplierOrders SupplierOrder[]
+
+  @@index([scheduleId, scheduledAt])
+  @@index([orgId, scheduledAt])
+}
+
+model RestockCycleItem {
+  id       Int   @id @default(autoincrement())
+  cycleId  Int
+  itemId   Int
+  quantity Float
+
+  cycle RestockCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  item  Item         @relation(fields: [itemId], references: [id])
+
+  @@unique([cycleId, itemId])
 }
 
 // Tracks each received batch — enables FEFO (first expired, first out)
@@ -398,30 +482,29 @@ model StockBatch {
   orgId           Int
   orderId         Int?
   quantity        Float
-  remainingQty    Float     // decremented as stock is consumed
+  remainingQty    Float // decremented as stock is consumed
   expiryStartDate DateTime?
   expiryEndDate   DateTime?
   exactExpiryDate DateTime?
   receivedAt      DateTime  @default(now())
 
-  item            Item      @relation(fields: [itemId], references: [id])
-  org             Organization @relation(fields: [orgId], references: [id])
+  item Item         @relation(fields: [itemId], references: [id])
+  org  Organization @relation(fields: [orgId], references: [id])
 
   @@index([itemId, expiryStartDate])
   @@index([itemId, exactExpiryDate])
 }
 
-enum RestockStatus {
-  pending
-  completed
-  failed
-}
-
 // Remove: itemId Int
 // Add:
 model RestockSchedule {
-  id              Int                @id @default(autoincrement())
+  id              Int                   @id @default(autoincrement())
   orgId           Int
+  branchId        Int?
+  outletId        Int?
+  address         String?
+  latitude        Float?
+  longitude       Float?
   recurrence      RecurrenceType
   startDate       DateTime
   endDate         DateTime?
@@ -433,22 +516,29 @@ model RestockSchedule {
   emailFrom       String?
   emailSubject    String?
   emailBody       String?
-  isActive        Boolean            @default(true)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  org             Organization       @relation(fields: [orgId], references: [id])
+  customTimes     Json?
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  cycles          RestockCycle[]
+  org             Organization          @relation(fields: [orgId], references: [id])
+  branch          Branch?               @relation(fields: [branchId], references: [id])
+  outlet          Outlet?               @relation(fields: [outletId], references: [id])
   scheduleItems   RestockScheduleItem[]
   supplierOrders  SupplierOrder[]
 }
 
 model RestockScheduleItem {
-  id          Int             @id @default(autoincrement())
-  scheduleId  Int
-  itemId      Int
-  quantity    Float           // quantity to request from supplier
-  schedule    RestockSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  item        Item            @relation(fields: [itemId], references: [id])
+  id         Int             @id @default(autoincrement())
+  scheduleId Int
+  itemId     Int
+  quantity   Float // quantity to request from supplier
+  // Per-item timing overrides (nullable to fall back to schedule values)
+  timeOfDay  String? // "HH:MM" format, if null uses schedule's timeOfDay
+  dayOfWeek  Int? // 0-6 (Sunday-Saturday), if null uses schedule's dayOfWeek
+  dayOfMonth Int? // 1-31, if null uses schedule's dayOfMonth
+  schedule   RestockSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  item       Item            @relation(fields: [itemId], references: [id])
 
   @@unique([scheduleId, itemId])
 }
@@ -458,8 +548,8 @@ enum RecurrenceType {
   daily
   weekly
   monthly
+  custom
 }
-
 
 // .... other models ....
 model Media {
@@ -544,6 +634,35 @@ model CustomerDetails {
   transaction     Transaction @relation(fields: [transactionId], references: [id])
 }
 
+model KompraCOrder {
+  id                  Int                       @id @default(autoincrement())
+  transactionNumber   String                    @unique
+  customerId          Int
+  outletId            Int
+  deliveryAddressId   Int
+  subtotal            Float
+  total               Float
+  status              OrderStatus               @default(pending)
+  scheduledDeliveryAt DateTime?
+  estimatedDeliveryAt DateTime?
+  deliveredAt         DateTime?
+  paymentMethod       KompraCPaymentMethod
+  paymentStatus       String                    @default("unpaid")
+  paymentReference    String?
+  riderName           String?
+  riderPhone          String?
+  customerNote        String?
+  outletNote          String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  tracking            KompraCDeliveryTracking[]
+  customer            KompraCustomer            @relation(fields: [customerId], references: [id])
+  deliveryAddress     DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
+  outlet              Outlet                    @relation(fields: [outletId], references: [id])
+  fees                KompraCOrderFee[]
+  items               KompraCOrderItem[]
+}
+
 model KompraCustomer {
   id           Int                   @id @default(autoincrement())
   fullname     String
@@ -580,35 +699,6 @@ model DeliveryAddress {
   createdAt  DateTime       @default(now())
   customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   orders     KompraCOrder[]
-}
-
-model KompraCOrder {
-  id                  Int                       @id @default(autoincrement())
-  transactionNumber   String                    @unique
-  customerId          Int
-  outletId            Int
-  deliveryAddressId   Int
-  subtotal            Float
-  total               Float
-  status              OrderStatus               @default(pending)
-  scheduledDeliveryAt DateTime?
-  estimatedDeliveryAt DateTime?
-  deliveredAt         DateTime?
-  paymentMethod       KompraCPaymentMethod
-  paymentStatus       String                    @default("unpaid")
-  paymentReference    String?
-  riderName           String?
-  riderPhone          String?
-  customerNote        String?
-  outletNote          String?
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
-  tracking            KompraCDeliveryTracking[]
-  customer            KompraCustomer            @relation(fields: [customerId], references: [id])
-  deliveryAddress     DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
-  outlet              Outlet                    @relation(fields: [outletId], references: [id])
-  fees                KompraCOrderFee[]
-  items               KompraCOrderItem[]
 }
 
 model KompraCOrderItem {
@@ -707,11 +797,13 @@ model InventoryItemUnit {
 
 model VatType {
   id    Int          @id @default(autoincrement())
-  label String
+  name  String
+  rate  Float
   orgId Int
   org   Organization @relation(fields: [orgId], references: [id])
+  items Item[]
 
-  @@unique([orgId, label])
+  @@unique([orgId, name])
 }
 
 model Department {
@@ -720,17 +812,23 @@ model Department {
   color String?
   orgId Int
   org   Organization @relation(fields: [orgId], references: [id])
+  users User[]
 
   @@unique([orgId, label])
 }
 
 model Position {
-  id    Int          @id @default(autoincrement())
-  label String
-  orgId Int
-  org   Organization @relation(fields: [orgId], references: [id])
-
-  @@unique([orgId, label])
+  id                 String                      @id @default(cuid())
+  orgId              Int
+  name               String
+  description        String?
+  permissionsVersion DateTime                    @default(now())
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  users              User[]
+  permissions        PositionPermission[]
+  controlPermissions PositionControlPermission[]
+  org                Organization                @relation(fields: [orgId], references: [id])
 }
 
 model Center {
@@ -1225,6 +1323,74 @@ model django_migrations {
   applied DateTime @db.Timestamptz(6)
 
   @@ignore
+}
+
+model Page {
+  id                  String                   @id @default(cuid())
+  key                 String                   @unique
+  label               String
+  parentKey           String?
+  sortOrder           Int                      @default(0)
+  positionPermissions PositionPermission[]
+  userOverrides       UserPermissionOverride[]
+}
+
+model PositionPermission {
+  id         String   @id @default(cuid())
+  positionId String
+  pageId     String
+  canView    Boolean  @default(false)
+  canCreate  Boolean  @default(false)
+  canEdit    Boolean  @default(false)
+  canDelete  Boolean  @default(false)
+  position   Position @relation(fields: [positionId], references: [id])
+  page       Page     @relation(fields: [pageId], references: [id])
+}
+
+model UserPermissionOverride {
+  id        String   @id @default(cuid())
+  userId    Int
+  pageId    String
+  canView   Boolean?
+  canCreate Boolean?
+  canEdit   Boolean?
+  canDelete Boolean?
+  user      User     @relation(fields: [userId], references: [id])
+  page      Page     @relation(fields: [pageId], references: [id])
+}
+
+model PositionControlPermission {
+  id         String   @id @default(cuid())
+  positionId String
+  controlKey String
+  isAllowed  Boolean  @default(false)
+  position   Position @relation(fields: [positionId], references: [id])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  orgId      Int
+  userId     Int
+  pageKey    String
+  action     AuditAction
+  recordId   String?
+  recordType String?
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+  user       User        @relation(fields: [userId], references: [id])
+}
+
+enum AuditAction {
+  CREATE
+  EDIT
+  DELETE
+  VIEW
+  LOGIN
+  LOGOUT
+  PERMISSION_CHANGE
 }
 
 enum SubscriptionPlan {

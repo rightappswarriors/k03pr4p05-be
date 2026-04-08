@@ -1,8 +1,6 @@
 import {  PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient()
 
-import { InventoryItems } from '../graphql/typeDefs/inventoryItems.type.js';
-
 /**
  * @description
  * Creates a new Outlet in the database.
@@ -10,7 +8,7 @@ import { InventoryItems } from '../graphql/typeDefs/inventoryItems.type.js';
  * @param {number} branchId - The ID of the branch the outlet belongs to.
  * @returns {Promise<object>} The newly created Outlet data.
  */
-export const createOutlet = async (outletData, branchId, ownerId) => {
+export const createOutlet = async (outletData: any, branchId: number, ownerId) => {
   // Get the organization ID from branch
   const branch = await prisma.branch.findUnique({
     where: { id: branchId },
@@ -182,17 +180,27 @@ export const removeStaffsFromOutlet = async (outletId, userIds) => {
  * Retrieves all outlets belonging to a specific branch.
  * This is a corrected version of the original getBranchOutlet.
  * @param {number} branchId - The ID of the branch.
+ * @param {string} search - Optional search string to filter by name or address.
  * @returns {Promise<object[]>} An array of outlet objects.
  */
-export const getOutletsByBranchId = async (branchId) => {
+export const getOutletsByBranchId = async (branchId, search) => {
   const outlets = await prisma.outlet.findMany({
-    where: { branchId },
+    where: {
+      branchId,
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { address: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    },
     select: {
       id: true,
       name: true,
       address: true,
       phone: true,
       code: true,
+      bannerImage: true,
       governmentTax: true,
       serviceCharge: true,
       outletType: true,

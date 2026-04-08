@@ -181,6 +181,7 @@ export const addItemToInventoryWithUnits = async (
     itemId: number;
     quantity: number;
     price: number;
+    categoryId?: number | null; // ✅ add
     units?: Array<{
       unitName: string;
       unitLabel: string;
@@ -227,6 +228,7 @@ export const addItemToInventoryWithUnits = async (
         data: {
           price: itemData.price,
           quantity: existingItem.quantity + itemData.quantity,
+          categoryId: item.categoryId ?? null, // ✅ add
         },
         include: {
           item: true,
@@ -240,6 +242,7 @@ export const addItemToInventoryWithUnits = async (
           itemId: itemData.itemId,
           price: itemData.price,
           quantity: itemData.quantity,
+          categoryId: item.categoryId ?? null, // ✅ add
         },
         include: {
           item: true,

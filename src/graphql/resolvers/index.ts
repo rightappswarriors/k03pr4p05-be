@@ -63,6 +63,12 @@ export * from './placeLocation/placeLocation.query.js';
 export * from './position/position.mutation.js';
 export * from './position/position.query.js';
 
+// Audit
+export * from './audit/audit.query.js';
+
+// Permission
+export * from './permission/permission.resolver.js';
+
 // Promo
 //export * from './promo/promo.mutation.js';
 //export * from './promo/promo.query.js';
@@ -89,11 +95,24 @@ export * from './token/token.mutation.js';
 // Transaction
 export * from './transaction/transaction.mutation.js';
 export * from './transaction/transaction.query.js';
+// category 
+export * from "./category/category.mutation.js"
+export * from "./category/category.query.js"
+export * from "./analytics/analytics.query.js"
+export * from "./orgItemCategory/orgItemCat.mutation.js"
 
+export * from "./orgItemCategory/orgItemCat.query.js"
 // User
 export * from './user/user.mutation.js';
 export * from './user/user.query.js';
 
+export * from "./restock/restock.mutation.js";
+
+export * from "./restock/restock.query.js";
+
+export * from "./supplier/supplier.mutation.js";
+
+export * from "./supplier/supplier.query.js";
 // UserAPIKey
 export * from './userAPIKey/userAPI.query.js';
 

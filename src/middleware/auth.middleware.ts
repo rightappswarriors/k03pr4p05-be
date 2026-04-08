@@ -4,8 +4,41 @@ export function requireAuth(ctx) {
     throw new Error("Authentication required");
   }
 }
+
+export async function requirePermission(ctx, pageKey: string, action?: 'view' | 'create' | 'edit' | 'delete') {
+  requireAuth(ctx)
+
+  // If owner, allow everything
+  if (ctx.user.isOwner) return
+
+  // Import here to avoid circular dependency
+  const { resolvePermission } = await import('../graphql/resolvers/permission/permission.resolver.js')
+
+  const permission = await resolvePermission(ctx.user.id, pageKey, ctx)
+
+  if (action) {
+    const actionMap = {
+      view: 'canView',
+      create: 'canCreate',
+      edit: 'canEdit',
+      delete: 'canDelete'
+    }
+    if (!permission[actionMap[action]]) {
+      throw new Error(`Forbidden: No ${action} permission for ${pageKey}`)
+    }
+  } else {
+    // Default check canView
+    if (!permission.canView) {
+      throw new Error(`Forbidden: No view permission for ${pageKey}`)
+    }
+  }
+
+  // Attach permission to context for resolvers to use
+  ctx.permission = permission
+}
+
 export async function requireOwnership(ctx, modelName: string, resourceId: number | string) {
-  
+
   const userId = ctx.user?.userId;
 
   if (!userId || !resourceId) {

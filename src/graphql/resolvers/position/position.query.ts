@@ -1,27 +1,47 @@
-import { extendType, intArg } from 'nexus'
+import { arg, extendType, nonNull, nullable, stringArg, intArg } from "nexus";
+import { requireAuth } from "../../../middleware/auth.middleware.js";
 
 export const positionQuery = extendType({
-  type: 'Query',
+  type: "Query",
   definition(t) {
-    t.list.field('positions', {
-      type: 'Position',
-      args: {
-        orgId: intArg()
-      },
-      resolve: async (_, { orgId }, ctx) => {
-        return ctx.prisma.position.findMany({
-          where: { orgId }
+    t.nonNull.list.nonNull.field("positions", {
+      type: "Position",
+      resolve: async (parent, { }, ctx) => {
+        requireAuth(ctx)
+        const orgId = Number(ctx.user.orgId)
+        return await ctx.prisma.position.findMany({
+          where: { orgId },
+          include: {
+            permissions: true,
+            controlPermissions: true,
+          }
         })
       }
     })
-    t.field('position', {
-      type: 'Position',
+    t.nullable.field("position", {
+      type: "Position",
       args: {
-        id: intArg()
+        id: nonNull(stringArg()),
       },
-      resolve: async (_, { id }, ctx) => {
-        return ctx.prisma.position.findUnique({
-          where: { id }
+      resolve: async (parent, { id }, ctx) => {
+        requireAuth(ctx)
+        return await ctx.prisma.position.findUnique({
+          where: { id },
+          include: {
+            permissions: {
+              include: { page: true }
+            },
+            controlPermissions: true,
+          }
+        })
+      }
+    })
+    t.nonNull.list.nonNull.field("pages", {
+      type: "Page",
+      resolve: async (parent, args, ctx) => {
+        requireAuth(ctx)
+        return await ctx.prisma.page.findMany({
+          orderBy: { sortOrder: 'asc' }
         })
       }
     })

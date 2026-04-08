@@ -29,6 +29,22 @@ export const User = objectType({
         t.nullable.int('managerId');
         t.nonNull.boolean('enabledPaymentMethod');
         t.nullable.string('contactNumber');
+        t.nullable.string('positionId');
+        t.nullable.field('position', {
+            type: 'Position',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.position.findUnique({ where: { id: parent.positionId } });
+            }
+        });
+        t.nullable.int('departmentId');
+        t.nullable.field('department', {
+            type: 'Department',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user
+                    .findUnique({ where: { id: parent.id } })
+                    .department();
+            }
+        });
         t.nullable.int('orgId'); // Added for multi-tenancy, onboarding may set after org creation
         t.nullable.field('org', {
             type: 'Organization',

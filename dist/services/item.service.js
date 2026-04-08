@@ -1,3 +1,4 @@
+// rai-pos-backend\src\services\item.service.ts
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 // Your existing service functions...
@@ -21,11 +22,11 @@ export const bulkCreateItems = async (items) => {
                 brand: item.brand ?? null,
                 sellingPrice: item.sellingPrice,
                 minQuantity: item.minQuantity ?? 0,
-                // ✅ costLines works here
                 priceB: item.priceB ?? null,
                 priceC: item.priceC ?? null,
                 totalCost: itemTotalCost,
-                opExPct: item.opExPct,
+                opExPct: item.opExPct ?? 0.1,
+                vatTypeId: item.vatTypeId ?? null, // ✅ optional
                 costLines: item.costLines?.length
                     ? {
                         create: item.costLines.map((line) => ({
@@ -37,6 +38,7 @@ export const bulkCreateItems = async (items) => {
                 description: item.description ?? null,
                 image: item.image ?? null,
                 categoryId: item.categoryId ?? null,
+                orgCategoryId: item.orgCategoryId ?? null, // ✅ add
                 brandId: item.brandId ?? null,
                 itemCode: item.itemCode ?? null,
                 skuNumber: item.skuNumber ?? null,
@@ -192,25 +194,55 @@ export const getItemById = async (id) => {
         where: { id: id }
     });
 };
+/**
+ * Updates a single Item by id.
+ * Replaces all costLines in one transaction (deleteMany + create).
+ * totalCost is recalculated from the incoming costLines when provided.
+ */
 export const updateItem = async (id, data) => {
-    const totalCost = data.reduce((sum, item) => {
-        return (sum +
-            (item.costLines?.reduce((s, l) => s + l.amount, 0) || 0));
-    }, 0);
+    // Only recalculate totalCost when costLines are explicitly provided
+    const totalCost = data.costLines != null
+        ? data.costLines.reduce((sum, line) => sum + line.amount, 0)
+        : undefined;
     return prisma.item.update({
         where: { id },
         data: {
-            ...data,
-            totalCost: totalCost ? totalCost : undefined,
-            costLines: data.costLines
-                ? {
-                    deleteMany: {}, // 🧹 remove all existing
+            // Spread scalar fields — Prisma ignores undefined values
+            name: data.name ?? undefined,
+            image: data.image ?? undefined,
+            description: data.description ?? undefined,
+            barcode: data.barcode ?? undefined,
+            brand: data.brand ?? undefined,
+            sellingPrice: data.sellingPrice,
+            brandId: data.brandId ?? undefined,
+            itemCode: data.itemCode ?? undefined,
+            categoryId: data.categoryId ?? undefined,
+            stock: data.stock ?? undefined,
+            priceB: data.priceB ?? undefined,
+            priceC: data.priceC ?? undefined,
+            opExPct: data.opExPct ?? undefined,
+            minQuantity: data.minQuantity ?? undefined,
+            vatExempt: data.vatExempt ?? undefined,
+            ServiceCharge: data.ServiceCharge ?? undefined,
+            assembly: data.assembly ?? undefined,
+            skuNumber: data.skuNumber ?? undefined,
+            // Only touch totalCost / costLines when caller provided costLines
+            ...(totalCost !== undefined && { totalCost }),
+            ...(data.costLines != null && {
+                costLines: {
+                    deleteMany: {}, // wipe existing lines
                     create: data.costLines.map((line) => ({
                         label: line.label,
                         amount: line.amount,
                     })),
-                }
-                : undefined,
+                },
+            }),
+        },
+        include: {
+            category: true,
+            brandDetails: true,
+            costLines: true,
+            media: { orderBy: { sortOrder: "asc" } },
         },
     });
 };

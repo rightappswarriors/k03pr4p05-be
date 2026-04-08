@@ -117,7 +117,9 @@ async function startApolloServer() {
                   orgId: true,
                   isVerified: true,
                   fullname: true,
-                  username: true
+                  username: true,
+                  isOwner: true,
+                  position: true,
                 }
               });
               // Add userId for backward compatibility
@@ -125,7 +127,7 @@ async function startApolloServer() {
                 user.userId = user.id;
               }
             }
-          } catch (error) {
+          } catch (error: any) {
             if (process.env.NODE_ENV === "development") {
               if (error.name === "TokenExpiredError") {
                 console.warn("Access token expired");

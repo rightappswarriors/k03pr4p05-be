@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, nullable, stringArg, objectType } from "nexus";
+import { extendType, arg, nonNull, nullable, stringArg, objectType, intArg } from "nexus";
 import { requireRole, requireAuth } from "../../../middleware/auth.middleware.js";
 import {
   createUser,
@@ -79,7 +79,20 @@ export const userMutation = extendType({
         return registerUser({ fullname, email, password, contactNumber })
       },
     })
-
+    t.nonNull.field('registerAdmin', {
+      type: 'User',
+      args: {
+        fullname: nonNull(stringArg()),
+        email: nonNull(stringArg()),
+        role: nullable(stringArg()),
+        password: nonNull(stringArg()),
+        contactNumber: stringArg(),
+      },
+      async resolve(_, { fullname, role = "ADMIN", email, password, contactNumber }) {
+        const { registerUser } = await import('../../../services/authService.js')
+        return registerUser({ fullname, email, role, password, contactNumber })
+      },
+    })
     t.nonNull.field('verifyEmail', {
       type: 'AuthPayload',
       args: {
@@ -112,10 +125,12 @@ export const userMutation = extendType({
         email: nonNull(arg({ type: "String" })),
         username: nonNull(arg({ type: "String" })),
         role: nullable(arg({ type: "Role" })),
+        departmentId: nullable(intArg()),
+        positionId: nullable(arg({ type: "String" })),
       },
       async resolve(
         _,
-        { fullname, username, email, password, role },
+        { fullname, username, email, password, role, departmentId, positionId },
         ctx
       ) {
         // Validate that required fields are not empty strings
@@ -150,12 +165,66 @@ export const userMutation = extendType({
             email,
             password,
             role,
-            managerId
+            managerId,
+            departmentId,
+            positionId,
           });
           return newStaff;
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.log("Error creating Staff:", error);
           throw new Error("Error Creating staff", error);
+        }
+      },
+    });
+
+    t.nonNull.field("createHRUser", {
+      type: "User",
+      args: {
+        fullname: nonNull(arg({ type: "String" })),
+        email: nonNull(arg({ type: "String" })),
+        password: nonNull(arg({ type: "String" })),
+        role: nullable(arg({ type: "Role" })),
+        departmentId: nullable(intArg()),
+        positionId: nullable(arg({ type: "String" })),
+      },
+      async resolve(_, { fullname, email, password, role, departmentId, positionId }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+
+        if (!fullname || !email || !password) {
+          throw new Error(
+            "Full name, email, and password cannot be empty."
+          );
+        }
+
+        if (!role) {
+          role = "STAFF";
+        }
+
+        const usernameBase = email.split("@")[0].replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase() || fullname.split(" ")[0].toLowerCase();
+        let username = usernameBase;
+        let counter = 1;
+        while (await ctx.prisma.user.findUnique({ where: { username } })) {
+          username = `${usernameBase}${counter++}`;
+        }
+
+        try {
+          const managerId = ctx.user.userId;
+          const newStaff = await createStaff({
+            fullname,
+            username,
+            email,
+            password,
+            role,
+            managerId,
+            departmentId,
+            positionId,
+          });
+          return newStaff;
+        } catch (error: any) {
+          if (process.env.NODE_ENV === "development")
+            console.log("Error creating HR user:", error);
+          throw new Error("Error creating HR user: " + (error?.message || error));
         }
       },
     });
@@ -166,17 +235,18 @@ export const userMutation = extendType({
         id: nonNull(arg({ type: "ID" })),
         fullname: nullable(arg({ type: "String" })),
         username: nullable(arg({ type: "String" })),
+        positionId: nullable(arg({ type: "String" })),
       },
-      async resolve(_, { id, fullname, username }, ctx) {
+      async resolve(_, { id, fullname, username, positionId }, ctx) {
         if (!ctx.user) {
           if (process.env.NODE_ENV === "development") console.error("Authentication required");
           throw new Error("Authentication required");
         }
 
         const userId = parseInt(id);
-        if (!fullname && !username) {
+        if (!fullname && !username && typeof positionId === 'undefined') {
           throw new Error(
-            "At least one field (fullname or username) must be provided."
+            "At least one field (fullname, username, or positionId) must be provided."
           );
         }
         if (username) {
@@ -187,7 +257,7 @@ export const userMutation = extendType({
             throw new Error(`User with username: ${username} already exists`);
           }
         }
-        const updatedUser = await updateUser(userId, { fullname, username });
+        const updatedUser = await updateUser(userId, { fullname, username, positionId });
         return updatedUser;
       },
     });
@@ -205,7 +275,7 @@ export const userMutation = extendType({
         try {
           const deletedUser = await deleteUser(userId);
           return deletedUser;
-        } catch (error) {
+        } catch (error: any) {
           throw new Error(`Failed to delete user: ${error.message}`);
         }
       },
@@ -227,7 +297,7 @@ export const userMutation = extendType({
             throw new Error("Invalid email or password");
           }
           return user
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
           console.error('Real login error:', error); // ← add this
           throw new Error("Error upon Sign in:", error);

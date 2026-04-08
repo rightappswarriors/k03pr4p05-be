@@ -64,15 +64,15 @@ export const getAllCategories = async (query, orderBy = "asc", pageSize = 20, pa
         select: {
             id: true,
             name: true,
-            _count: {
-                select: { items: true },
-            },
+            //_count: {
+            //  select: { items: true },
+            //},
         },
-        orderBy: {
-            items: {
-                _count: orderBy, // ✅ correct way to order by relation count
-            },
-        },
+        //orderBy: {
+        //  items: {
+        //    _count: orderBy, // ✅ correct way to order by relation count
+        //  },
+        // },
     });
     return categories;
 };
@@ -84,14 +84,14 @@ export const getAllCategories = async (query, orderBy = "asc", pageSize = 20, pa
  */
 export const getItemsByCategoryId = async (id) => {
     // Using findUnique is more efficient here since an ID is a unique key.
-    const categoryWithItems = await prisma.itemCategory.findUnique({
+    const categories = await prisma.itemCategory.findUnique({
         where: { id },
         select: {
-            items: true, // Selects the items related to this category.
+            name: true, // Selects the items related to this category.
         },
     });
     // Return the array of items, or null if the category wasn't found.
-    return categoryWithItems?.items || null;
+    return categories;
 };
 /**
  * @description

@@ -4,10 +4,8 @@ export const vatTypeQuery = extendType({
     definition(t) {
         t.list.field('vatTypes', {
             type: 'VatType',
-            args: {
-                orgId: intArg()
-            },
-            resolve: async (_, { orgId }, ctx) => {
+            resolve: async (_, {}, ctx) => {
+                const orgId = ctx.user.orgId;
                 return ctx.prisma.vatType.findMany({
                     where: { orgId }
                 });
@@ -19,8 +17,9 @@ export const vatTypeQuery = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
+                const orgId = ctx.user.orgId;
                 return ctx.prisma.vatType.findUnique({
-                    where: { id }
+                    where: { id, orgId }
                 });
             }
         });

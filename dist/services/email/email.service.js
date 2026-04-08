@@ -1,10 +1,11 @@
+//rai-pos-backend\src\services\email\email.service.ts
 import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendEmail(data) {
     try {
         const result = await resend.emails.send({
-            from: data.from,
-            to: data.to,
+            from: "onboarding@resend.dev", // data.from,
+            to: "rai.rusianaemmanuel@gmail.com", //data.to,
             subject: data.subject,
             html: data.html,
         });

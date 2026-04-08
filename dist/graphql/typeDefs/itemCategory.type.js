@@ -1,47 +1,66 @@
 import { objectType } from "nexus";
+// NEW - Global base category (super admin)
 export const ItemCategory = objectType({
-    name: "ItemCategory", // Renamed from Category
+    name: "ItemCategory",
     definition(t) {
         t.nonNull.int("id");
         t.nonNull.string("name");
-        t.nullable.string("cost_of_sale");
         t.nullable.string("description");
+        t.nullable.string("icon");
+        t.nullable.string("groupType");
+        t.nullable.dateTime("createdAt");
+        t.nonNull.list.nonNull.field("orgCategories", {
+            type: "OrgItemCategory",
+            resolve: (parent, _, ctx) => ctx.prisma.itemCategory
+                .findUnique({ where: { id: parent.id } })
+                .orgCategories(),
+        });
+    },
+});
+// NEW - Org's customized category
+export const OrgItemCategory = objectType({
+    name: "OrgItemCategory",
+    definition(t) {
+        t.nonNull.int("id");
+        t.nonNull.int("orgId");
+        t.nullable.int("categoryId");
+        t.nullable.string("name"); // org override
+        t.nullable.string("description"); // org override
+        t.nullable.string("icon"); // org override
+        t.nullable.string("cost_of_sale");
         t.nullable.string("groupType");
         t.nullable.string("sales");
         t.nullable.string("stocks");
         t.nullable.int("groupId");
-        t.nonNull.int("orgId"); // Added for multi-tenancy
-        t.nonNull.field("org", {
-            type: "Organization",
+        t.nonNull.boolean("isActive");
+        t.nonNull.dateTime("createdAt");
+        t.nullable.field("globalCategory", {
+            type: "ItemCategory",
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.itemCategory
+                if (!parent.categoryId)
+                    return null; // ✅ guard
+                return ctx.prisma.orgItemCategory
                     .findUnique({ where: { id: parent.id } })
-                    .org();
+                    .globalCategory();
             },
         });
         t.nullable.field("group", {
             type: "ItemGroup",
-            resolve: (parent, _, ctx) => {
-                return ctx.prisma.itemCategory
-                    .findUnique({ where: { id: parent.id } })
-                    .group();
-            },
+            resolve: (parent, _, ctx) => ctx.prisma.orgItemCategory
+                .findUnique({ where: { id: parent.id } })
+                .group(),
+        });
+        t.nonNull.field("org", {
+            type: "Organization",
+            resolve: (parent, _, ctx) => ctx.prisma.orgItemCategory
+                .findUnique({ where: { id: parent.id } })
+                .org(),
         });
         t.nonNull.list.nonNull.field("items", {
             type: "Item",
-            resolve: (parent, _, ctx) => {
-                return ctx.prisma.itemCategory
-                    .findUnique({ where: { id: parent.id } })
-                    .items();
-            },
-        });
-        t.field("_count", {
-            type: objectType({
-                name: "ItemCategoryCount",
-                definition(ct) {
-                    ct.int("itemCount");
-                },
-            }),
+            resolve: (parent, _, ctx) => ctx.prisma.orgItemCategory
+                .findUnique({ where: { id: parent.id } })
+                .items(),
         });
     },
 });

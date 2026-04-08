@@ -5,7 +5,6 @@ export const itemGroupMutation = extendType({
         t.field('createItemGroup', {
             type: 'ItemGroup',
             args: {
-                orgId: intArg(),
                 name: stringArg()
             },
             resolve: async (_, { orgId, name }, ctx) => {

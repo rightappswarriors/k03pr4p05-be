@@ -1,33 +1,12 @@
-// resolvers/CategoryQuery.ts
 import { extendType, arg, nonNull, nullable, stringArg } from "nexus";
 import * as categoryService from "../../../services/category.service.js";
-import {
-  requireAuth,
-  requireRole,
-} from "../../../middleware/auth.middleware.js";
+import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 
 export const CategoryQuery = extendType({
   type: "Query",
   definition(t) {
-    //!SECTION Get Category Items
-    t.nonNull.list.nonNull.field("getCategoryItems", {
-      type: "Item",
-      args: {
-        id: nonNull(arg({ type: "ID" })),
-      },
-      async resolve(_, { id }, ctx) {
-        requireAuth(ctx);
-        requireRole(ctx, ["MANAGER", "ADMIN", "OWNER"]);
 
-        try {
-          return await categoryService.getItemsByCategoryId(Number(id));
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") console.error("Error getting Category items:", error);
-          throw new Error("Error getting Category items.");
-        }
-      },
-    });
-    //!SECTION getCategory By ID
+    // Get a single global category by ID
     t.nonNull.field("getCategoryById", {
       type: "ItemCategory",
       args: {
@@ -35,39 +14,38 @@ export const CategoryQuery = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
         try {
-          return await categoryService.getCategoryById(Number(id));
+          const category = await categoryService.getCategoryById(Number(id));
+          if (!category) throw new Error(`Category with id ${id} not found`);
+          return category;
         } catch (error) {
-          if (process.env.NODE_ENV === "development") console.error("Error getting category data", error);
-          throw new Error("Error getting category data");
+          if (process.env.NODE_ENV === "development") console.error("Error getting category:", error);
+          throw new Error("Error getting category.");
         }
       },
     });
-    //!SECTION Get ALL CATEGORIES
-    t.nonNull.list.nonNull.field("getAllCategory", {
+    // Browse all global categories (orgs use this to pick which to customize)
+    t.nonNull.list.nonNull.field("getAllCategories", {
       type: "ItemCategory",
       args: {
         pageSize: nullable(arg({ type: "Int" })),
         query: nullable(stringArg()),
-        orderBy: nullable(stringArg())
+        orderBy: nullable(stringArg()),
       },
       async resolve(_, { pageSize, query, orderBy }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["MANAGER", "ADMIN", "OWNER"]);
-        if (!orderBy) {
-          orderBy = "desc"
-          if (orderBy !== "asc" && orderBy !== "desc") {
-            throw new Error("Order not valid")
-          }
-          pageSize = pageSize ? pageSize : 50
+
+        orderBy = orderBy ?? "desc";
+        if (orderBy !== "asc" && orderBy !== "desc") {
+          throw new Error("orderBy must be 'asc' or 'desc'.");
         }
+        pageSize = pageSize ?? 50;
+
         try {
           return await categoryService.getAllCategories(query, orderBy, pageSize);
         } catch (error) {
-          if (process.env.NODE_ENV === "development") console.log("Error getting all Categories:", error);
-          throw new Error("Error getting all Categories.");
+          if (process.env.NODE_ENV === "development") console.error("Error getting all categories:", error);
+          throw new Error("Error getting all categories.");
         }
       },
     });

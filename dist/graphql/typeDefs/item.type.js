@@ -1,3 +1,4 @@
+//rai-pos-backend\src\graphql\typeDefs\item.type.ts
 import { objectType } from 'nexus';
 export const Item = objectType({
     name: 'Item',
@@ -11,16 +12,26 @@ export const Item = objectType({
         t.float('sellingPrice');
         t.nonNull.float('stock');
         t.nullable.int('brandId');
+        t.nonNull.dateTime("exactExpiryDate");
+        t.nullable.dateTime('expiryStartDate');
+        t.nullable.dateTime('expiryEndDate');
         t.nonNull.boolean('ServiceCharge');
         t.nonNull.boolean('assembly');
         t.nullable.string('itemCode');
         t.nullable.string('skuNumber');
-        t.nonNull.boolean('vatExempt');
+        t.nullable.boolean('vatExempt');
         t.nonNull.int("minQuantity");
         t.nonNull.float("opExPct");
         t.float("priceB");
         t.float("priceC");
         t.float("totalCost");
+        t.int("vatTypeId");
+        t.nonNull.field('vatType', {
+            type: 'VatType',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).vatType();
+            }
+        });
         t.nonNull.int('orgId'); // Added for multi-tenancy
         t.nonNull.field('org', {
             type: 'Organization',
@@ -32,6 +43,13 @@ export const Item = objectType({
             type: 'ItemCategory', // Updated to ItemCategory
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).category();
+            }
+        });
+        t.nullable.int('orgCategoryId');
+        t.nullable.field('orgCategory', {
+            type: 'OrgItemCategory', // Updated to ItemCategory
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).orgCategory();
             }
         });
         t.nullable.field('brandDetails', {
