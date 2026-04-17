@@ -1,6 +1,6 @@
 // services/category.service.js
-import { PrismaClient, Prisma } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
+import { Prisma } from "@prisma/client";
 /**
 
 /**

@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, nullable, list, inputObjectType, objectType, floatArg, booleanArg } from "nexus";
+import { extendType, arg, nonNull, nullable, list, inputObjectType, objectType, floatArg, booleanArg, intArg } from "nexus";
 import { requireRole, requireAuth, requireOwnership, } from "../../../middleware/auth.middleware.js";
 import * as outletService from "../../../services/outlet.service.js";
 export const OutletStaffInput = inputObjectType({
@@ -6,6 +6,15 @@ export const OutletStaffInput = inputObjectType({
     definition(t) {
         t.nonNull.int("userId");
         t.nullable.string("role");
+    },
+});
+import * as outletPromoService from "../../../services/outletPromo.service.js";
+export const OutletPromoInput = inputObjectType({
+    name: "OutletPromoInput",
+    definition(t) {
+        t.nonNull.int("promoTypeId");
+        t.nonNull.float("discount");
+        t.nullable.boolean("isActive");
     },
 });
 export const AddedOutletStaffs = objectType({
@@ -36,28 +45,35 @@ export const outletMutation = extendType({
                 latitude: nullable(floatArg()),
                 bannerImage: nullable(arg({ type: "String" })),
             },
-            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive, bannerImage }, ctx) {
+            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive, bannerImage, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos // ← new
+             }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
                 const userId = ctx.user.userId;
-                if (!name || !address || !code || !outletType || !branchId) {
-                    throw new Error("Missing required fields: name, address, code, outletType, branchId");
-                }
                 try {
-                    return await outletService.createOutlet({
-                        name,
-                        address,
-                        isActive,
-                        phone: phone || null,
-                        code,
-                        governmentTax,
-                        serviceCharge,
-                        outletType,
-                        longitude,
-                        latitude,
-                        status,
-                        bannerImage: bannerImage || null
+                    const outlet = await outletService.createOutlet({
+                        name, address, phone: phone || null, code,
+                        governmentTax, serviceCharge, outletType,
+                        longitude, latitude, status, isActive,
+                        bannerImage: bannerImage || null,
+                        tin: tin || null,
+                        ptu: ptu || null,
+                        bir: bir || null,
+                        isVatRegistered: isVatRegistered ?? false,
+                        vatZeroSale: vatZeroSale ?? 0,
+                        ...(vatTypeId ? { vatType: { connect: { id: vatTypeId } } } : {}),
                     }, Number(branchId), Number(userId));
+                    // Create outlet promos if provided
+                    if (outletPromos?.length) {
+                        await Promise.all(outletPromos.map((p) => outletPromoService.createOutletPromo({
+                            outletId: Number(outlet.id),
+                            promoTypeId: p.promoTypeId,
+                            discount: p.discount,
+                            isActive: p.isActive ?? true,
+                            userId: Number(userId),
+                        })));
+                    }
+                    return outlet;
                 }
                 catch (error) {
                     if (error.code === "P2002") {
@@ -151,8 +167,15 @@ export const outletMutation = extendType({
                 longitude: nullable(arg({ type: "Float" })),
                 latitude: nullable(floatArg()),
                 bannerImage: nullable(arg({ type: "String" })),
+                tin: nullable(arg({ type: "String" })),
+                ptu: nullable(arg({ type: "String" })),
+                bir: nullable(arg({ type: "String" })),
+                isVatRegistered: nullable(booleanArg()),
+                vatZeroSale: nullable(arg({ type: "Float" })),
+                vatTypeId: nullable(intArg()),
+                outletPromos: nullable(list(nonNull(arg({ type: "OutletPromoInput" })))),
             },
-            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage }, ctx) {
+            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", outletId);
@@ -197,7 +220,31 @@ export const outletMutation = extendType({
                         updateData.isActive = isActive;
                     if (bannerImage !== undefined && bannerImage !== null)
                         updateData.bannerImage = bannerImage;
-                    return await outletService.updateOutlet(Number(outletId), updateData);
+                    // In the resolver updateData block, add:
+                    if (tin !== undefined)
+                        updateData.tin = tin;
+                    if (ptu !== undefined)
+                        updateData.ptu = ptu;
+                    if (bir !== undefined)
+                        updateData.bir = bir;
+                    if (isVatRegistered !== undefined)
+                        updateData.isVatRegistered = isVatRegistered;
+                    if (vatZeroSale !== undefined)
+                        updateData.vatZeroSale = vatZeroSale;
+                    if (vatTypeId !== undefined)
+                        updateData.vatTypeId = vatTypeId;
+                    const updated = await outletService.updateOutlet(Number(outletId), updateData);
+                    // Upsert promos if provided
+                    if (outletPromos?.length) {
+                        await Promise.all(outletPromos.map((p) => outletPromoService.upsertOutletPromo({
+                            outletId: Number(outletId),
+                            promoTypeId: p.promoTypeId,
+                            discount: p.discount,
+                            isActive: p.isActive ?? true,
+                            userId: Number(ctx.user.userId),
+                        })));
+                    }
+                    return updated;
                 }
                 catch (error) {
                     if (error.code === "P2002") {

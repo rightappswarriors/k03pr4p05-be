@@ -1,5 +1,202 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
+export const getItemStockDistribution = async (itemId, orgId) => {
+    const item = await prisma.item.findUnique({
+        where: { id: itemId, orgId },
+        select: {
+            id: true,
+            name: true,
+            stock: true,
+            minQuantity: true,
+            stockLabel: true,
+            stockDescription: true,
+            InventoryItems: {
+                select: {
+                    id: true,
+                    quantity: true,
+                    inventory: {
+                        select: {
+                            outlet: {
+                                select: { id: true, name: true }
+                            }
+                        }
+                    },
+                    units: {
+                        where: { isDefault: true, isActive: true },
+                        select: {
+                            reorderPoint: true,
+                            baseUnit: true,
+                            unitName: true,
+                        },
+                        take: 1,
+                    }
+                }
+            }
+        }
+    });
+    if (!item)
+        return null;
+    const totalAssigned = item.InventoryItems.reduce((sum, inv) => sum + inv.quantity, 0);
+    const warehouseStock = item.stock - totalAssigned;
+    const outlets = item.InventoryItems.map((inv) => {
+        const defaultUnit = inv.units[0];
+        const reorderPoint = defaultUnit?.reorderPoint ?? item.minQuantity;
+        const baseUnit = defaultUnit?.baseUnit ?? defaultUnit?.unitName ?? item.stockLabel ?? 'piece';
+        let status;
+        if (inv.quantity <= 0) {
+            status = 'CRITICAL';
+        }
+        else if (inv.quantity <= reorderPoint) {
+            status = 'LOW';
+        }
+        else {
+            status = 'OK';
+        }
+        return {
+            outletId: inv.inventory.outlet.id,
+            outletName: inv.inventory.outlet.name,
+            quantity: inv.quantity,
+            baseUnit,
+            reorderPoint,
+            status,
+        };
+    });
+    return {
+        itemId: item.id,
+        itemName: item.name,
+        totalStock: item.stock,
+        minQuantity: item.minQuantity,
+        stockLabel: item.stockLabel ?? 'piece',
+        stockDescription: item.stockDescription ?? null,
+        warehouseStock,
+        totalAssigned,
+        outlets,
+    };
+};
+export const restockOutlet = async (data) => {
+    return prisma.$transaction(async (tx) => {
+        // Get inventory item + item + outlet
+        const inventoryItem = await tx.inventoryItems.findUnique({
+            where: { id: data.inventoryItemId },
+            include: {
+                item: true,
+                inventory: {
+                    include: { outlet: true }
+                }
+            }
+        });
+        if (!inventoryItem)
+            throw new Error("Inventory item not found");
+        // Compute warehouse stock
+        const allOutletQty = await tx.inventoryItems.aggregate({
+            where: { itemId: inventoryItem.itemId },
+            _sum: { quantity: true }
+        });
+        const totalAssigned = allOutletQty._sum.quantity ?? 0;
+        const warehouseStock = inventoryItem.item.stock - totalAssigned;
+        // Warn but allow (Option B)
+        const isOverWarehouse = data.quantity > warehouseStock;
+        const quantityBefore = inventoryItem.quantity;
+        const quantityAfter = quantityBefore + data.quantity;
+        // Update outlet inventory
+        await tx.inventoryItems.update({
+            where: { id: data.inventoryItemId },
+            data: { quantity: { increment: data.quantity } }
+        });
+        // Item.stock stays SAME — stock is just moving location
+        // Log StockMovement
+        await tx.stockMovement.create({
+            data: {
+                itemId: inventoryItem.itemId,
+                inventoryItemId: data.inventoryItemId,
+                outletId: inventoryItem.inventory.outlet.id,
+                type: 'RESTOCK_TO_OUTLET',
+                quantity: data.quantity,
+                quantityBefore,
+                quantityAfter,
+                referenceType: 'RESTOCK',
+                reason: data.reason ?? null,
+                createdBy: data.createdBy,
+            }
+        });
+        return {
+            inventoryItem: await tx.inventoryItems.findUnique({
+                where: { id: data.inventoryItemId },
+                include: { item: true, units: { where: { isActive: true } } }
+            }),
+            warehouseStockBefore: warehouseStock,
+            wasOverWarehouse: isOverWarehouse,
+        };
+    });
+};
+export const receivePurchaseOrder = async (data) => {
+    return prisma.$transaction(async (tx) => {
+        const order = await tx.supplierOrder.findUnique({
+            where: { id: data.supplierOrderId },
+            include: { items: { include: { item: true } } }
+        });
+        if (!order)
+            throw new Error("Supplier order not found");
+        if (order.status === 'delivered') {
+            throw new Error("Order already marked as delivered");
+        }
+        for (const receivedItem of data.items) {
+            const orderItem = order.items.find(i => i.id === receivedItem.supplierOrderItemId);
+            if (!orderItem)
+                continue;
+            if (receivedItem.confirmedQty <= 0)
+                continue;
+            // Update Item.stock (org level)
+            const itemBefore = await tx.item.findUnique({
+                where: { id: orderItem.itemId },
+                select: { stock: true }
+            });
+            await tx.item.update({
+                where: { id: orderItem.itemId },
+                data: { stock: { increment: receivedItem.confirmedQty } }
+            });
+            // Update confirmedQty on order item
+            await tx.supplierOrderItem.update({
+                where: { id: receivedItem.supplierOrderItemId },
+                data: { confirmedQty: receivedItem.confirmedQty }
+            });
+            // Create StockBatch for FEFO
+            await tx.stockBatch.create({
+                data: {
+                    itemId: orderItem.itemId,
+                    orgId: data.orgId,
+                    orderId: order.id,
+                    quantity: receivedItem.confirmedQty,
+                    remainingQty: receivedItem.confirmedQty,
+                    expiryStartDate: orderItem.expiryStartDate,
+                    expiryEndDate: orderItem.expiryEndDate,
+                    exactExpiryDate: orderItem.exactExpiryDate,
+                }
+            });
+            // Log StockMovement
+            await tx.stockMovement.create({
+                data: {
+                    itemId: orderItem.itemId,
+                    type: 'PURCHASE_RECEIVED',
+                    quantity: receivedItem.confirmedQty,
+                    quantityBefore: itemBefore?.stock ?? 0,
+                    quantityAfter: (itemBefore?.stock ?? 0) + receivedItem.confirmedQty,
+                    referenceId: String(order.id),
+                    referenceType: 'SUPPLIER_ORDER',
+                    createdBy: data.createdBy,
+                }
+            });
+        }
+        // Mark order as delivered
+        await tx.supplierOrder.update({
+            where: { id: data.supplierOrderId },
+            data: { status: 'delivered' }
+        });
+        return tx.supplierOrder.findUnique({
+            where: { id: data.supplierOrderId },
+            include: { items: { include: { item: true } } }
+        });
+    });
+};
 /**
  * @description Creates a new inventory record for a given store.
  * This is typically a one-to-one relationship.
@@ -145,6 +342,87 @@ export const createInventoryItem = async (itemsData, inventoryId) => {
         skipDuplicates: true,
     });
     return newInventoryItems;
+};
+/**
+ * Updates an existing inventory item's price, quantity, category,
+ * and upserts its selling units.
+ *
+ * @param data - The update payload
+ */
+export const updateOutletItem = async (data) => {
+    return prisma.$transaction(async (tx) => {
+        // 1 — Update base inventory item fields
+        const inventoryItem = await tx.inventoryItems.update({
+            where: { id: data.inventoryItemId },
+            data: {
+                price: data.price,
+                quantity: data.quantity,
+                ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+            },
+        });
+        // 2 — Upsert units if provided
+        if (data.units && data.units.length > 0) {
+            // Ensure only one default
+            const defaultIndex = data.units.findIndex((u) => u.isDefault);
+            data.units.forEach((unit, idx) => {
+                if (defaultIndex >= 0)
+                    unit.isDefault = idx === defaultIndex;
+            });
+            for (const unit of data.units) {
+                await tx.inventoryItemUnit.upsert({
+                    where: {
+                        inventoryItemId_unitName: {
+                            inventoryItemId: inventoryItem.id,
+                            unitName: unit.unitName,
+                        },
+                    },
+                    create: {
+                        inventoryItemId: inventoryItem.id,
+                        unitName: unit.unitName,
+                        unitLabel: unit.unitLabel,
+                        price: unit.price,
+                        quantity: unit.quantity,
+                        conversionFactor: unit.conversionFactor,
+                        baseUnit: unit.baseUnit ?? 'piece',
+                        barcode: unit.barcode ?? null,
+                        isDefault: unit.isDefault ?? false,
+                        allowDecimal: unit.allowDecimal ?? false,
+                        minOrderQty: unit.minOrderQty ?? null,
+                        maxOrderQty: unit.maxOrderQty ?? null,
+                        reorderPoint: unit.reorderPoint ?? null,
+                    },
+                    update: {
+                        unitLabel: unit.unitLabel,
+                        price: unit.price,
+                        quantity: unit.quantity,
+                        conversionFactor: unit.conversionFactor,
+                        baseUnit: unit.baseUnit ?? 'piece',
+                        barcode: unit.barcode ?? null,
+                        isDefault: unit.isDefault ?? false,
+                        allowDecimal: unit.allowDecimal ?? false,
+                        minOrderQty: unit.minOrderQty ?? null,
+                        maxOrderQty: unit.maxOrderQty ?? null,
+                        reorderPoint: unit.reorderPoint ?? null,
+                    },
+                });
+            }
+            // 3 — Deactivate any units that were removed
+            //     (units not in the new list get isActive = false)
+            const incomingUnitNames = data.units.map((u) => u.unitName);
+            await tx.inventoryItemUnit.updateMany({
+                where: {
+                    inventoryItemId: inventoryItem.id,
+                    unitName: { notIn: incomingUnitNames },
+                },
+                data: { isActive: false },
+            });
+        }
+        // 4 — Return full item with units
+        return tx.inventoryItems.findUnique({
+            where: { id: inventoryItem.id },
+            include: { item: true, units: { where: { isActive: true } } },
+        });
+    });
 };
 /**
  * @description Creates a single inventory item with units for selling
@@ -376,6 +654,7 @@ export const deleteInventoryItem = async (id) => {
 /**
  * @description Get all items for an organization
  */
+// omit the query and size parameters for now since the Dashboard will have its own optimized version of this that returns minimal fields for performance
 export const getAllItems = async (orgId, query, size) => {
     const take = size || 100;
     return prisma.item.findMany({
@@ -399,6 +678,32 @@ export const getAllItems = async (orgId, query, size) => {
         take,
         orderBy: { name: "asc" },
     });
+};
+/**
+ * @description Dashboard-only: minimal org inventory stats
+ * Returns SKU count, total stock units, and per-category breakdown
+ */
+export const getDashboardInventoryStats = async (orgId) => {
+    const items = await prisma.item.findMany({
+        where: { orgId },
+        select: {
+            id: true,
+            stock: true,
+            orgCategory: {
+                select: { name: true },
+            },
+        },
+    });
+    const skuCount = items.length;
+    const totalUnits = items.reduce((sum, i) => sum + (i.stock ?? 0), 0);
+    // Group by category name
+    const categoryMap = {};
+    for (const item of items) {
+        const cat = item.orgCategory?.name ?? 'Uncategorized';
+        categoryMap[cat] = (categoryMap[cat] ?? 0) + (item.stock ?? 0);
+    }
+    const categoryBreakdown = Object.entries(categoryMap).map(([name, totalStock]) => ({ name, totalStock }));
+    return { skuCount, totalUnits, categoryBreakdown };
 };
 /**
  * @description Update inventory item with cost breakdown and pricing

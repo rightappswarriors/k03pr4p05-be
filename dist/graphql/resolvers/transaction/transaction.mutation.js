@@ -23,8 +23,11 @@ export const CartItemInput = inputObjectType({
     name: "CartItemInput",
     definition(t) {
         t.nonNull.int("itemId"); // the ID of the item being sold
-        t.nonNull.int("quantity"); // how many were sold
+        t.nonNull.float("quantity"); // how many were sold
         t.nonNull.float("price"); // unit price
+        t.nonNull.float("priceAtSale"); // ← add
+        t.nullable.int("unitId"); // ← add
+        t.nullable.string("unitName"); // ← ad
     },
 });
 export const PaymentTypeEnum = enumType({
@@ -60,6 +63,8 @@ export const TransactionMutation = extendType({
                 paymentType: stringArg(),
                 status: nonNull(arg({ type: "Status" })),
                 createdAt: nonNull(stringArg()),
+                discountType: nullable(stringArg()),
+                discountAmount: nullable(arg({ type: "Float" })),
                 itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
             },
             async resolve(_, args, ctx) {

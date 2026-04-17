@@ -134,6 +134,14 @@ export const RestockCycleType = objectType({
           include: { item: true },
         }),
     });
+    t.nonNull.list.nonNull.field("supplierOrders", {
+      type: "SupplierOrder",
+      resolve: (parent, _, ctx) =>
+        ctx.prisma.supplierOrder.findMany({
+          where: { cycleId: parent.id },
+          include: { items: true },
+        }),
+    })
   },
 });
 

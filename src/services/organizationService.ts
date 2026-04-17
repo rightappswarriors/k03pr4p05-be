@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+
+import { prisma } from '../lib/prisma.js';
 
 export async function createOrganization(userId: number, name: string) {
   try {
@@ -38,6 +38,43 @@ export async function createOrganization(userId: number, name: string) {
         { orgId: organization.id, name: 'VAT Exempt', rate: 0.0 },
         { orgId: organization.id, name: 'Zero-Rated (0%)', rate: 0.0 },
       ]
+    });
+    // In your organization creation service, after org is created:
+
+    await prisma.promoType.createMany({
+      data: [
+        {
+          name: 'Senior Citizen',
+          description: '20% discount for senior citizens (RA 9994)',
+          isActive: true,
+          orgId: organization.id,
+        },
+        {
+          name: 'PWD',
+          description: '20% discount for persons with disability (RA 10754)',
+          isActive: true,
+          orgId: organization.id,
+        },
+        {
+          name: 'Employee',
+          description: 'Staff/employee discount',
+          isActive: true,
+          orgId: organization.id,
+        },
+        {
+          name: 'Promo',
+          description: 'General promotional discount',
+          isActive: true,
+          orgId: organization.id,
+        },
+        {
+          name: 'Loyalty',
+          description: 'Loyalty card / returning customer discount',
+          isActive: true,
+          orgId: organization.id,
+        },
+      ],
+      skipDuplicates: true,
     });
     await prisma.user.update({
       where: { id: userId },

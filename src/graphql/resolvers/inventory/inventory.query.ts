@@ -1,6 +1,38 @@
-import { extendType, nonNull, intArg, stringArg, arg } from "nexus";
+import { extendType, nonNull, intArg, stringArg, arg, objectType } from "nexus";
 import { requireAuth, requireOwnership, requireRole } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
+
+
+// Add this objectType
+export const OutletStockRow = objectType({
+  name: "OutletStockRow",
+  definition(t) {
+    t.nonNull.int("outletId")
+    t.nonNull.string("outletName")
+    t.nonNull.float("quantity")
+    t.nonNull.string("baseUnit")
+    t.nullable.float("reorderPoint")
+    t.nonNull.string("status") // "OK" | "LOW" | "CRITICAL"
+  }
+})
+
+export const ItemStockDistribution = objectType({
+  name: "ItemStockDistribution",
+  definition(t) {
+    t.nonNull.int("itemId")
+    t.nonNull.string("itemName")
+    t.nonNull.float("totalStock")
+    t.nonNull.float("minQuantity")
+    t.nonNull.string("stockLabel")
+    t.nullable.string("stockDescription")
+    t.nonNull.float("warehouseStock")
+    t.nonNull.float("totalAssigned")
+    t.nonNull.list.nonNull.field("outlets", { type: "OutletStockRow" })
+  }
+})
+
+// Add inside InventoryQuery definition(t)
+
 
 export const InventoryQuery = extendType({
   type: "Query",
@@ -10,6 +42,15 @@ export const InventoryQuery = extendType({
     //   1. createItems mutation creates the Item row
     //   2. itemByName fetches the new item's id
     //   3. addItemsToInventory links it to the inventory
+    t.nullable.field("getItemStockDistribution", {
+      type: "ItemStockDistribution",
+      args: { itemId: nonNull(intArg()) },
+      async resolve(_, { itemId }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+        return inventoryService.getItemStockDistribution(itemId, ctx.user.orgId);
+      }
+    })
     t.nullable.field("itemByName", {
       type: "Item",
       args: {
@@ -115,9 +156,15 @@ export const InventoryQuery = extendType({
         }
       },
     });
-
-    // Get all items for organization
-    t.list.field("getItems", {
+    t.field('getDashboardInventoryStats', {
+      type: 'DashboardInventoryStats',
+      async resolve(_, __, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
+        return inventoryService.getDashboardInventoryStats(Number(ctx.user.orgId));
+      },
+    });
+     t.list.field("getItems", {
       type: "Item",
       args: {
         query: stringArg(),
@@ -134,6 +181,25 @@ export const InventoryQuery = extendType({
           throw new Error("Failed to fetch items.");
         }
       },
+    });
+  },
+});
+
+export const InventoryCategoryBreakdown = objectType({
+  name: 'InventoryCategoryBreakdown',
+  definition(t) {
+    t.nonNull.string('name');
+    t.nonNull.float('totalStock');
+  },
+});
+
+export const DashboardInventoryStats = objectType({
+  name: 'DashboardInventoryStats',
+  definition(t) {
+    t.nonNull.int('skuCount');       // distinct product count
+    t.nonNull.float('totalUnits');   // sum of all stock
+    t.nonNull.list.nonNull.field('categoryBreakdown', {
+      type: 'InventoryCategoryBreakdown',
     });
   },
 });

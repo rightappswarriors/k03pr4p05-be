@@ -1,6 +1,5 @@
 // rai-pos-backend\src\services\item.service.ts
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 // Your existing service functions...
 /**
  * Inserts multiple new items into the database in a single, efficient query.

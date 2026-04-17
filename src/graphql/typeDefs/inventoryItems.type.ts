@@ -9,6 +9,7 @@ export const InventoryItems = objectType({
     t.nonNull.int("quantity");
     t.nullable.int("locationId");
     t.nullable.float('price')
+    t.string("baseUnit")
     t.nonNull.field("inventory", {
       type: "Inventory",
       resolve: (parent, _, ctx) => {
@@ -18,7 +19,17 @@ export const InventoryItems = objectType({
           .inventory();
       },
     });
-
+    
+    t.nullable.int("categoryId");
+    t.nullable.field("category", {
+      type: "ItemCategory",
+      resolve: (parent, _, ctx) => {
+        // Correct way to resolve the category from the inventory item
+        return ctx.prisma.inventoryItems
+          .findUnique({ where: { id: parent.id } })
+          .category();
+      },
+    });
     t.nonNull.field("item", {
       type: "Item",
       resolve: (parent, _, ctx) => {

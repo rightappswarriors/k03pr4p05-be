@@ -6,13 +6,13 @@ export const centerMutation = extendType({
         t.field('createCenter', {
             type: 'Center',
             args: {
-                orgId: intArg(),
-                name: stringArg()
+                label: stringArg()
             },
-            resolve: async (_, { orgId, name }, ctx) => {
+            resolve: async (_, { label }, ctx) => {
                 requireAuth(ctx);
+                const orgId = Number(ctx.user.orgId);
                 return ctx.prisma.center.create({
-                    data: { orgId, name }
+                    data: { orgId, label }
                 });
             }
         });
@@ -20,13 +20,13 @@ export const centerMutation = extendType({
             type: 'Center',
             args: {
                 id: intArg(),
-                name: stringArg()
+                label: stringArg()
             },
-            resolve: async (_, { id, name }, ctx) => {
+            resolve: async (_, { id, label }, ctx) => {
                 requireAuth(ctx);
                 return ctx.prisma.center.update({
                     where: { id },
-                    data: { name }
+                    data: { label }
                 });
             }
         });

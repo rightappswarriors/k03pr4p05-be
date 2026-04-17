@@ -13,6 +13,7 @@ export const OutletWithItems = objectType({
     t.nonNull.int("id");
     t.nonNull.int("branchId");
     t.nonNull.string("name");
+    t.string("bannerImage")
     t.string("address");
     t.string("phone");
     t.string("code");
@@ -22,6 +23,15 @@ export const OutletWithItems = objectType({
     t.boolean("hasKey")
     t.string("outletType");
     t.nonNull.list.nonNull.field("items", { type: "InventoryItems" });
+  },
+});
+
+export const MyOutletAssignment = objectType({
+  name: "MyOutletAssignment",
+  definition(t) {
+    t.nonNull.int("outletId");
+    t.nonNull.string("role");
+    t.nonNull.string("outletName");
   },
 });
 
@@ -54,6 +64,21 @@ export const OutletQuery = extendType({
         requireRole(ctx, ["ADMIN", "OWNER"]);
         await requireOwnership(ctx, "Outlet", id);
         return await outletService.getOutletById(Number(id));
+      },
+    });
+    t.nullable.field("myOutletAssignment", {
+      type: "MyOutletAssignment",
+      async resolve(_, __, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["CASHIER", "STAFF", "MANAGER", "OWNER", "ADMIN"]);
+        const userId = Number(ctx.user.userId);
+        try {
+          return await outletService.getMyOutletAssignment(userId);
+        } catch (error) {
+          if (process.env.NODE_ENV === "development")
+            console.error("Error getting outlet assignment:", error);
+          throw new Error("Error getting outlet assignment");
+        }
       },
     });
     t.nonNull.list.nonNull.field("getOutletsByBranch", {
@@ -114,7 +139,16 @@ export const OutletQuery = extendType({
         }
       },
     });
-    t.nonNull.list.nonNull.field("getOutletTransactions", {
+    t.nullable.field("getInventoryItemById", {
+      type: "InventoryItems",
+      args: { id: nonNull(arg({ type: "ID" })) },
+      async resolve(_, { id }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+        return await outletService.getInventoryItemById(Number(id));
+      },
+    });
+    t.nonNull.list.nonNull.field("getOutletTransactionsMoney", {
       type: "Transaction",
       args: {
         outletId: nonNull(arg({ type: "ID" })),

@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 export const getAllOutletPromos = async () => {
     return await prisma.outletPromo.findMany({
         orderBy: { createdAt: "desc" },
@@ -10,10 +9,14 @@ export const getOutletPromoById = async (id) => {
         where: { id },
     });
 };
+// In outletPromo.service.ts (backend) — update getOutletPromosByOutletId:
 export const getOutletPromosByOutletId = async (outletId) => {
     return await prisma.outletPromo.findMany({
         where: { outletId },
-        orderBy: { createdAt: "desc" },
+        include: {
+            promoType: true, // ← add this
+        },
+        orderBy: { createdAt: 'desc' },
     });
 };
 export const getOutletPromosByPromoTypeId = async (promoTypeId) => {
@@ -44,5 +47,26 @@ export const updateOutletPromo = async (id, data) => {
 export const deleteOutletPromo = async (id) => {
     return await prisma.outletPromo.delete({
         where: { id },
+    });
+};
+export const upsertOutletPromo = async (data) => {
+    return await prisma.outletPromo.upsert({
+        where: {
+            outletId_promoTypeId: {
+                outletId: data.outletId,
+                promoTypeId: data.promoTypeId,
+            },
+        },
+        update: {
+            discount: data.discount,
+            isActive: data.isActive ?? true,
+        },
+        create: {
+            outletId: data.outletId,
+            promoTypeId: data.promoTypeId,
+            discount: data.discount,
+            isActive: data.isActive ?? true,
+            userId: data.userId,
+        },
     });
 };

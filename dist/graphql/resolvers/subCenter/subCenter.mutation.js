@@ -6,12 +6,12 @@ export const subCenterMutation = extendType({
             type: 'SubCenter',
             args: {
                 orgId: intArg(),
-                name: stringArg(),
+                label: stringArg(),
                 centerId: intArg()
             },
-            resolve: async (_, { orgId, name, centerId }, ctx) => {
+            resolve: async (_, { orgId, label, centerId }, ctx) => {
                 return ctx.prisma.subCenter.create({
-                    data: { orgId, name, centerId }
+                    data: { orgId, label, centerId }
                 });
             }
         });
@@ -19,13 +19,13 @@ export const subCenterMutation = extendType({
             type: 'SubCenter',
             args: {
                 id: intArg(),
-                name: stringArg(),
+                label: stringArg(),
                 centerId: intArg()
             },
-            resolve: async (_, { id, name, centerId }, ctx) => {
+            resolve: async (_, { id, label, centerId }, ctx) => {
                 return ctx.prisma.subCenter.update({
                     where: { id },
-                    data: { name, centerId }
+                    data: { label, centerId }
                 });
             }
         });

@@ -183,11 +183,10 @@ export const userMutation = extendType({
         fullname: nonNull(arg({ type: "String" })),
         email: nonNull(arg({ type: "String" })),
         password: nonNull(arg({ type: "String" })),
-        role: nullable(arg({ type: "Role" })),
         departmentId: nullable(intArg()),
         positionId: nullable(arg({ type: "String" })),
       },
-      async resolve(_, { fullname, email, password, role, departmentId, positionId }, ctx) {
+      async resolve(_, { fullname, email, password, departmentId, positionId }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
 
@@ -196,10 +195,8 @@ export const userMutation = extendType({
             "Full name, email, and password cannot be empty."
           );
         }
-
-        if (!role) {
-          role = "STAFF";
-        }
+        const orgId = Number(ctx.user.orgId);
+        let role = "STAFF";
 
         const usernameBase = email.split("@")[0].replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase() || fullname.split(" ")[0].toLowerCase();
         let username = usernameBase;
@@ -211,14 +208,15 @@ export const userMutation = extendType({
         try {
           const managerId = ctx.user.userId;
           const newStaff = await createStaff({
+            orgId,
             fullname,
             username,
             email,
             password,
-            role,
             managerId,
             departmentId,
             positionId,
+            role,
           });
           return newStaff;
         } catch (error: any) {
@@ -298,9 +296,11 @@ export const userMutation = extendType({
           }
           return user
         } catch (error: any) {
-          if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
-          console.error('Real login error:', error); // ← add this
-          throw new Error("Error upon Sign in:", error);
+          if (process.env.NODE_ENV === "development") {
+            console.error("Error upon Sign in:", error);
+          }
+          // ✅ Re-throw the original error message instead of wrapping it
+          throw new Error(error?.message ?? "Sign in failed");
         }
       },
     });

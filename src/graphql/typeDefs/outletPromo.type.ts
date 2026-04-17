@@ -5,7 +5,7 @@ export const OutletPromo = objectType({
     name: "OutletPromo",
     definition(t) {
         t.nonNull.int("id"),
-            t.nonNull.int("outletId")
+        t.nonNull.int("outletId")
         t.nonNull.int("promoTypeId")
         t.nonNull.float("discount")
         t.nonNull.dateTime("createdAt")

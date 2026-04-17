@@ -1,50 +1,60 @@
-import { extendType, stringArg } from 'nexus';
+import { extendType, nonNull, stringArg } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 import { AttendanceService } from '../../../services/attendanceService.js';
 const attendanceService = new AttendanceService();
 export const attendanceMutation = extendType({
     type: 'Mutation',
     definition(t) {
+        // ── TIME IN ────────────────────────────────────────────────────────────
         t.field('timeIn', {
             type: 'Attendance',
             args: {
-                photo: stringArg()
+                photoIn: nonNull(stringArg()), // URL from your file service
+                noteIn: nonNull(stringArg()) // what's your plan for today
             },
-            resolve: async (_, { photo }, ctx) => {
+            resolve: async (_, { photoIn, noteIn }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER']);
-                const userId = ctx.userId; // Assuming we have userId in context from auth middleware
-                return attendanceService.timeIn(userId, photo);
+                requireRole(ctx, ['OWNER', 'STAFF', 'CASHIER']);
+                return attendanceService.timeIn(ctx.user.userId, photoIn, noteIn);
             }
         });
+        // ── START BREAK (out for lunch) ────────────────────────────────────────
         t.field('startBreak', {
             type: 'Attendance',
             args: {
-                photo: stringArg()
+                photoBreakStart: nonNull(stringArg()),
+                noteBreakStart: nonNull(stringArg())
             },
-            resolve: async (_, { photo }, ctx) => {
+            resolve: async (_, { photoBreakStart, noteBreakStart }, ctx) => {
                 requireAuth(ctx);
-                const userId = ctx.userId;
-                return attendanceService.startBreak(userId, photo);
+                requireRole(ctx, ['OWNER', 'STAFF', 'CASHIER']);
+                return attendanceService.startBreak(ctx.user.userId, photoBreakStart, noteBreakStart);
             }
         });
+        // ── END BREAK (in from lunch) ──────────────────────────────────────────
         t.field('endBreak', {
             type: 'Attendance',
-            resolve: async (_, __, ctx) => {
+            args: {
+                photoBreakEnd: nonNull(stringArg()),
+                noteBreakEnd: nonNull(stringArg())
+            },
+            resolve: async (_, { photoBreakEnd, noteBreakEnd }, ctx) => {
                 requireAuth(ctx);
-                const userId = ctx.userId;
-                return attendanceService.endBreak(userId);
+                requireRole(ctx, ['OWNER', 'STAFF', 'CASHIER']);
+                return attendanceService.endBreak(ctx.user.userId, photoBreakEnd, noteBreakEnd);
             }
         });
+        // ── TIME OUT ───────────────────────────────────────────────────────────
         t.field('timeOut', {
             type: 'Attendance',
             args: {
-                photo: stringArg()
+                photoOut: nonNull(stringArg()),
+                noteOut: nonNull(stringArg())
             },
-            resolve: async (_, { photo }, ctx) => {
+            resolve: async (_, { photoOut, noteOut }, ctx) => {
                 requireAuth(ctx);
-                const userId = ctx.userId;
-                return attendanceService.timeOut(userId, photo);
+                requireRole(ctx, ['OWNER', 'STAFF', 'CASHIER']);
+                return attendanceService.timeOut(ctx.user.userId, photoOut, noteOut);
             }
         });
     }

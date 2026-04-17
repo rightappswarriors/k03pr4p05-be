@@ -39,3 +39,4 @@ export * from './vatType.type.js';
 export * from './attendance.type.js'; // New
 export * from './supplierOrder.type.js'
 export * from '../types/added.types.js';
+export * from "./contact.type.js";

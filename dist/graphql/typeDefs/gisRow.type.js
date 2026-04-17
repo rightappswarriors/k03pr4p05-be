@@ -12,6 +12,7 @@ export const GISRow = objectType({
         t.nonNull.float('total');
         t.nonNull.int('orgId');
         t.nullable.int('userId');
+        t.nonNull.dateTime('createdAt');
         t.nonNull.field('org', {
             type: 'Organization',
             resolve: (parent, _, ctx) => {

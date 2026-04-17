@@ -20,6 +20,7 @@ export const InventoryItemUnitType = objectType({
     t.nonNull.string("baseUnit")        // "kg", "piece", "liter"
     t.nullable.string("barcode")
     t.nonNull.boolean("isDefault")
+    t.nonNull.boolean("allowDecimal")
     t.nonNull.boolean("isActive")
     t.nullable.float("minOrderQty")
     t.nullable.float("maxOrderQty")
@@ -53,6 +54,7 @@ export const CreateInventoryItemUnitInput = inputObjectType({
     t.nullable.boolean("isDefault")
     t.nullable.float("minOrderQty")
     t.nullable.float("maxOrderQty")
+    t.boolean("allowDecimal") 
     t.nullable.float("reorderPoint")
   },
 })
@@ -108,7 +110,7 @@ export const InventoryItemUnitMutation = extendType({
       },
       resolve: async (_root, { inventoryItemId, units }, ctx) => {
         // If any unit is marked default, unset existing defaults first
-        const hasNewDefault = units.some((u) => u.isDefault)
+        const hasNewDefault = units.some((u: any) => u.isDefault)
         if (hasNewDefault) {
           await ctx.prisma.inventoryItemUnit.updateMany({
             where: { inventoryItemId, isDefault: true },
@@ -117,7 +119,7 @@ export const InventoryItemUnitMutation = extendType({
         }
 
         return ctx.prisma.$transaction(
-          units.map((u) =>
+          units.map((u: any) =>
             ctx.prisma.inventoryItemUnit.create({
               data: {
                 inventoryItemId,

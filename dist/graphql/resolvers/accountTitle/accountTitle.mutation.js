@@ -1,17 +1,18 @@
 import { extendType, intArg, stringArg } from 'nexus';
-import { requireRole } from '../../../middleware/auth.middleware.js';
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 export const accountTitleMutation = extendType({
     type: 'Mutation',
     definition(t) {
         t.field('createAccountTitle', {
             type: 'AccountTitle',
             args: {
-                orgId: intArg(),
                 name: stringArg(),
                 code: stringArg()
             },
-            resolve: async (_, { orgId, name, code }, ctx) => {
+            resolve: async (_, { name, code }, ctx) => {
+                requireAuth(ctx);
                 requireRole(ctx, ['OWNER']);
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.accountTitle.create({
                     data: { orgId, name, code }
                 });
@@ -25,9 +26,11 @@ export const accountTitleMutation = extendType({
                 code: stringArg()
             },
             resolve: async (_, { id, name, code }, ctx) => {
+                requireAuth(ctx);
                 requireRole(ctx, ['OWNER']);
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.accountTitle.update({
-                    where: { id },
+                    where: { id, orgId },
                     data: { name, code }
                 });
             }

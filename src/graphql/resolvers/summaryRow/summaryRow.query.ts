@@ -1,4 +1,4 @@
-import { extendType, intArg } from 'nexus'
+import { arg, extendType, intArg, nullable, stringArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
 export const summaryRowQuery = extendType({
@@ -7,16 +7,25 @@ export const summaryRowQuery = extendType({
     t.list.field('summaryRows', {
       type: 'SummaryRow',
       args: {
-        orgId: intArg()
+        startDate: nullable(stringArg()),  // ← was: nullable(arg({ type: "DateTime" }))
+        endDate: nullable(stringArg()),
       },
-      resolve: async (_, { orgId }, ctx) => {
-
-        requireAuth(ctx)
-        requireRole(ctx, ['OWNER', 'ADMIN'])
-        return ctx.prisma.summaryRow.findMany({
-          where: { orgId }
-        })
-      }
+      resolve: async (_, { startDate, endDate }, ctx) => {
+        requireAuth(ctx);
+        requireRole(ctx, ['OWNER', 'ADMIN']);
+        const orgId = Number(ctx.user?.orgId);
+        return ctx.prisma.summaryRow.findMany({  // or summaryRow
+          where: {
+            orgId,
+            ...(startDate || endDate ? {
+              createdAt: {
+                ...(startDate && { gte: new Date(startDate) }),  // parse string → Date
+                ...(endDate && { lte: new Date(endDate) }),
+              },
+            } : {}),
+          },
+        });
+      },
     })
     t.field('summaryRow', {
       type: 'SummaryRow',
@@ -26,8 +35,9 @@ export const summaryRowQuery = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'ADMIN'])
+        const orgId = Number(ctx.user?.orgId)
         return ctx.prisma.summaryRow.findUnique({
-          where: { id }
+          where: { id, orgId }
         })
       }
     })

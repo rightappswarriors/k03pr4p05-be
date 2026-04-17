@@ -1,13 +1,13 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
-export const getAllPromoTypes = async () => {
+import { prisma } from '../lib/prisma.js';
+export const getAllPromoTypes = async (orgId) => {
     return await prisma.promoType.findMany({
+        where: { orgId },
         orderBy: { createdAt: "desc" },
     });
 };
-export const getPromoTypeById = async (id) => {
+export const getPromoTypeById = async (id, orgId) => {
     return await prisma.promoType.findUnique({
-        where: { id },
+        where: { id, orgId },
     });
 };
 export const getPromoTypesByOrg = async (orgId) => {
@@ -27,14 +27,14 @@ export const createPromoType = async (data) => {
         },
     });
 };
-export const updatePromoType = async (id, data) => {
+export const updatePromoType = async (id, orgId, data) => {
     return await prisma.promoType.update({
-        where: { id },
+        where: { id, orgId },
         data,
     });
 };
-export const deletePromoType = async (id) => {
+export const deletePromoType = async (id, orgId) => {
     return await prisma.promoType.delete({
-        where: { id },
+        where: { id, orgId },
     });
 };

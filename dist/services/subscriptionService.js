@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 export async function createSubscription(organizationId, plan) {
     try {
         if (process.env.NODE_ENV === 'development') {

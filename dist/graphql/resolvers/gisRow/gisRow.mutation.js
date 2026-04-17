@@ -1,4 +1,4 @@
-import { extendType, intArg, stringArg, floatArg } from 'nexus';
+import { extendType, stringArg, floatArg } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 export const gisRowMutation = extendType({
     type: 'Mutation',
@@ -6,44 +6,66 @@ export const gisRowMutation = extendType({
         t.field('createGISRow', {
             type: 'GISRow',
             args: {
-                orgId: intArg(),
-                accountTitleId: intArg(),
-                amount: floatArg(),
-                description: stringArg()
+                main: stringArg(),
+                group: stringArg(),
+                code: stringArg(),
+                description: stringArg(),
+                debit: floatArg(),
+                credit: floatArg(),
+                total: floatArg(),
             },
-            resolve: async (_, { orgId, accountTitleId, amount, description }, ctx) => {
+            resolve: async (_, { main, group, code, description, debit, credit, total }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER', 'ADMIN']);
+                const orgId = Number(ctx.user?.orgId);
+                const userId = Number(ctx.user?.id);
                 return ctx.prisma.gISRow.create({
-                    data: { orgId, accountTitleId, amount, description }
+                    data: {
+                        orgId,
+                        userId,
+                        main: main ?? 'Expenses',
+                        group: group ?? 'General',
+                        code: code ?? '',
+                        description: description ?? '',
+                        debit: debit ?? 0,
+                        credit: credit ?? 0,
+                        total: total ?? 0,
+                    },
                 });
-            }
+            },
         });
         t.field('updateGISRow', {
             type: 'GISRow',
             args: {
-                id: intArg(),
-                accountTitleId: intArg(),
+                id: stringArg(),
+                main: stringArg(),
+                group: stringArg(),
+                code: stringArg(),
+                description: stringArg(),
+                debit: floatArg(),
+                credit: floatArg(),
+                total: floatArg(),
                 amount: floatArg(),
-                description: stringArg()
             },
-            resolve: async (_, { id, accountTitleId, amount, description }, ctx) => {
+            resolve: async (_, { id, main, group, code, description, debit, credit, total }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER', 'ADMIN']);
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.gISRow.update({
-                    where: { id },
-                    data: { accountTitleId, amount, description }
+                    where: { id, orgId },
+                    data: { main, group, code, description, debit, credit, total }
                 });
             }
         });
         t.field('deleteGISRow', {
             type: 'GISRow',
             args: {
-                id: intArg()
+                id: stringArg()
             },
             resolve: async (_, { id }, ctx) => {
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.gISRow.delete({
-                    where: { id }
+                    where: { id: Number(id), orgId }
                 });
             }
         });

@@ -1,5 +1,5 @@
+// rai-pos-backend/src/lib/ws.js
 import { WebSocketServer } from "ws";
-
 
 const clients = new Map()
 

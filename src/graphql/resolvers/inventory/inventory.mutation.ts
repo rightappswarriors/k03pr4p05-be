@@ -5,6 +5,7 @@ import {
   requireRole,
 } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
+import * as transactionService from "../../../services/transaction.service.js";
 
 export const BatchPayload = objectType({
   name: "BatchPayload",
@@ -20,6 +21,44 @@ export const AddItemToInventoryInput = inputObjectType({
     t.nonNull.int("quantity")
     t.nonNull.float("price")
     t.nullable.int("categoryId")
+  }
+})
+
+export const ReceivePurchaseOrderItemInput = inputObjectType({
+  name: "ReceivePurchaseOrderItemInput",
+  definition(t) {
+    t.nonNull.int("supplierOrderItemId")
+    t.nonNull.float("confirmedQty")
+  }
+});
+
+export const ReturnItemInput = inputObjectType({
+  name: "ReturnItemInput",
+  definition(t) {
+    t.nonNull.int("itemId")
+    t.nonNull.float("quantity")
+    t.nullable.int("unitId")
+    t.nonNull.boolean("isResellable")
+    t.nullable.string("reason")
+  }
+});
+
+export const ReturnResult = objectType({
+  name: "ReturnResult",
+  definition(t) {
+    t.nonNull.boolean("success")
+    t.nonNull.int("transactionId")
+  }
+});
+
+export const UpdateOutletItemInput = inputObjectType({
+  name: "UpdateOutletItemInput",
+  definition(t) {
+    t.nonNull.int("inventoryItemId")
+    t.nonNull.float("price")
+    t.nonNull.int("quantity")
+    t.nullable.int("categoryId")
+    t.nullable.list.nonNull.field("units", { type: "CreateInventoryItemUnitInput" })
   }
 })
 
@@ -95,7 +134,7 @@ export const InventoryMutation = extendType({
         try {
           await inventoryService.deleteInventory(id);
           return true;
-        } catch (error) {
+        } catch (error: any) {
           if (error.code === "P2025") {
             throw new Error("Inventory not found.");
           }
@@ -190,7 +229,103 @@ export const InventoryMutation = extendType({
         }
       },
     });
+    t.field("restockOutlet", {
+      type: "InventoryItems",
+      args: {
+        inventoryItemId: nonNull(intArg()),
+        quantity: nonNull(floatArg()),
+        reason: stringArg(),
+      },
+      async resolve(_, { inventoryItemId, quantity, reason }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+        const result = await inventoryService.restockOutlet({
+          inventoryItemId,
+          quantity,
+          reason: reason ?? undefined,
+          createdBy: ctx.user.userId,
+        });
+        if (result.wasOverWarehouse && process.env.NODE_ENV === "development") {
+          console.warn(`⚠️ Restocked more than warehouse stock`);
+        }
+        return result.inventoryItem;
+      }
+    });
 
+    t.field("receivePurchaseOrder", {
+      type: "SupplierOrder",
+      args: {
+        supplierOrderId: nonNull(intArg()),
+        items: nonNull(list(nonNull(arg({ type: "ReceivePurchaseOrderItemInput" })))),
+      },
+      async resolve(_, { supplierOrderId, items }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+        return inventoryService.receivePurchaseOrder({
+          supplierOrderId,
+          items,
+          createdBy: ctx.user.userId,
+          orgId: ctx.user.orgId,
+        });
+      }
+    });
+
+    // transaction.mutation.ts — add inside TransactionMutation definition(t)
+    t.field("processCustomerReturn", {
+      type: "ReturnResult",
+      args: {
+        transactionId: nonNull(intArg()),
+        outletId: nonNull(intArg()),
+        items: nonNull(list(nonNull(arg({ type: "ReturnItemInput" })))),
+      },
+      async resolve(_, { transactionId, outletId, items }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER", "CASHIER"]);
+        return transactionService.processCustomerReturn({
+          transactionId,
+          outletId,
+          items,
+          createdBy: ctx.user.userId,
+        });
+      }
+    });
+    t.field("updateOutletItem", {
+      type: "InventoryItems",
+      args: {
+        data: nonNull(arg({ type: "UpdateOutletItemInput" })),
+      },
+      async resolve(_, { data }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+
+        try {
+          // Verify ownership via inventory → outlet chain
+          const inventoryItem = await ctx.prisma.inventoryItems.findUnique({
+            where: { id: data.inventoryItemId },
+            include: {
+              inventory: {
+                select: {
+                  outlet: { select: { id: true, orgId: true } }
+                }
+              }
+            }
+          });
+
+          if (!inventoryItem) throw new Error("Inventory item not found.");
+          if (inventoryItem.inventory.outlet.orgId !== ctx.user.orgId) {
+            throw new Error("Unauthorized to update this item.");
+          }
+
+          await requireOwnership(ctx, "outlet", inventoryItem.inventory.outlet.id);
+
+          return await inventoryService.updateOutletItem(data);
+        } catch (error) {
+          if (process.env.NODE_ENV === "development")
+            console.error("Error updating outlet item:", error);
+          throw new Error("Failed to update outlet item.");
+        }
+      },
+    });
     // Create Item
     t.field("createItem", {
       type: "Item",
@@ -229,7 +364,7 @@ export const InventoryMutation = extendType({
               opExPct: data.opExPct,
               costLines: data.costLines?.length
                 ? {
-                  create: data.costLines.map((line) => ({
+                  create: data.costLines.map((line: { label: string; amount: number }) => ({
                     label: line.label,
                     amount: line.amount,
                   })),

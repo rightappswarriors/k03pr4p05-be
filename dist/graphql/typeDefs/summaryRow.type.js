@@ -11,9 +11,23 @@ export const SummaryRow = objectType({
         t.nonNull.float('sellingPrice');
         t.nullable.string('status');
         t.nonNull.int('orgId');
+        t.nonNull.dateTime('createdAt');
         t.nullable.int('userId');
+        t.nullable.int('itemId');
+        t.nonNull.field('item', {
+            type: 'Item',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.summaryRow.findUnique({ where: { id: parent.id } }).item();
+            }
+        });
         t.nonNull.field('org', {
             type: 'Organization',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.summaryRow.findUnique({ where: { id: parent.id } }).org();
+            }
+        });
+        t.nullable.field('item', {
+            type: 'Item',
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.summaryRow.findUnique({ where: { id: parent.id } }).org();
             }

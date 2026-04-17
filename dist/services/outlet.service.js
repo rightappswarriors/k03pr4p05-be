@@ -1,5 +1,49 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
+export const getInventoryItemById = async (id) => {
+    return prisma.inventoryItems.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            price: true,
+            quantity: true,
+            categoryId: true,
+            category: { select: { id: true, name: true } },
+            item: {
+                select: {
+                    id: true,
+                    name: true,
+                    barcode: true,
+                    brand: true,
+                    stock: true,
+                    sellingPrice: true,
+                    description: true,
+                    image: true,
+                    costLines: { select: { id: true, label: true, amount: true } },
+                },
+            },
+            units: {
+                where: { isActive: true },
+                orderBy: [{ isDefault: 'desc' }, { price: 'asc' }],
+                select: {
+                    id: true,
+                    unitName: true,
+                    unitLabel: true,
+                    price: true,
+                    quantity: true,
+                    conversionFactor: true,
+                    baseUnit: true,
+                    barcode: true,
+                    isDefault: true,
+                    isActive: true,
+                    allowDecimal: true,
+                    minOrderQty: true,
+                    maxOrderQty: true,
+                    reorderPoint: true,
+                },
+            },
+        },
+    });
+};
 /**
  * @description
  * Creates a new Outlet in the database.
@@ -50,6 +94,34 @@ export const createOutlet = async (outletData, branchId, ownerId) => {
     return newOutletWithInventory;
 };
 /**
+ * Gets the outlet assignment for the currently logged-in user.
+ * Returns null if the user is not assigned to any outlet.
+ *
+ * @param {number} userId - The ID of the logged-in user.
+ * @returns {Promise<{ outletId, role, outletName } | null>}
+ */
+export const getMyOutletAssignment = async (userId) => {
+    const assignment = await prisma.outletStaff.findFirst({
+        where: { userId },
+        select: {
+            role: true,
+            outlet: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+    if (!assignment)
+        return null;
+    return {
+        outletId: assignment.outlet.id,
+        outletName: assignment.outlet.name,
+        role: assignment.role,
+    };
+};
+/**
  * Adds an existing user as staff to a specific Outlet with a given role.
  *
  * @param {number} outletId - The ID of the Outlet.
@@ -86,7 +158,7 @@ export const addStaffToOutlet = async (outletId, userId, role) => {
                 },
             },
         });
-        return { ...outletWithStaff, staff: outletWithStaff.staff.map(s => s.user), };
+        return { ...outletWithStaff, staff: outletWithStaff?.staff.map(s => s.user) ?? [], };
     }
     catch (error) {
         // You should add more specific error handling here, e.g., for duplicate entries.
@@ -227,9 +299,8 @@ export const getOutletById = async (id) => {
     const outlet = await prisma.outlet.findUnique({
         where: { id },
         include: {
-            branch: true,
             staff: {
-                select: {
+                include: {
                     user: {
                         select: {
                             email: true,
@@ -283,6 +354,7 @@ export const getOutletItemsByAssignedStaff = async (userId, role) => {
             address: true,
             phone: true,
             code: true,
+            bannerImage: true,
             governmentTax: true,
             serviceCharge: true,
             outletType: true,
@@ -294,6 +366,19 @@ export const getOutletItemsByAssignedStaff = async (userId, role) => {
                             price: true,
                             quantity: true,
                             location: true,
+                            units: {
+                                where: { isActive: true },
+                                select: {
+                                    id: true,
+                                    unitName: true,
+                                    unitLabel: true,
+                                    price: true,
+                                    conversionFactor: true,
+                                    baseUnit: true,
+                                    isDefault: true,
+                                    barcode: true,
+                                }
+                            },
                             item: {
                                 select: {
                                     id: true,
@@ -328,11 +413,23 @@ export const getOutletItemsByAssignedStaff = async (userId, role) => {
  */
 export const updateOutlet = async (id, outletData) => {
     const updatedOutlet = await prisma.outlet.update({
-        where: { id }, // Corrected to use a unique 'id'
+        where: { id },
         data: outletData,
+        include: {
+            staff: {
+                include: {
+                    user: {
+                        select: {
+                            email: true,
+                            fullname: true,
+                            role: true,
+                        },
+                    },
+                },
+            },
+            outletPromos: true,
+        },
     });
-    if (process.env.NODE_ENV === "development")
-        console.log("Updated Data:", updatedOutlet);
     return updatedOutlet;
 };
 /**

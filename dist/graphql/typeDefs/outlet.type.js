@@ -31,6 +31,71 @@ export const Outlet = objectType({
         t.nullable.boolean("hasKey");
         t.nullable.string("bannerImage");
         t.nonNull.int("orgId"); // Added for multi-tenancy
+        t.string("tin"); // Added for tax identification number
+        t.string("ptu"); // Added for previous tax identification number
+        t.string("bir"); // Added for business identification number
+        t.nonNull.boolean("isVatRegistered");
+        t.float("vatZeroSale");
+        t.nullable.int("vatTypeId");
+        t.nullable.field("vatType", {
+            type: "VatType",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.outlet
+                    .findUnique({ where: { id: parent.id } })
+                    .vatType();
+            }
+        });
+        { /** t.nullable.field("deliveryConfig", {
+          type: "OutletDeliveryConfig",
+          resolve: (parent, _, ctx) => {
+            return ctx.prisma.outlet
+              .findUnique({ where: { id: parent.id } })
+              .deliveryConfig();
+          },
+        }); **/
+        }
+        { /**  t.nonNull.list.nonNull.field("kompraCOrders", {
+          type: "KompraCOrder",
+          resolve: (parent, _, ctx) => {
+            return ctx.prisma.outlet
+              .findUnique({ where: { id: parent.id } })
+              .kompraCOrders();
+          },
+        }); */
+        }
+        t.nonNull.list.nonNull.field("itemSearchIndex", {
+            type: "OutletItemSearchIndex",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.outlet
+                    .findUnique({ where: { id: parent.id } })
+                    .itemSearchIndex();
+            },
+        });
+        t.nonNull.list.nonNull.field("outletPromos", {
+            type: "OutletPromo",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.outlet
+                    .findUnique({ where: { id: parent.id } })
+                    .outletPromos();
+            },
+        });
+        t.nonNull.list.nonNull.field("restockSchedules", {
+            type: "RestockSchedule",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.outlet
+                    .findUnique({ where: { id: parent.id } })
+                    .restockSchedules();
+            },
+        });
+        /**
+        t.nonNull.list.nonNull.field("notifications", {
+          type: "Notification",
+          resolve: (parent, _, ctx) => {
+            return ctx.prisma.outlet
+              .findUnique({ where: { id: parent.id } })
+              .notifications();
+          },
+        }); */
         t.nonNull.field("org", {
             type: "Organization",
             resolve: (parent, _, ctx) => {

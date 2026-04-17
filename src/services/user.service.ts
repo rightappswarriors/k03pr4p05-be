@@ -1,7 +1,7 @@
 // services/user.service.js
 // This file acts as the 'cook'. It contains the core business logic and interacts directly with the database.
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient()
+
+import { prisma } from '../lib/prisma.js';
 
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -51,6 +51,12 @@ export const createUser = async (userData) => {
 export const createStaff = async (staffData: any) => {
   // Check if the requested role is a valid staff role
   const hashedPassword = await bcrypt.hash(staffData.password, 10);
+  const userExists = await prisma.user.findUnique({
+    where: { email: staffData.email },
+  });
+  if (userExists) {
+    throw new Error('A user with this email already exists.');
+  }
   const validRoles = ["MANAGER", "CASHIER", "STAFF"];
   if (!validRoles.includes(staffData.role)) {
     throw new Error("Invalid role provided for staff creation.");
@@ -99,7 +105,7 @@ export const loginUser = async (email: any, password: any, res: any) => {
   if (user.role !== "ADMIN") {
     if (!user.isVerified) {
       console.log(`User ${email} has not verified their email`);
-      throw new Error('Please verify your email before logging in');
+      throw new Error('Please verify your email before logging in.');
     }
     if (process.env.NODE_ENV === "development") {
       console.log("User: ", user.username);

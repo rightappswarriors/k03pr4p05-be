@@ -37,6 +37,8 @@ model Organization {
   restockCycles    RestockCycle[]
   itemGroups       ItemGroup[]
   orgCategories    OrgItemCategory[]
+  contacts         Contact[]
+  notifications    Notification[]
 }
 
 model Subscription {
@@ -79,7 +81,7 @@ model User {
   Transaction          Transaction[]
   manager              User?                    @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]                   @relation("ManagerToStaff")
-  org                  Organization?            @relation(fields: [orgId], references: [id])
+  org                  Organization?            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   userShifts           UserShift[]
   departmentId         Int?
   department           Department?              @relation(fields: [departmentId], references: [id])
@@ -113,13 +115,36 @@ model Branch {
   ownerId          Int
   locationId       Int?
   org              Organization      @relation(fields: [orgId], references: [id])
-  owner            User              @relation("UserBranches", fields: [ownerId], references: [id])
+  owner            User              @relation("UserBranches", fields: [ownerId], references: [id], onDelete: Cascade)
   outlets          Outlet[]
   location         PlaceLocation?
   restockCycles    RestockCycle[]
   restockSchedules RestockSchedule[]
+  contacts         Contact[]
 
   @@unique([orgId, name])
+}
+
+model Contact {
+  id         Int      @id @default(autoincrement())
+  orgId      Int
+  branchId   Int? // null = global (visible to all branches), set = branch-specific
+  label      String // Required display label / nickname (e.g. "Main Supplier - Cebu")
+  name       String // Full name
+  email      String
+  phone      String?
+  position   String?
+  department String?
+  notes      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org    Organization @relation(fields: [orgId], references: [id])
+  branch Branch?      @relation(fields: [branchId], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, branchId])
 }
 
 model PlaceLocation {
@@ -157,8 +182,8 @@ model Outlet {
   kompraCOrders         KompraCOrder[]
   apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
   branch                Branch?                 @relation(fields: [branchId], references: [id])
-  org                   Organization            @relation(fields: [orgId], references: [id])
-  owner                 User                    @relation("UserOutlets", fields: [ownerId], references: [id])
+  org                   Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  owner                 User                    @relation("UserOutlets", fields: [ownerId], references: [id], onDelete: Cascade)
   deliveryConfig        OutletDeliveryConfig?
   itemSearchIndex       OutletItemSearchIndex[]
   outletPromos          OutletPromo[]
@@ -166,6 +191,15 @@ model Outlet {
   Transaction           Transaction[]
   restockCycles         RestockCycle[]
   restockSchedules      RestockSchedule[]
+  tin                   String?
+  ptu                   String?
+  bir                   String?
+  isVatRegistered       Boolean                 @default(false)
+  vatZeroSale           Float?                  @default(0)
+
+  vatTypeId     Int?
+  vatType       VatType?       @relation(fields: [vatTypeId], references: [id])
+  notifications Notification[]
 
   @@unique([orgId, code])
 }
@@ -236,11 +270,40 @@ model Location {
   item  InventoryItems?
 }
 
+model StockMovement {
+  id              Int               @id @default(autoincrement())
+  itemId          Int
+  inventoryItemId Int?
+  outletId        Int?
+  type            StockMovementType
+  quantity        Float // always in base units
+  quantityBefore  Float
+  quantityAfter   Float
+  referenceId     String? // transactionId, orderId
+  referenceType   String? // "TRANSACTION", "ASSIGN", "RESTOCK"
+  reason          String?
+  createdAt       DateTime          @default(now())
+  createdBy       Int
+  item            Item              @relation(fields: [itemId], references: [id])
+}
+
+enum StockMovementType {
+  ASSIGN_TO_OUTLET
+  SALE
+  RESTOCK_TO_OUTLET
+  PURCHASE_RECEIVED
+  CUSTOMER_RETURN
+  WRITE_OFF
+  ADJUSTMENT
+}
+
 model InventoryItems {
   id          Int                    @id @default(autoincrement())
   inventoryId Int
   itemId      Int
   price       Float
+  baseUnit    String                 @default("piece")
+  // ↑ "kg", "piece", "liter" — the unit quantity is stored in
   quantity    Int                    @default(0)
   locationId  Int?                   @unique
   units       InventoryItemUnit[]
@@ -249,7 +312,7 @@ model InventoryItems {
   location    Location?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
   orderItems  KompraCOrderItem[]
   searchIndex OutletItemSearchIndex?
-  categoryId  Int? // ✅ global category for this inventory item
+  categoryId  Int?
   category    ItemCategory?          @relation(fields: [categoryId], references: [id])
 
   @@unique([inventoryId, itemId])
@@ -333,6 +396,8 @@ model Item {
   itemCode             String?
   skuNumber            String?
   vatExempt            Boolean?
+  stockLabel           String?
+  stockDescription     String?
   stock                Float                   @default(0)
   sellingPrice         Float                   @default(0)
   minQuantity          Float                   @default(0)
@@ -364,6 +429,9 @@ model Item {
   orgCategory          OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
   vatTypeId            Int?
   vatType              VatType?                @relation(fields: [vatTypeId], references: [id])
+  stockMovements       StockMovement[]
+  notifications        Notification[]
+  summaryRows          SummaryRow[]
 
   @@unique([orgId, name])
 }
@@ -592,11 +660,36 @@ model ItemUnit {
 model CartItem {
   transactionId Int
   itemId        Int
-  quantity      Int
-  item          Item        @relation(fields: [itemId], references: [id])
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  quantity      Float // Int → Float
+  priceAtSale   Float              @default(0) // ← add
+  unitId        Int? // ← add
+  unitName      String? // ← add
+  item          Item               @relation(fields: [itemId], references: [id])
+  transaction   Transaction        @relation(fields: [transactionId], references: [id])
+  unit          InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@id([transactionId, itemId])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  orgId     Int
+  outletId  Int?
+  itemId    Int?
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  outlet    Outlet?          @relation(fields: [outletId], references: [id])
+  item      Item?            @relation(fields: [itemId], references: [id])
+}
+
+enum NotificationType {
+  OUTLET_LOW_STOCK
+  ORG_CRITICAL_STOCK
+  NEW_TRANSACTION
 }
 
 model Transaction {
@@ -784,24 +877,27 @@ model InventoryItemUnit {
   baseUnit         String             @default("piece")
   barcode          String?
   isDefault        Boolean            @default(false)
+  allowDecimal     Boolean            @default(false)
   isActive         Boolean            @default(true)
   minOrderQty      Float?
   maxOrderQty      Float?
   reorderPoint     Float?
   inventoryItem    InventoryItems     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
   orderItems       KompraCOrderItem[]
+  cartItems        CartItem[]
 
   @@unique([inventoryItemId, unitName])
   @@index([inventoryItemId])
 }
 
 model VatType {
-  id    Int          @id @default(autoincrement())
-  name  String
-  rate  Float
-  orgId Int
-  org   Organization @relation(fields: [orgId], references: [id])
-  items Item[]
+  id      Int          @id @default(autoincrement())
+  name    String
+  rate    Float
+  orgId   Int
+  org     Organization @relation(fields: [orgId], references: [id])
+  items   Item[]
+  outlets Outlet[]
 
   @@unique([orgId, name])
 }
@@ -865,7 +961,7 @@ model Employee {
   department String
   status     EmployeeStatus
   salary     Float
-  hireDate   DateTime
+  hireDate   DateTime       @default(now())
   email      String         @unique
   orgId      Int
   userId     Int?
@@ -891,6 +987,13 @@ model Shift {
   @@index([orgId])
 }
 
+enum AttendanceStatus {
+  PRESENT
+  ON_BREAK
+  OFF_DUTY
+  ABSENT
+}
+
 model UserShift {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -908,24 +1011,34 @@ model Attendance {
   id              Int              @id @default(autoincrement())
   userId          Int
   shiftId         Int
-  shiftDate       DateTime         @default(now())
+  shiftDate       DateTime
+  // Time In
   timeIn          DateTime?
-  timeOut         DateTime?
+  photoIn         String? // URL from your file service
+  noteIn          String? // what they plan to do today
+  // Break Start
   breakStart      DateTime?
-  breakEnd        DateTime?
-  photoIn         String?
-  photoOut        String?
   photoBreakStart String?
-  photoBreakEnd   String?
+  noteBreakStart  String? // note when going on break
+  // Break End
+  breakEnd        DateTime?
+  photoBreakEnd   String? // photo required on return
+  noteBreakEnd    String? // note on return from break
+  // Time Out
+  timeOut         DateTime?
+  photoOut        String?
+  noteOut         String? // end of day note
+  // Status & relations
   status          AttendanceStatus @default(PRESENT)
   orgId           Int
   org             Organization     @relation(fields: [orgId], references: [id])
   shift           Shift            @relation(fields: [shiftId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
 
+  @@unique([userId, shiftDate]) // one record per user per day — CRITICAL
   @@index([userId, shiftDate])
   @@index([shiftId, shiftDate])
-  @@index([orgId])
+  @@index([orgId, shiftDate]) // added orgId+date for owner queries
 }
 
 model GISRow {
@@ -939,10 +1052,12 @@ model GISRow {
   total       Float
   orgId       Int
   userId      Int?
+  createdAt   DateTime     @default(now())
   org         Organization @relation(fields: [orgId], references: [id])
   user        User?        @relation(fields: [userId], references: [id])
 
   @@index([orgId])
+  @@index([orgId, createdAt])
 }
 
 model SummaryRow {
@@ -954,12 +1069,17 @@ model SummaryRow {
   costContribution Float
   sellingPrice     Float
   status           String?
+  itemName         String?
+  createdAt        DateTime     @default(now())
+  itemId           Int
   orgId            Int
   userId           Int?
+  item             Item?        @relation(fields: [itemId], references: [id]) // ← add
   org              Organization @relation(fields: [orgId], references: [id])
   user             User?        @relation(fields: [userId], references: [id])
 
   @@index([orgId])
+  @@index([orgId, createdAt])
 }
 
 model SalesOrder {
@@ -1402,12 +1522,6 @@ enum EmployeeStatus {
   Active
   On_Leave
   Contract
-}
-
-enum AttendanceStatus {
-  PRESENT
-  ON_BREAK
-  OFF_DUTY
 }
 
 enum Role {

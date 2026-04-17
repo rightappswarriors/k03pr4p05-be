@@ -1,4 +1,4 @@
-import { extendType, intArg } from 'nexus';
+import { extendType, intArg, nullable, stringArg } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 export const summaryRowQuery = extendType({
     type: 'Query',
@@ -6,15 +6,25 @@ export const summaryRowQuery = extendType({
         t.list.field('summaryRows', {
             type: 'SummaryRow',
             args: {
-                orgId: intArg()
+                startDate: nullable(stringArg()), // ← was: nullable(arg({ type: "DateTime" }))
+                endDate: nullable(stringArg()),
             },
-            resolve: async (_, { orgId }, ctx) => {
+            resolve: async (_, { startDate, endDate }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER', 'ADMIN']);
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.summaryRow.findMany({
-                    where: { orgId }
+                    where: {
+                        orgId,
+                        ...(startDate || endDate ? {
+                            createdAt: {
+                                ...(startDate && { gte: new Date(startDate) }), // parse string → Date
+                                ...(endDate && { lte: new Date(endDate) }),
+                            },
+                        } : {}),
+                    },
                 });
-            }
+            },
         });
         t.field('summaryRow', {
             type: 'SummaryRow',
@@ -24,8 +34,9 @@ export const summaryRowQuery = extendType({
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER', 'ADMIN']);
+                const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.summaryRow.findUnique({
-                    where: { id }
+                    where: { id, orgId }
                 });
             }
         });

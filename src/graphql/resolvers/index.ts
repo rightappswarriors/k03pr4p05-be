@@ -126,3 +126,5 @@ export * from "./organization/organization.query.js"
 // Attendance
 export * from './attendance/attendance.mutation.js';
 export * from './attendance/attendance.query.js';
+
+export * from './contact/contact.resolvers.js'

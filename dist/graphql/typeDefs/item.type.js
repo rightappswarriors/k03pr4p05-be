@@ -11,6 +11,9 @@ export const Item = objectType({
         t.nullable.int('categoryId');
         t.float('sellingPrice');
         t.nonNull.float('stock');
+        t.nullable.string('brand');
+        t.nullable.string('stockLabel');
+        t.nullable.string('stockDescription');
         t.nullable.int('brandId');
         t.nonNull.dateTime("exactExpiryDate");
         t.nullable.dateTime('expiryStartDate');
@@ -74,6 +77,12 @@ export const Item = objectType({
             type: 'CartItem',
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).cartItems();
+            }
+        });
+        t.nonNull.list.nonNull.field('summaryRows', {
+            type: 'SummaryRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).summaryRows();
             }
         });
         t.nonNull.list.nonNull.field('media', {

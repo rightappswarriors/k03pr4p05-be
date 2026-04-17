@@ -32,6 +32,8 @@ export const CreateItemInput = inputObjectType({
     t.nullable.string("description")
     t.nullable.string("brand")
     t.nullable.int("categoryId")
+    t.nonNull.string("stockLabel")
+    t.nullable.string("stockDescription")
     t.nonNull.float("sellingPrice")
     t.nullable.int("categoryId")        // global category
     t.nullable.int("orgCategoryId")     // ✅ org category
@@ -88,6 +90,8 @@ export const UpdateItemInput = inputObjectType({
     t.nullable.string("description");
     t.nullable.string("barcode");
     t.nullable.string("brand");
+    t.nullable.string("stockLabel")
+    t.nullable.string("stockDescription")
     t.nonNull.float("sellingPrice")
     t.list.field("costLines", { type: "CostLineInput" })
     t.nullable.int("brandId");
@@ -143,7 +147,7 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         // check if all fields are null/undefined
         const hasAtLeastOneField = Object.values(data).some(
           (value) => value !== null && value !== undefined
@@ -153,6 +157,8 @@ export const ItemMutation = extendType({
           throw new Error("You must provide at least one field to update.");
         }
         try {
+          if (process.env.NODE_ENV === "development") console.log("Updating item with data:", { id, ...data });
+
           const updatedItem = await itemService.updateItem(Number(id), data);
           if (!updatedItem) {
             throw new Error("Item not found")

@@ -4,28 +4,15 @@ import { requireAuth } from '../../../middleware/auth.middleware.js'
 export const centerQuery = extendType({
   type: 'Query',
   definition(t) {
-    t.list.field('centers', {
+    t.list.field('getCenters', {
       type: 'Center',
-      args: {
-        orgId: intArg()
-      },
-      resolve: async (_, { orgId }, ctx) => {
+      resolve: async (_, __, ctx) => {
         requireAuth(ctx)
+        const orgId = Number(ctx.user.orgId)
         return ctx.prisma.center.findMany({
           where: { orgId }
         })
-      }
-    })
-    t.field('center', {
-      type: 'Center',
-      args: {
-        id: intArg()
-      },
-      resolve: async (_, { id }, ctx) => {
-        requireAuth(ctx)
-        return ctx.prisma.center.findUnique({
-          where: { id }
-        })
+   
       }
     })
   }
