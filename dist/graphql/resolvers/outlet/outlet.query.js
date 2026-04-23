@@ -17,6 +17,13 @@ export const OutletWithItems = objectType({
         t.boolean("isActive");
         t.boolean("hasKey");
         t.string("outletType");
+        t.boolean("isVatRegistered");
+        t.float("vatZeroSale");
+        t.string("tin");
+        t.string("ptu");
+        t.string("bir");
+        t.field("vatType", { type: "VatType" });
+        t.list.field("outletPromos", { type: "OutletPromo" });
         t.nonNull.list.nonNull.field("items", { type: "InventoryItems" });
     },
 });

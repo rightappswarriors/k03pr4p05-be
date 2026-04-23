@@ -65,12 +65,19 @@ export const TransactionMutation = extendType({
                 createdAt: nonNull(stringArg()),
                 discountType: nullable(stringArg()),
                 discountAmount: nullable(arg({ type: "Float" })),
-                itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
+                // ── VAT Exemption ────────────────────────────────────────────────────
+                isVatExempt: nullable(arg({ type: "Boolean" })),
+                vatExemptType: nullable(arg({ type: "VatExemptType" })),
+                vatExemptRefNo: nullable(stringArg()),
+                vatExemptAmount: nullable(arg({ type: "Float" })),
+                // ── Promo ────────────────────────────────────────────────────────────
+                outletPromoId: nullable(intArg()),
+                promoDiscountAmt: nullable(arg({ type: "Float" })),
+                itemsSold: nonNull(list(nonNull(arg({ type: "CartItemInput" })))),
             },
             async resolve(_, args, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
-                console.log("Creating Transaction");
                 const { itemsSold, ...transactionData } = args;
                 if (!itemsSold || itemsSold.length === 0) {
                     throw new Error("Missing itemsSold array.");

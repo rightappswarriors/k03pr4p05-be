@@ -34,7 +34,7 @@ export const Outlet = objectType({
         t.string("tin"); // Added for tax identification number
         t.string("ptu"); // Added for previous tax identification number
         t.string("bir"); // Added for business identification number
-        t.nonNull.boolean("isVatRegistered");
+        t.boolean("isVatRegistered");
         t.float("vatZeroSale");
         t.nullable.int("vatTypeId");
         t.nullable.field("vatType", {

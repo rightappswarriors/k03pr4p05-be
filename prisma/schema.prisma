@@ -224,6 +224,7 @@ model OutletPromo {
   outletId    Int
   promoTypeId Int
   discount    Float
+  vatable     Boolean   @default(false)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   userId      Int
@@ -706,12 +707,24 @@ model Transaction {
   createdAt         DateTime
   syncedAt          DateTime         @default(now())
   customerDetailsId Int?
+   // SC / PWD Benefit (government-mandated, separate from promos)
+  isVatExempt       Boolean       @default(false)
+  vatExemptType     VatExemptType?
+  vatExemptRefNo    String?       // SC/PWD ID — BIR required on receipt
+  vatExemptAmount   Float?        // total VAT stripped
+  scPwdDiscountAmt  Float?        // 20% computed peso amount — for receipt
   items             CartItem[]
   customerDetails   CustomerDetails?
   cashier           User             @relation(fields: [cashierId], references: [id])
   outlet            Outlet           @relation(fields: [outletId], references: [id])
 }
 
+enum VatExemptType {
+  SENIOR_CITIZEN
+  PWD
+  DIPLOMAT
+  GOVERNMENT
+}
 model CustomerDetails {
   id              Int         @id @default(autoincrement())
   fullname        String?

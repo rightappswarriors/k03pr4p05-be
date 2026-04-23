@@ -365,6 +365,7 @@ export interface NexusGenEnums {
   Status: "CANCELED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   SubscriptionPlan: "BASIC" | "GOLD"
   SupplierOrderStatus: "acknowledged" | "cancelled" | "delivered" | "pending" | "sent"
+  VatExemptType: "DIPLOMAT" | "GOVERNMENT" | "PWD" | "SENIOR_CITIZEN"
   orderBy: "asc" | "desc"
 }
 
@@ -856,7 +857,7 @@ export interface NexusGenObjects {
     hasKey?: boolean | null; // Boolean
     id: number; // Int!
     isActive: boolean; // Boolean!
-    isVatRegistered: boolean; // Boolean!
+    isVatRegistered?: boolean | null; // Boolean
     latitude?: number | null; // Float
     longitude?: number | null; // Float
     name: string; // String!
@@ -957,17 +958,24 @@ export interface NexusGenObjects {
   OutletWithItems: { // root type
     address?: string | null; // String
     bannerImage?: string | null; // String
+    bir?: string | null; // String
     branchId: number; // Int!
     code?: string | null; // String
     governmentTax?: number | null; // Float
     hasKey?: boolean | null; // Boolean
     id: number; // Int!
     isActive?: boolean | null; // Boolean
+    isVatRegistered?: boolean | null; // Boolean
     items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     name: string; // String!
+    outletPromos?: Array<NexusGenRootTypes['OutletPromo'] | null> | null; // [OutletPromo]
     outletType?: string | null; // String
     phone?: string | null; // String
+    ptu?: string | null; // String
     serviceCharge?: number | null; // Float
+    tin?: string | null; // String
+    vatType?: NexusGenRootTypes['VatType'] | null; // VatType
+    vatZeroSale?: number | null; // Float
   }
   OutletsWithStaff: { // root type
     id: number; // Int!
@@ -1213,13 +1221,19 @@ export interface NexusGenObjects {
     change?: number | null; // Float
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: number; // Int!
+    isVatExempt: boolean; // Boolean!
     outletId: number; // Int!
+    outletPromoId?: number | null; // Int
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+    promoDiscountAmt?: number | null; // Float
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
     total: number; // Float!
     vatAmount: number; // Float!
+    vatExemptAmount?: number | null; // Float
+    vatExemptRefNo?: string | null; // String
+    vatExemptType?: NexusGenEnums['VatExemptType'] | null; // VatExemptType
   }
   UnauthorizedAttempt: { // root type
     attemptedDeviceId: string; // String!
@@ -1975,7 +1989,7 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     inventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     isActive: boolean; // Boolean!
-    isVatRegistered: boolean; // Boolean!
+    isVatRegistered: boolean | null; // Boolean
     itemSearchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
     latitude: number | null; // Float
     longitude: number | null; // Float
@@ -2092,17 +2106,24 @@ export interface NexusGenFieldTypes {
   OutletWithItems: { // field return type
     address: string | null; // String
     bannerImage: string | null; // String
+    bir: string | null; // String
     branchId: number; // Int!
     code: string | null; // String
     governmentTax: number | null; // Float
     hasKey: boolean | null; // Boolean
     id: number; // Int!
     isActive: boolean | null; // Boolean
+    isVatRegistered: boolean | null; // Boolean
     items: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     name: string; // String!
+    outletPromos: Array<NexusGenRootTypes['OutletPromo'] | null> | null; // [OutletPromo]
     outletType: string | null; // String
     phone: string | null; // String
+    ptu: string | null; // String
     serviceCharge: number | null; // Float
+    tin: string | null; // String
+    vatType: NexusGenRootTypes['VatType'] | null; // VatType
+    vatZeroSale: number | null; // Float
   }
   OutletsWithStaff: { // field return type
     id: number; // Int!
@@ -2482,15 +2503,22 @@ export interface NexusGenFieldTypes {
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     customerDetails: NexusGenRootTypes['CustomerDetails'] | null; // CustomerDetails
     id: number; // Int!
+    isVatExempt: boolean; // Boolean!
     items: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
+    outletPromo: NexusGenRootTypes['OutletPromo'] | null; // OutletPromo
+    outletPromoId: number | null; // Int
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
+    promoDiscountAmt: number | null; // Float
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
     total: number; // Float!
     vatAmount: number; // Float!
+    vatExemptAmount: number | null; // Float
+    vatExemptRefNo: string | null; // String
+    vatExemptType: NexusGenEnums['VatExemptType'] | null; // VatExemptType
   }
   UnauthorizedAttempt: { // field return type
     attemptedDeviceId: string; // String!
@@ -3372,17 +3400,24 @@ export interface NexusGenFieldTypeNames {
   OutletWithItems: { // field return type name
     address: 'String'
     bannerImage: 'String'
+    bir: 'String'
     branchId: 'Int'
     code: 'String'
     governmentTax: 'Float'
     hasKey: 'Boolean'
     id: 'Int'
     isActive: 'Boolean'
+    isVatRegistered: 'Boolean'
     items: 'InventoryItems'
     name: 'String'
+    outletPromos: 'OutletPromo'
     outletType: 'String'
     phone: 'String'
+    ptu: 'String'
     serviceCharge: 'Float'
+    tin: 'String'
+    vatType: 'VatType'
+    vatZeroSale: 'Float'
   }
   OutletsWithStaff: { // field return type name
     id: 'Int'
@@ -3762,15 +3797,22 @@ export interface NexusGenFieldTypeNames {
     createdAt: 'DateTime'
     customerDetails: 'CustomerDetails'
     id: 'Int'
+    isVatExempt: 'Boolean'
     items: 'CartItem'
     outlet: 'Outlet'
     outletId: 'Int'
+    outletPromo: 'OutletPromo'
+    outletPromoId: 'Int'
     paymentMethod: 'PaymentMethod'
+    promoDiscountAmt: 'Float'
     status: 'Status'
     subtotal: 'Float'
     syncedAt: 'DateTime'
     total: 'Float'
     vatAmount: 'Float'
+    vatExemptAmount: 'Float'
+    vatExemptRefNo: 'String'
+    vatExemptType: 'VatExemptType'
   }
   UnauthorizedAttempt: { // field return type name
     attemptedDeviceId: 'String'
@@ -4059,14 +4101,20 @@ export interface NexusGenArgTypes {
       createdAt: string; // String!
       discountAmount?: number | null; // Float
       discountType?: string | null; // String
+      isVatExempt?: boolean | null; // Boolean
       itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
       outletId: number; // Int!
+      outletPromoId?: number | null; // Int
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
       paymentType?: string | null; // String
+      promoDiscountAmt?: number | null; // Float
       status: NexusGenEnums['Status']; // Status!
       subtotal: number; // Float!
       total: number; // Float!
       vatAmount: number; // Float!
+      vatExemptAmount?: number | null; // Float
+      vatExemptRefNo?: string | null; // String
+      vatExemptType?: NexusGenEnums['VatExemptType'] | null; // VatExemptType
     }
     createVatType: { // args
       name?: string | null; // String

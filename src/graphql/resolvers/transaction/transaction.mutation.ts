@@ -45,10 +45,12 @@ export const CartItemInput = inputObjectType({
     t.nullable.string("unitName")    // ← ad
   },
 });
+
 export const PaymentTypeEnum = enumType({
   name: "PaymentTypeEnum",
   members: ["gcash", "card", "paymaya", "qrph"],
 });
+
 export const PaymentInitiation = objectType({
   name: "PaymentInitiation",
   definition(t) {
@@ -80,25 +82,33 @@ export const TransactionMutation = extendType({
         createdAt: nonNull(stringArg()),
         discountType: nullable(stringArg()),
         discountAmount: nullable(arg({ type: "Float" })),
-        itemsSold: nonNull(list(nonNull(arg({ type: CartItemInput })))),
+        // ── VAT Exemption ────────────────────────────────────────────────────
+        isVatExempt: nullable(arg({ type: "Boolean" })),
+        vatExemptType: nullable(arg({ type: "VatExemptType" })),
+        vatExemptRefNo: nullable(stringArg()),
+        vatExemptAmount: nullable(arg({ type: "Float" })),
+
+        // ── Promo ────────────────────────────────────────────────────────────
+        outletPromoId: nullable(intArg()),
+        promoDiscountAmt: nullable(arg({ type: "Float" })),
+
+        itemsSold: nonNull(list(nonNull(arg({ type: "CartItemInput" })))),
       },
       async resolve(_, args, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
-        console.log("Creating Transaction")
         const { itemsSold, ...transactionData } = args;
-
         if (!itemsSold || itemsSold.length === 0) {
           throw new Error("Missing itemsSold array.");
         }
-
         try {
           return await transactionService.processTransaction(
             transactionData,
             itemsSold,
           );
         } catch (error: any) {
-          if (process.env.NODE_ENV === "development") console.error("Error processing transaction:", error);
+          if (process.env.NODE_ENV === "development")
+            console.error("Error processing transaction:", error);
           if (error.message.includes("Insufficient stock")) {
             throw new Error(error.message);
           }

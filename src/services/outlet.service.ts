@@ -373,6 +373,35 @@ export const getOutletItemsByAssignedStaff = async (
       governmentTax: true,
       serviceCharge: true,
       outletType: true,
+      isVatRegistered: true,
+      vatZeroSale: true,
+      tin: true,
+      ptu: true,
+      bir: true,
+      vatType: {
+        select: {
+          id: true,
+          name: true,
+          rate: true,
+        },
+      },
+      outletPromos: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          promoTypeId: true,
+          discount: true,
+          isActive: true,
+          promoType: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+            },
+          },
+        },
+      },
+      
       inventory: {
         select: {
           items: {

@@ -1,22 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// FILE 1: transaction.type.ts  — fixes for your existing Nexus type
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// Issues found in your current Transaction objectType:
-//
-// 1. t.nonNull.float("tax") — "tax" does not exist on the Transaction model.
-//    The schema has vatAmount. Remove tax, add vatAmount.
-//
-// 2. t.nullable.field("paymentDetails") calls .paymentDetails() fluent API
-//    but your schema has CustomerDetails (not PaymentDetails) related by
-//    customerDetailsId. The relation name is "customerDetails", not paymentDetails.
-//    Rename the field and the resolver.
-//
-// 3. Status enum is missing "PAID" and "SYNCED" members — your schema has:
-//    PENDING, PAID, SYNCED, FAILED, CANCELED
-//
-// REPLACE your transaction.type.ts with:
-
 import { objectType, enumType } from "nexus";
 
 export const PaymentMethodEnum = enumType({
@@ -26,7 +7,13 @@ export const PaymentMethodEnum = enumType({
 
 export const StatusEnum = enumType({
   name: "Status",
-  members: ["PENDING", "PAID", "SYNCED", "FAILED", "CANCELED"], // ← added PAID + SYNCED
+  members: ["PENDING", "PAID", "SYNCED", "FAILED", "CANCELED"],
+});
+
+// ── New enum for VAT exempt type ─────────────────────────────────────────────
+export const VatExemptTypeEnum = enumType({
+  name: "VatExemptType",
+  members: ["SENIOR_CITIZEN", "PWD", "DIPLOMAT", "GOVERNMENT"],
 });
 
 export const Transaction = objectType({
@@ -52,14 +39,13 @@ export const Transaction = objectType({
     });
     t.nonNull.float("total");
     t.nonNull.float("subtotal");
-    t.nonNull.float("vatAmount");    // ← was "tax" — matches schema field name
+    t.nonNull.float("vatAmount");
     t.nullable.float("cashReceived");
     t.nullable.float("change");
     t.nonNull.field("paymentMethod", { type: "PaymentMethod" });
     t.nonNull.field("status", { type: "Status" });
     t.nonNull.dateTime("createdAt");
     t.nonNull.dateTime("syncedAt");
-    // ← was "paymentDetails" — schema relation is "customerDetails"
     t.nullable.field("customerDetails", {
       type: "CustomerDetails",
       resolve: (parent, _, ctx) =>
@@ -67,10 +53,22 @@ export const Transaction = objectType({
           .findUnique({ where: { id: parent.id } })
           .customerDetails(),
     });
+
+    // ── VAT Exemption fields ──────────────────────────────────────────────────
+    t.nonNull.boolean("isVatExempt");
+    t.nullable.field("vatExemptType", { type: "VatExemptType" });
+    t.nullable.string("vatExemptRefNo");   // SC/PWD ID for BIR
+    t.nullable.float("vatExemptAmount");   // total VAT removed
+
+    // ── Promo link ────────────────────────────────────────────────────────────
+    t.nullable.int("outletPromoId");
+    t.nullable.float("promoDiscountAmt");
+    t.nullable.field("outletPromo", {
+      type: "OutletPromo",
+      resolve: (parent, _, ctx) =>
+        ctx.prisma.transaction
+          .findUnique({ where: { id: parent.id } })
+          .outletPromo(),
+    });
   },
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FILE 2: detailsContent.tsx  — add live transaction stats
-// Replace your DetailsContent component with this
-// ─────────────────────────────────────────────────────────────────────────────

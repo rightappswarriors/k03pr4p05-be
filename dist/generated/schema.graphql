@@ -881,7 +881,7 @@ type Mutation {
   createSubCenter(centerId: Int, label: String, orgId: Int): SubCenter
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): SummaryRow
-  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, discountAmount: Float, discountType: String, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: String, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
+  createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, discountAmount: Float, discountType: String, isVatExempt: Boolean, itemsSold: [CartItemInput!]!, outletId: Int!, outletPromoId: Int, paymentMethod: PaymentMethod!, paymentType: String, promoDiscountAmt: Float, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!, vatExemptAmount: Float, vatExemptRefNo: String, vatExemptType: VatExemptType): Transaction
   createVatType(name: String, rate: Float): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
   deleteAccountTitle(id: Int): AccountTitle
@@ -1054,7 +1054,7 @@ type Outlet {
   id: Int!
   inventory: Inventory
   isActive: Boolean!
-  isVatRegistered: Boolean!
+  isVatRegistered: Boolean
   itemSearchIndex: [OutletItemSearchIndex!]!
   latitude: Float
   longitude: Float
@@ -1205,17 +1205,24 @@ enum OutletType {
 type OutletWithItems {
   address: String
   bannerImage: String
+  bir: String
   branchId: Int!
   code: String
   governmentTax: Float
   hasKey: Boolean
   id: Int!
   isActive: Boolean
+  isVatRegistered: Boolean
   items: [InventoryItems!]!
   name: String!
+  outletPromos: [OutletPromo]
   outletType: String
   phone: String
+  ptu: String
   serviceCharge: Float
+  tin: String
+  vatType: VatType
+  vatZeroSale: Float
 }
 
 type OutletsWithStaff {
@@ -1788,15 +1795,22 @@ type Transaction {
   createdAt: DateTime!
   customerDetails: CustomerDetails
   id: Int!
+  isVatExempt: Boolean!
   items: [CartItem!]!
   outlet: Outlet!
   outletId: Int!
+  outletPromo: OutletPromo
+  outletPromoId: Int
   paymentMethod: PaymentMethod!
+  promoDiscountAmt: Float
   status: Status!
   subtotal: Float!
   syncedAt: DateTime!
   total: Float!
   vatAmount: Float!
+  vatExemptAmount: Float
+  vatExemptRefNo: String
+  vatExemptType: VatExemptType
 }
 
 type UnauthorizedAttempt {
@@ -1932,6 +1946,13 @@ type UserStaff {
   isPresent: Boolean!
   outletId: Int!
   user: User!
+}
+
+enum VatExemptType {
+  DIPLOMAT
+  GOVERNMENT
+  PWD
+  SENIOR_CITIZEN
 }
 
 type VatType {
