@@ -63,10 +63,13 @@ enum AccountLink {
 }
 
 type AccountTitle {
+  code: String
+  gisRows: [GISRow]
   id: Int!
   label: String!
   org: Organization!
   orgId: Int!
+  summaryRows: [SummaryRow]
 }
 
 input AddDeliveryAddressInput {
@@ -262,10 +265,12 @@ input CartItemInput {
 }
 
 type Center {
+  gisRows: [GISRow]
   id: Int!
   label: String!
   org: Organization!
   orgId: Int!
+  summaryRows: [SummaryRow]
 }
 
 type Color {
@@ -575,16 +580,22 @@ enum FeeType {
 }
 
 type GISRow {
+  accountTitle: AccountTitle!
+  accountTitleId: Int!
+  center: Center!
+  centerId: Int!
   code: String!
   createdAt: DateTime!
   credit: Float!
   debit: Float!
   description: String!
   group: String!
-  id: String!
+  id: Int!
   main: String!
   org: Organization!
   orgId: Int!
+  subCenter: SubCenter!
+  subCenterId: Int!
   total: Float!
   user: User
   userId: Int
@@ -853,7 +864,7 @@ type Mutation {
   confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
   confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
-  createAccountTitle(code: String, name: String): AccountTitle
+  createAccountTitle(code: String, label: String): AccountTitle
   createBranch(address: String!, name: String!, phone: String): Branch!
   createCategories(categories: [String!]!): [ItemCategory!]!
   createCenter(label: String): Center
@@ -869,7 +880,7 @@ type Mutation {
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrgItemCategory(categoryId: Int, cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, name: String!, sales: String, stocks: String): OrgItemCategory!
   createOrganization(name: String!): Organization
-  createOutlet(address: String!, bannerImage: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, latitude: Float, longitude: Float, name: String!, outletType: OutletType!, phone: String, serviceCharge: Float!, status: OutletStatus): Outlet!
+  createOutlet(address: String!, bannerImage: String, bir: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String!, outletPromos: [OutletPromoInput!], outletType: OutletType!, phone: String, ptu: String, serviceCharge: Float!, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(input: PositionInput!): Position!
@@ -878,7 +889,7 @@ type Mutation {
   createRestockSchedule(data: RestockScheduleInput!): RestockSchedule
   createSalesOrder(customerName: String, orgId: Int, status: String, totalAmount: Float): SalesOrder
   createStaff(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String, role: Role, username: String!): User!
-  createSubCenter(centerId: Int, label: String, orgId: Int): SubCenter
+  createSubCenter(label: String): SubCenter
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int, amount: Float, description: String, orgId: Int): SummaryRow
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, discountAmount: Float, discountType: String, isVatExempt: Boolean, itemsSold: [CartItemInput!]!, outletId: Int!, outletPromoId: Int, paymentMethod: PaymentMethod!, paymentType: String, promoDiscountAmt: Float, status: Status!, subtotal: Float!, total: Float!, vatAmount: Float!, vatExemptAmount: Float, vatExemptRefNo: String, vatExemptType: VatExemptType): Transaction
@@ -939,7 +950,7 @@ type Mutation {
   toggleContact(id: Int!): Contact
   toggleRestockCycle(id: Int!): RestockCycle
   toggleRestockSchedule(id: Int!): RestockSchedule
-  updateAccountTitle(code: String, id: Int, name: String): AccountTitle
+  updateAccountTitle(code: String, id: Int, label: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateCategory(id: ID!, name: String!): ItemCategory!
   updateCenter(id: Int, label: String): Center
@@ -963,7 +974,7 @@ type Mutation {
   updateRestockCycle(data: RestockCycleInput!, id: Int!): RestockCycle
   updateRestockSchedule(data: RestockScheduleInput!, id: Int!): RestockSchedule
   updateSalesOrder(customerName: String, id: Int, status: String, totalAmount: Float): SalesOrder
-  updateSubCenter(centerId: Int, id: Int, label: String): SubCenter
+  updateSubCenter(id: Int, label: String): SubCenter
   updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSummaryRow(accountTitleId: Int, amount: Float, description: String, id: Int): SummaryRow
   updateUser(fullname: String, id: ID!, positionId: String, username: String): User!
@@ -1395,7 +1406,7 @@ type Query {
   employee(id: Int): Employee
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
-  getAll(orgId: Int): [AccountTitle]
+  getAllAccountTitles: [AccountTitle]
   getAllCategories(orderBy: String, pageSize: Int, query: String): [ItemCategory!]!
   getAllOutletStaffs: [OutletsWithStaff!]!
   getAllStaffs(orgId: Int): [User!]!
@@ -1699,10 +1710,12 @@ enum Status {
 }
 
 type SubCenter {
+  gisRows: [GISRow]
   id: Int!
   label: String!
   org: Organization!
   orgId: Int!
+  summaryRows: [SummaryRow]
 }
 
 type Subscription {
@@ -1721,19 +1734,26 @@ enum SubscriptionPlan {
 }
 
 type SummaryRow {
+  accountTitle: AccountTitle!
+  accountTitleId: Int!
+  center: Center!
+  centerId: Int!
   computedCost: Float!
   costContribution: Float!
   createdAt: DateTime!
   description: String!
-  id: String!
-  item: Item
+  id: Int!
+  item: Item!
   itemCode: String!
-  itemId: Int
+  itemId: Int!
+  itemName: String
   opExPct: Float!
   org: Organization!
   orgId: Int!
   sellingPrice: Float!
   status: String
+  subCenter: SubCenter!
+  subCenterId: Int!
   user: User
   userId: Int
 }

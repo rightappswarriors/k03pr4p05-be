@@ -63,6 +63,13 @@ export const outletMutation = extendType({
         longitude: nullable(arg({ type: "Float" })),
         latitude: nullable(floatArg()),
         bannerImage: nullable(arg({ type: "String" })),
+        tin: nullable(arg({ type: "String" })),
+        ptu: nullable(arg({ type: "String" })),
+        bir: nullable(arg({ type: "String" })),
+        isVatRegistered: nullable(booleanArg()),
+        vatZeroSale: nullable(arg({ type: "Float" })),
+        vatTypeId: nullable(intArg()),
+        outletPromos: nullable(list(nonNull(arg({ type: "OutletPromoInput" })))),
       },
       async resolve(_, {
         branchId, name, address, phone, code,
@@ -214,7 +221,6 @@ export const outletMutation = extendType({
         longitude: nullable(arg({ type: "Float" })),
         latitude: nullable(floatArg()),
         bannerImage: nullable(arg({ type: "String" })),
-
         tin: nullable(arg({ type: "String" })),
         ptu: nullable(arg({ type: "String" })),
         bir: nullable(arg({ type: "String" })),

@@ -1,7 +1,6 @@
 import { extendType, intArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
-
 const ACCOUNT_TITLE_OPTIONS = [
   'Accounts In Litigation',
   'Accounts Payable',
@@ -31,46 +30,52 @@ const ACCOUNT_TITLE_OPTIONS = [
 export const accountTitleQuery = extendType({
   type: 'Query',
   definition(t) {
-    t.list.field('getAll', {
+    t.list.field('getAllAccountTitles', {
       type: 'AccountTitle',
-      args: {
-        orgId: intArg()
-      },
-      resolve: async (_, { }, ctx) => {
+      resolve: async (_, {}, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER'])
         const orgId = Number(ctx.user.orgId)
+        
         try {
-          const accounTitles = ctx.prisma.accountTitle.findMany({
+          // ✅ Added await
+          const accountTitles = await ctx.prisma.accountTitle.findMany({
             where: { orgId }
           })
-          if (accounTitles.length === 0) {
-            // how to seed if no accountTitles?
-            if (process.env.NODE_ENV === "") {
-              console.log("Seeding account-titles.....")
-            }
-            const createdAccountTitles = ctx.prisma.accountTitle.createMany({
+          
+          // ✅ Properly check if empty
+          if (accountTitles.length === 0) {
+            console.log(`Seeding ${ACCOUNT_TITLE_OPTIONS.length} account titles for org ${orgId}...`)
+            
+            // ✅ Seed the database
+            await ctx.prisma.accountTitle.createMany({
               data: ACCOUNT_TITLE_OPTIONS.map((label) => ({
                 label,
                 orgId
               }))
             })
-            return createdAccountTitles
+            
+            // ✅ Fetch and return the newly created records
+            return await ctx.prisma.accountTitle.findMany({
+              where: { orgId }
+            })
           }
-          return accounTitles
-        }
-        catch (error: any) {
-          console.log("Error:", error)
-          return []
+          
+          return accountTitles
+        } catch (error: any) {
+          console.error("Error fetching account titles:", error)
+          throw error // Let GraphQL handle the error response
         }
       }
     })
+    
     t.field('accountTitle', {
       type: 'AccountTitle',
       args: {
         id: intArg()
       },
       resolve: async (_, { id }, ctx) => {
+        requireAuth(ctx)
         requireRole(ctx, ['OWNER'])
         return ctx.prisma.accountTitle.findUnique({
           where: { id }

@@ -1,17 +1,22 @@
 import { extendType, intArg, stringArg } from 'nexus';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
+// backend/subcenter.mutation.ts
 export const subCenterMutation = extendType({
     type: 'Mutation',
     definition(t) {
         t.field('createSubCenter', {
             type: 'SubCenter',
             args: {
-                orgId: intArg(),
                 label: stringArg(),
-                centerId: intArg()
             },
-            resolve: async (_, { orgId, label, centerId }, ctx) => {
+            resolve: async (_, { label }, ctx) => {
+                requireAuth(ctx);
+                const orgId = Number(ctx.user.orgId);
                 return ctx.prisma.subCenter.create({
-                    data: { orgId, label, centerId }
+                    data: {
+                        orgId,
+                        label,
+                    }
                 });
             }
         });
@@ -20,12 +25,14 @@ export const subCenterMutation = extendType({
             args: {
                 id: intArg(),
                 label: stringArg(),
-                centerId: intArg()
             },
-            resolve: async (_, { id, label, centerId }, ctx) => {
+            resolve: async (_, { id, label }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.subCenter.update({
                     where: { id },
-                    data: { label, centerId }
+                    data: {
+                        label,
+                    }
                 });
             }
         });
@@ -35,6 +42,7 @@ export const subCenterMutation = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
+                requireAuth(ctx);
                 return ctx.prisma.subCenter.delete({
                     where: { id }
                 });

@@ -11,5 +11,17 @@ export const SubCenter = objectType({
                 return ctx.prisma.subCenter.findUnique({ where: { id: parent.id } }).org();
             }
         });
+        t.list.field('gisRows', {
+            type: 'GISRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.subCenter.findUnique({ where: { id: parent.id } }).gisrows();
+            }
+        });
+        t.list.field('summaryRows', {
+            type: 'SummaryRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.subCenter.findUnique({ where: { id: parent.id } }).summaryRows();
+            }
+        });
     }
 });

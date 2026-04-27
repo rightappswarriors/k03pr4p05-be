@@ -381,6 +381,7 @@ export interface NexusGenScalars {
 
 export interface NexusGenObjects {
   AccountTitle: { // root type
+    code?: string | null; // String
     id: number; // Int!
     label: string; // String!
     orgId: number; // Int!
@@ -654,15 +655,18 @@ export interface NexusGenObjects {
     userId?: number | null; // Int
   }
   GISRow: { // root type
+    accountTitleId: number; // Int!
+    centerId: number; // Int!
     code: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     credit: number; // Float!
     debit: number; // Float!
     description: string; // String!
     group: string; // String!
-    id: string; // String!
+    id: number; // Int!
     main: string; // String!
     orgId: number; // Int!
+    subCenterId: number; // Int!
     total: number; // Float!
     userId?: number | null; // Int
   }
@@ -1174,17 +1178,21 @@ export interface NexusGenObjects {
     plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
   }
   SummaryRow: { // root type
+    accountTitleId: number; // Int!
+    centerId: number; // Int!
     computedCost: number; // Float!
     costContribution: number; // Float!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description: string; // String!
-    id: string; // String!
+    id: number; // Int!
     itemCode: string; // String!
-    itemId?: number | null; // Int
+    itemId: number; // Int!
+    itemName?: string | null; // String
     opExPct: number; // Float!
     orgId: number; // Int!
     sellingPrice: number; // Float!
     status?: string | null; // String
+    subCenterId: number; // Int!
     userId?: number | null; // Int
   }
   SupplierOrder: { // root type
@@ -1307,10 +1315,13 @@ export type NexusGenAllTypes = NexusGenRootTypes & NexusGenScalars & NexusGenEnu
 
 export interface NexusGenFieldTypes {
   AccountTitle: { // field return type
+    code: string | null; // String
+    gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
     id: number; // Int!
     label: string; // String!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
+    summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
   }
   AddedOutletStaffs: { // field return type
     id: number; // Int!
@@ -1427,10 +1438,12 @@ export interface NexusGenFieldTypes {
     unitName: string | null; // String
   }
   Center: { // field return type
+    gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
     id: number; // Int!
     label: string; // String!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
+    summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
   }
   Color: { // field return type
     hexCode: string | null; // String
@@ -1600,16 +1613,22 @@ export interface NexusGenFieldTypes {
     userId: number | null; // Int
   }
   GISRow: { // field return type
+    accountTitle: NexusGenRootTypes['AccountTitle']; // AccountTitle!
+    accountTitleId: number; // Int!
+    center: NexusGenRootTypes['Center']; // Center!
+    centerId: number; // Int!
     code: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     credit: number; // Float!
     debit: number; // Float!
     description: string; // String!
     group: string; // String!
-    id: string; // String!
+    id: number; // Int!
     main: string; // String!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
+    subCenter: NexusGenRootTypes['SubCenter']; // SubCenter!
+    subCenterId: number; // Int!
     total: number; // Float!
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
@@ -2236,7 +2255,7 @@ export interface NexusGenFieldTypes {
     employee: NexusGenRootTypes['Employee'] | null; // Employee
     employees: Array<NexusGenRootTypes['Employee'] | null> | null; // [Employee]
     getAPIKeysByUserId: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
-    getAll: Array<NexusGenRootTypes['AccountTitle'] | null> | null; // [AccountTitle]
+    getAllAccountTitles: Array<NexusGenRootTypes['AccountTitle'] | null> | null; // [AccountTitle]
     getAllCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
     getAllOutletStaffs: NexusGenRootTypes['OutletsWithStaff'][]; // [OutletsWithStaff!]!
     getAllStaffs: NexusGenRootTypes['User'][]; // [User!]!
@@ -2434,10 +2453,12 @@ export interface NexusGenFieldTypes {
     userShifts: NexusGenRootTypes['UserShift'][]; // [UserShift!]!
   }
   SubCenter: { // field return type
+    gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
     id: number; // Int!
     label: string; // String!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
+    summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
   }
   Subscription: { // field return type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -2449,19 +2470,26 @@ export interface NexusGenFieldTypes {
     plan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
   }
   SummaryRow: { // field return type
+    accountTitle: NexusGenRootTypes['AccountTitle']; // AccountTitle!
+    accountTitleId: number; // Int!
+    center: NexusGenRootTypes['Center']; // Center!
+    centerId: number; // Int!
     computedCost: number; // Float!
     costContribution: number; // Float!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description: string; // String!
-    id: string; // String!
-    item: NexusGenRootTypes['Item'] | null; // Item
+    id: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
     itemCode: string; // String!
-    itemId: number | null; // Int
+    itemId: number; // Int!
+    itemName: string | null; // String
     opExPct: number; // Float!
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
     sellingPrice: number; // Float!
     status: string | null; // String
+    subCenter: NexusGenRootTypes['SubCenter']; // SubCenter!
+    subCenterId: number; // Int!
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
   }
@@ -2601,10 +2629,13 @@ export interface NexusGenFieldTypes {
 
 export interface NexusGenFieldTypeNames {
   AccountTitle: { // field return type name
+    code: 'String'
+    gisRows: 'GISRow'
     id: 'Int'
     label: 'String'
     org: 'Organization'
     orgId: 'Int'
+    summaryRows: 'SummaryRow'
   }
   AddedOutletStaffs: { // field return type name
     id: 'Int'
@@ -2721,10 +2752,12 @@ export interface NexusGenFieldTypeNames {
     unitName: 'String'
   }
   Center: { // field return type name
+    gisRows: 'GISRow'
     id: 'Int'
     label: 'String'
     org: 'Organization'
     orgId: 'Int'
+    summaryRows: 'SummaryRow'
   }
   Color: { // field return type name
     hexCode: 'String'
@@ -2894,16 +2927,22 @@ export interface NexusGenFieldTypeNames {
     userId: 'Int'
   }
   GISRow: { // field return type name
+    accountTitle: 'AccountTitle'
+    accountTitleId: 'Int'
+    center: 'Center'
+    centerId: 'Int'
     code: 'String'
     createdAt: 'DateTime'
     credit: 'Float'
     debit: 'Float'
     description: 'String'
     group: 'String'
-    id: 'String'
+    id: 'Int'
     main: 'String'
     org: 'Organization'
     orgId: 'Int'
+    subCenter: 'SubCenter'
+    subCenterId: 'Int'
     total: 'Float'
     user: 'User'
     userId: 'Int'
@@ -3530,7 +3569,7 @@ export interface NexusGenFieldTypeNames {
     employee: 'Employee'
     employees: 'Employee'
     getAPIKeysByUserId: 'PaymongoAPIKeys'
-    getAll: 'AccountTitle'
+    getAllAccountTitles: 'AccountTitle'
     getAllCategories: 'ItemCategory'
     getAllOutletStaffs: 'OutletsWithStaff'
     getAllStaffs: 'User'
@@ -3728,10 +3767,12 @@ export interface NexusGenFieldTypeNames {
     userShifts: 'UserShift'
   }
   SubCenter: { // field return type name
+    gisRows: 'GISRow'
     id: 'Int'
     label: 'String'
     org: 'Organization'
     orgId: 'Int'
+    summaryRows: 'SummaryRow'
   }
   Subscription: { // field return type name
     createdAt: 'DateTime'
@@ -3743,19 +3784,26 @@ export interface NexusGenFieldTypeNames {
     plan: 'SubscriptionPlan'
   }
   SummaryRow: { // field return type name
+    accountTitle: 'AccountTitle'
+    accountTitleId: 'Int'
+    center: 'Center'
+    centerId: 'Int'
     computedCost: 'Float'
     costContribution: 'Float'
     createdAt: 'DateTime'
     description: 'String'
-    id: 'String'
+    id: 'Int'
     item: 'Item'
     itemCode: 'String'
     itemId: 'Int'
+    itemName: 'String'
     opExPct: 'Float'
     org: 'Organization'
     orgId: 'Int'
     sellingPrice: 'Float'
     status: 'String'
+    subCenter: 'SubCenter'
+    subCenterId: 'Int'
     user: 'User'
     userId: 'Int'
   }
@@ -3946,7 +3994,7 @@ export interface NexusGenArgTypes {
     }
     createAccountTitle: { // args
       code?: string | null; // String
-      name?: string | null; // String
+      label?: string | null; // String
     }
     createBranch: { // args
       address: string; // String!
@@ -4032,17 +4080,24 @@ export interface NexusGenArgTypes {
     createOutlet: { // args
       address: string; // String!
       bannerImage?: string | null; // String
+      bir?: string | null; // String
       branchId: string; // ID!
       code: string; // String!
       governmentTax: number; // Float!
       isActive?: boolean | null; // Boolean
+      isVatRegistered?: boolean | null; // Boolean
       latitude?: number | null; // Float
       longitude?: number | null; // Float
       name: string; // String!
+      outletPromos?: NexusGenInputs['OutletPromoInput'][] | null; // [OutletPromoInput!]
       outletType: NexusGenEnums['OutletType']; // OutletType!
       phone?: string | null; // String
+      ptu?: string | null; // String
       serviceCharge: number; // Float!
       status?: NexusGenEnums['OutletStatus'] | null; // OutletStatus
+      tin?: string | null; // String
+      vatTypeId?: number | null; // Int
+      vatZeroSale?: number | null; // Float
     }
     createOutletPromo: { // args
       data: NexusGenInputs['CreateOutletPromoInput']; // CreateOutletPromoInput!
@@ -4080,9 +4135,7 @@ export interface NexusGenArgTypes {
       username: string; // String!
     }
     createSubCenter: { // args
-      centerId?: number | null; // Int
       label?: string | null; // String
-      orgId?: number | null; // Int
     }
     createSubscription: { // args
       orgId: number; // Int!
@@ -4335,7 +4388,7 @@ export interface NexusGenArgTypes {
     updateAccountTitle: { // args
       code?: string | null; // String
       id?: number | null; // Int
-      name?: string | null; // String
+      label?: string | null; // String
     }
     updateBranch: { // args
       address?: string | null; // String
@@ -4480,7 +4533,6 @@ export interface NexusGenArgTypes {
       totalAmount?: number | null; // Float
     }
     updateSubCenter: { // args
-      centerId?: number | null; // Int
       id?: number | null; // Int
       label?: string | null; // String
     }
@@ -4542,9 +4594,6 @@ export interface NexusGenArgTypes {
       id?: number | null; // Int
     }
     employees: { // args
-      orgId?: number | null; // Int
-    }
-    getAll: { // args
       orgId?: number | null; // Int
     }
     getAllCategories: { // args

@@ -6,15 +6,19 @@ export const accountTitleMutation = extendType({
         t.field('createAccountTitle', {
             type: 'AccountTitle',
             args: {
-                name: stringArg(),
+                label: stringArg(), // ✅ Changed from 'name' to 'label' for consistency
                 code: stringArg()
             },
-            resolve: async (_, { name, code }, ctx) => {
+            resolve: async (_, { label, code }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER']);
                 const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.accountTitle.create({
-                    data: { orgId, name, code }
+                    data: {
+                        orgId,
+                        label,
+                        code: code || null // ✅ Handle undefined/null code
+                    }
                 });
             }
         });
@@ -22,16 +26,26 @@ export const accountTitleMutation = extendType({
             type: 'AccountTitle',
             args: {
                 id: intArg(),
-                name: stringArg(),
+                label: stringArg(), // ✅ Changed from 'name' to 'label'
                 code: stringArg()
             },
-            resolve: async (_, { id, name, code }, ctx) => {
+            resolve: async (_, { id, label, code }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ['OWNER']);
                 const orgId = Number(ctx.user?.orgId);
+                // ✅ Verify ownership before updating
+                const existing = await ctx.prisma.accountTitle.findFirst({
+                    where: { id, orgId }
+                });
+                if (!existing) {
+                    throw new Error('Account title not found or access denied');
+                }
                 return ctx.prisma.accountTitle.update({
-                    where: { id, orgId },
-                    data: { name, code }
+                    where: { id },
+                    data: {
+                        label,
+                        code: code || null
+                    }
                 });
             }
         });
@@ -41,7 +55,16 @@ export const accountTitleMutation = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
+                requireAuth(ctx); // ✅ Added auth check
                 requireRole(ctx, ['OWNER']);
+                const orgId = Number(ctx.user?.orgId);
+                // ✅ Verify ownership before deleting
+                const existing = await ctx.prisma.accountTitle.findFirst({
+                    where: { id, orgId }
+                });
+                if (!existing) {
+                    throw new Error('Account title not found or access denied');
+                }
                 return ctx.prisma.accountTitle.delete({
                     where: { id }
                 });
