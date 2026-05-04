@@ -1,6 +1,5 @@
 // graphql/typeDefs/inventoryItemUnit.type.ts
 import { objectType, inputObjectType, extendType, nonNull, intArg, list, arg, } from "nexus";
-// ─── Object type ──────────────────────────────────────────────────────────────
 export const InventoryItemUnitType = objectType({
     name: "InventoryItemUnit",
     definition(t) {

@@ -1,5 +1,5 @@
 import { extendType, intArg, stringArg } from 'nexus'
-import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
 export const centerMutation = extendType({
   type: 'Mutation',

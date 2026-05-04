@@ -341,7 +341,7 @@ export const InventoryMutation = extendType({
             data.costLines?.reduce(
               (sum: number, line: any) => sum + (Number(line.amount) || 0),
               0
-            ) ?? 0;
+            ) ?? 0
           const item = await ctx.prisma.item.create({
             data: {
               name: data.name,

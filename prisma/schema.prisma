@@ -11,34 +11,44 @@ model Organization {
   id               Int               @id @default(autoincrement())
   name             String
   createdAt        DateTime          @default(now())
+  bannerImg        String?
+  contactNumber    String?
+  email            String?
+  location         String?
+  profilePhoto     String?
+  facebookLink     String?
+  instagramLink    String?
+  twitterLink      String?
+  bio              String?
   accountTitles    AccountTitle[]
   attendances      Attendance[]
   branches         Branch[]
   brands           Brand[]
+  budgets          Budget[]
   centers          Center[]
+  contacts         Contact[]
   departments      Department[]
   employees        Employee[]
   gisRows          GISRow[]
   inventoryItems   InventoryItem[]
   items            Item[]
+  itemGroups       ItemGroup[]
+  notifications    Notification[]
+  orgCategories    OrgItemCategory[]
   outlets          Outlet[]
   positions        Position[]
   promoTypes       PromoType[]
+  restockCycles    RestockCycle[]
+  restockSchedules RestockSchedule[]
   salesOrders      SalesOrder[]
   shifts           Shift[]
+  stockBatches     StockBatch[]
   subCenters       SubCenter[]
   subscription     Subscription?
   summaryRows      SummaryRow[]
   supplierOrders   SupplierOrder[]
-  stockBatches     StockBatch[]
-  restockSchedules RestockSchedule[]
   users            User[]
   vatTypes         VatType[]
-  restockCycles    RestockCycle[]
-  itemGroups       ItemGroup[]
-  orgCategories    OrgItemCategory[]
-  contacts         Contact[]
-  notifications    Notification[]
 }
 
 model Subscription {
@@ -49,6 +59,11 @@ model Subscription {
   features  Json?
   createdAt DateTime         @default(now())
   org       Organization     @relation(fields: [orgId], references: [id])
+}
+
+enum SubscriptionPlan {
+  BASIC
+  GOLD
 }
 
 model User {
@@ -66,8 +81,13 @@ model User {
   orgId                Int?
   isVerified           Boolean                  @default(false)
   verificationCode     String?
+  isOwner              Boolean                  @default(false)
+  positionId           String?
+  departmentId         Int?
   attendances          Attendance[]
+  auditLogs            AuditLog[]
   branchesOwned        Branch[]                 @relation("UserBranches")
+  budgets              Budget[]
   employees            Employee[]
   gisRows              GISRow[]
   inventoryItems       InventoryItem[]
@@ -79,17 +99,13 @@ model User {
   salesOrders          SalesOrder[]
   summaryRows          SummaryRow[]
   Transaction          Transaction[]
+  department           Department?              @relation(fields: [departmentId], references: [id])
   manager              User?                    @relation("ManagerToStaff", fields: [managerId], references: [id])
   staff                User[]                   @relation("ManagerToStaff")
   org                  Organization?            @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  userShifts           UserShift[]
-  departmentId         Int?
-  department           Department?              @relation(fields: [departmentId], references: [id])
-  positionId           String?
-  isOwner              Boolean                  @default(false)
   position             Position?                @relation(fields: [positionId], references: [id])
-  auditLogs            AuditLog[]
   permissionOverrides  UserPermissionOverride[]
+  userShifts           UserShift[]
 
   @@unique([orgId, username])
   @@unique([orgId, email])
@@ -116,32 +132,32 @@ model Branch {
   locationId       Int?
   org              Organization      @relation(fields: [orgId], references: [id])
   owner            User              @relation("UserBranches", fields: [ownerId], references: [id], onDelete: Cascade)
+  contacts         Contact[]
   outlets          Outlet[]
   location         PlaceLocation?
   restockCycles    RestockCycle[]
   restockSchedules RestockSchedule[]
-  contacts         Contact[]
+  salesOrders      SalesOrder[]
 
   @@unique([orgId, name])
 }
 
 model Contact {
-  id         Int      @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   orgId      Int
-  branchId   Int? // null = global (visible to all branches), set = branch-specific
-  label      String // Required display label / nickname (e.g. "Main Supplier - Cebu")
-  name       String // Full name
+  branchId   Int?
+  label      String
+  name       String
   email      String
   phone      String?
   position   String?
   department String?
   notes      String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  org    Organization @relation(fields: [orgId], references: [id])
-  branch Branch?      @relation(fields: [branchId], references: [id])
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  branch     Branch?      @relation(fields: [branchId], references: [id])
+  org        Organization @relation(fields: [orgId], references: [id])
 
   @@index([orgId])
   @@index([orgId, branchId])
@@ -178,28 +194,28 @@ model Outlet {
   latitude              Float?
   longitude             Float?
   bannerImage           String?
+  bir                   String?
+  isVatRegistered       Boolean                 @default(false)
+  ptu                   String?
+  tin                   String?
+  vatTypeId             Int?
+  vatZeroSale           Float?                  @default(0)
   inventory             Inventory?
   kompraCOrders         KompraCOrder[]
+  notifications         Notification[]
   apiKey                PaymongoAPIKeys?        @relation("OutletApiKeys", fields: [apiKeyId], references: [id])
   branch                Branch?                 @relation(fields: [branchId], references: [id])
   org                   Organization            @relation(fields: [orgId], references: [id], onDelete: Cascade)
   owner                 User                    @relation("UserOutlets", fields: [ownerId], references: [id], onDelete: Cascade)
+  vatType               VatType?                @relation(fields: [vatTypeId], references: [id])
   deliveryConfig        OutletDeliveryConfig?
   itemSearchIndex       OutletItemSearchIndex[]
   outletPromos          OutletPromo[]
   staff                 OutletStaff[]
-  Transaction           Transaction[]
   restockCycles         RestockCycle[]
   restockSchedules      RestockSchedule[]
-  tin                   String?
-  ptu                   String?
-  bir                   String?
-  isVatRegistered       Boolean                 @default(false)
-  vatZeroSale           Float?                  @default(0)
-
-  vatTypeId     Int?
-  vatType       VatType?       @relation(fields: [vatTypeId], references: [id])
-  notifications Notification[]
+  Transaction           Transaction[]
+  salesOrders           SalesOrder[]
 
   @@unique([orgId, code])
 }
@@ -224,10 +240,10 @@ model OutletPromo {
   outletId    Int
   promoTypeId Int
   discount    Float
-  vatable     Boolean   @default(false)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   userId      Int
+  vatable     Boolean   @default(false)
   outlet      Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
   promoType   PromoType @relation(fields: [promoTypeId], references: [id], onDelete: Cascade)
   user        User      @relation("UserOutletPromos", fields: [userId], references: [id])
@@ -277,25 +293,15 @@ model StockMovement {
   inventoryItemId Int?
   outletId        Int?
   type            StockMovementType
-  quantity        Float // always in base units
+  quantity        Float
   quantityBefore  Float
   quantityAfter   Float
-  referenceId     String? // transactionId, orderId
-  referenceType   String? // "TRANSACTION", "ASSIGN", "RESTOCK"
+  referenceId     String?
+  referenceType   String?
   reason          String?
   createdAt       DateTime          @default(now())
   createdBy       Int
   item            Item              @relation(fields: [itemId], references: [id])
-}
-
-enum StockMovementType {
-  ASSIGN_TO_OUTLET
-  SALE
-  RESTOCK_TO_OUTLET
-  PURCHASE_RECEIVED
-  CUSTOMER_RETURN
-  WRITE_OFF
-  ADJUSTMENT
 }
 
 model InventoryItems {
@@ -303,43 +309,40 @@ model InventoryItems {
   inventoryId Int
   itemId      Int
   price       Float
-  baseUnit    String                 @default("piece")
-  // ↑ "kg", "piece", "liter" — the unit quantity is stored in
   quantity    Int                    @default(0)
   locationId  Int?                   @unique
+  categoryId  Int?
+  baseUnit    String                 @default("piece")
   units       InventoryItemUnit[]
+  category    ItemCategory?          @relation(fields: [categoryId], references: [id])
   inventory   Inventory              @relation(fields: [inventoryId], references: [id])
   item        Item                   @relation(fields: [itemId], references: [id])
   location    Location?              @relation(fields: [locationId], references: [id], onDelete: Cascade)
   orderItems  KompraCOrderItem[]
   searchIndex OutletItemSearchIndex?
-  categoryId  Int?
-  category    ItemCategory?          @relation(fields: [categoryId], references: [id])
 
   @@unique([inventoryId, itemId])
 }
 
-// Global - super admin managed (no orgId)
 model ItemCategory {
   id             Int               @id @default(autoincrement())
   name           String            @unique
   description    String?
-  icon           String?
   groupType      String?
   sales          String?
   stocks         String?
-  items          Item[]            @relation("GlobalItemCategory")
   createdAt      DateTime          @default(now())
-  orgCategories  OrgItemCategory[] // orgs customize from this
+  icon           String?
   inventoryItems InventoryItems[]
+  items          Item[]            @relation("GlobalItemCategory")
+  orgCategories  OrgItemCategory[]
 }
 
-// Org's customized version of a global category
 model OrgItemCategory {
   id             Int               @id @default(autoincrement())
   orgId          Int
-  categoryId     Int? // ✅ make optional — org doesn't need a global template
-  name           String // required now — org must provide their own name
+  categoryId     Int?
+  name           String
   description    String?
   icon           String?
   cost_of_sale   String?
@@ -349,16 +352,15 @@ model OrgItemCategory {
   groupId        Int?
   isActive       Boolean           @default(true)
   createdAt      DateTime          @default(now())
-  org            Organization      @relation(fields: [orgId], references: [id])
-  globalCategory ItemCategory?     @relation(fields: [categoryId], references: [id]) // ✅ optional
-  group          ItemGroup?        @relation(fields: [groupId], references: [id])
   items          Item[]
   itemCategories ItemCategoryMap[]
+  globalCategory ItemCategory?     @relation(fields: [categoryId], references: [id])
+  group          ItemGroup?        @relation(fields: [groupId], references: [id])
+  org            Organization      @relation(fields: [orgId], references: [id])
 
-  @@unique([orgId, name]) // ✅ unique per org by name, not by categoryId
+  @@unique([orgId, name])
 }
 
-// Org-specific groups
 model ItemGroup {
   id          Int               @id @default(autoincrement())
   name        String
@@ -373,7 +375,6 @@ model ItemGroup {
   @@unique([orgId, name])
 }
 
-// Update ItemCategoryMap to point to OrgItemCategory
 model ItemCategoryMap {
   itemId     Int
   categoryId Int
@@ -381,6 +382,19 @@ model ItemCategoryMap {
   item       Item            @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@id([itemId, categoryId])
+}
+
+model VatType {
+  id          Int          @id @default(autoincrement())
+  orgId       Int
+  name        String
+  rate        Float
+  items       Item[]
+  outlets     Outlet[]
+  summaryRows SummaryRow[]
+  org         Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, name])
 }
 
 model Item {
@@ -391,14 +405,13 @@ model Item {
   barcode              String
   brand                String?
   orgId                Int
+  categoryId           Int?
   brandId              Int?
   ServiceCharge        Boolean                 @default(false)
   assembly             Boolean                 @default(false)
   itemCode             String?
   skuNumber            String?
   vatExempt            Boolean?
-  stockLabel           String?
-  stockDescription     String?
   stock                Float                   @default(0)
   sellingPrice         Float                   @default(0)
   minQuantity          Float                   @default(0)
@@ -406,249 +419,114 @@ model Item {
   priceB               Float?
   priceC               Float?
   totalCost            Float                   @default(0)
-  expiryStartDate      DateTime?
   expiryEndDate        DateTime?
+  expiryStartDate      DateTime?
   exactExpiryDate      DateTime?
+  orgCategoryId        Int?
+  vatTypeId            Int?
+  stockDescription     String?
+  stockLabel           String?
   cartItems            CartItem[]
   costLines            CostLines[]
   InventoryItems       InventoryItems[]
   brandDetails         Brand?                  @relation(fields: [brandId], references: [id])
-  categoryId           Int?
-  category             ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id]) // ✅ matches
+  category             ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id])
+  orgCategory          OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
   org                  Organization            @relation(fields: [orgId], references: [id])
+  vatType              VatType?                @relation(fields: [vatTypeId], references: [id])
   categories           ItemCategoryMap[]
   orderItems           KompraCOrderItem[]
   media                Media[]
+  notifications        Notification[]
   searchIndex          OutletItemSearchIndex[]
+  restockCycleItems    RestockCycleItem[]
+  restockScheduleItems RestockScheduleItem[]
+  stockBatches         StockBatch[]
+  stockMovements       StockMovement[]
+  summaryRows          SummaryRow[]
+  supplierOrderItems   SupplierOrderItem[]
   color                Color[]                 @relation("ColorToItem")
   purchaseUnit         ItemUnit[]              @relation("ItemToItemUnit")
-  supplierOrderItems   SupplierOrderItem[]
-  stockBatches         StockBatch[]
-  restockScheduleItems RestockScheduleItem[]
-  restockCycleItems    RestockCycleItem[]
-  orgCategoryId        Int? // → OrgItemCategory ✅ new
-  orgCategory          OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
-  vatTypeId            Int?
-  vatType              VatType?                @relation(fields: [vatTypeId], references: [id])
-  stockMovements       StockMovement[]
-  notifications        Notification[]
-  summaryRows          SummaryRow[]
+  salesOrderItems      SalesOrderItem[]
 
   @@unique([orgId, name])
 }
 
-model Color {
-  id      Int     @id @default(autoincrement())
-  name    String  @unique
-  hexCode String?
-  items   Item[]  @relation("ColorToItem")
-}
+// this is my current attempt at modeling sales orders and inventory for a POS system. I want to be able to track sales orders, inventory items, and their relationships to organizations and users. I also want to include some additional fields for tracking the status of sales orders and inventory levels.
+// ─── Replace the existing SalesOrder model with this ─────────────────────────
 
-model CostLines {
-  id     Int    @id @default(autoincrement())
-  itemId Int
-  label  String
-  amount Float
-  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+model SalesOrder {
+  id          String           @id @default(cuid())
+  orderNumber String           @unique
+  customer    String
+  status      SalesOrderStatus @default(ORDERED)
+  date        DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  orgId       Int
+  userId      Int?
+  outletId    Int?
+  branchId    Int?
 
-  @@index([itemId])
-}
+  // Pricing
+  subtotal       Float @default(0)
+  discountAmount Float @default(0)
+  vatAmount      Float @default(0)
+  total          Float @default(0)
+  vatRate        Float @default(0)
+  discountRate   Float @default(0)
+  outletPromoId  Int?
 
-enum SupplierOrderStatus {
-  pending // email sent, waiting for supplier
-  acknowledged // supplier opened portal
-  sent // supplier confirmed dispatch
-  delivered // user confirmed receipt
-  cancelled
-}
+  // Delivery details (filled when moving Processing → Shipped)
+  delivery SalesOrderDelivery?
 
-model SupplierOrder {
-  id              Int                 @id @default(autoincrement())
-  orgId           Int
-  scheduleId      Int?
-  supplierEmail   String
-  supplierToken   String              @unique // JWT or UUID stored here
-  tokenExpiresAt  DateTime
-  status          SupplierOrderStatus @default(pending)
-  supplierMessage String? // supplier's reply message
-  userMessage     String? // message from user to supplier
-  expectedArrival DateTime
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  // Relations
+  items  SalesOrderItem[]
+  org    Organization     @relation(fields: [orgId], references: [id])
+  user   User?            @relation(fields: [userId], references: [id])
+  outlet Outlet?          @relation(fields: [outletId], references: [id])
+  branch Branch?          @relation(fields: [branchId], references: [id])
 
-  org      Organization        @relation(fields: [orgId], references: [id])
-  schedule RestockSchedule?    @relation(fields: [scheduleId], references: [id])
-  items    SupplierOrderItem[]
-  cycleId  Int?
-  cycle    RestockCycle?       @relation(fields: [cycleId], references: [id])
-
+  @@index([orgId])
   @@index([orgId, status])
-  @@index([supplierToken])
+  @@index([outletId])
 }
 
-model SupplierOrderItem {
-  id              Int       @id @default(autoincrement())
-  orderId         Int
-  itemId          Int
-  requestedQty    Float // what we asked for
-  deliveredQty    Float? // what supplier says they'll send
-  confirmedQty    Float? // what user confirms on arrival
-  expiryStartDate DateTime?
-  expiryEndDate   DateTime?
-  exactExpiryDate DateTime?
+model SalesOrderItem {
+  id           Int        @id @default(autoincrement())
+  salesOrderId String
+  itemId       Int
+  quantity     Float
+  unitPrice    Float
+  totalPrice   Float
+  unitId       Int?
+  unitName     String?
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  item         Item       @relation(fields: [itemId], references: [id])
 
-  order SupplierOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  item  Item          @relation(fields: [itemId], references: [id])
-
-  @@index([orderId])
+  @@index([salesOrderId])
 }
 
-model RestockCycle {
-  id             Int       @id @default(autoincrement())
-  scheduleId     Int
-  orgId          Int
-  branchId       Int?
-  outletId       Int?
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  scheduledAt    DateTime // exact UTC moment this cycle fires
-  emailRecipient String // may override schedule.emailRecipient
-  emailSubject   String?
-  emailBody      String?
-  isActive       Boolean   @default(true)
-  firedAt        DateTime? // set when BullMQ actually processed it
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  schedule       RestockSchedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  org            Organization       @relation(fields: [orgId], references: [id])
-  branch         Branch?            @relation(fields: [branchId], references: [id])
-  outlet         Outlet?            @relation(fields: [outletId], references: [id])
-  cycleItems     RestockCycleItem[]
-  supplierOrders SupplierOrder[]
-
-  @@index([scheduleId, scheduledAt])
-  @@index([orgId, scheduledAt])
+model SalesOrderDelivery {
+  id             Int        @id @default(autoincrement())
+  salesOrderId   String     @unique
+  courierName    String?
+  trackingNumber String?
+  address        String
+  contactPerson  String?
+  contactNumber  String?
+  notes          String?
+  estimatedDate  DateTime?
+  shippedAt      DateTime?
+  receivedAt     DateTime?
+  salesOrder     SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 }
 
-model RestockCycleItem {
-  id       Int   @id @default(autoincrement())
-  cycleId  Int
-  itemId   Int
-  quantity Float
-
-  cycle RestockCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  item  Item         @relation(fields: [itemId], references: [id])
-
-  @@unique([cycleId, itemId])
-}
-
-// Tracks each received batch — enables FEFO (first expired, first out)
-model StockBatch {
-  id              Int       @id @default(autoincrement())
-  itemId          Int
-  orgId           Int
-  orderId         Int?
-  quantity        Float
-  remainingQty    Float // decremented as stock is consumed
-  expiryStartDate DateTime?
-  expiryEndDate   DateTime?
-  exactExpiryDate DateTime?
-  receivedAt      DateTime  @default(now())
-
-  item Item         @relation(fields: [itemId], references: [id])
-  org  Organization @relation(fields: [orgId], references: [id])
-
-  @@index([itemId, expiryStartDate])
-  @@index([itemId, exactExpiryDate])
-}
-
-// Remove: itemId Int
-// Add:
-model RestockSchedule {
-  id              Int                   @id @default(autoincrement())
-  orgId           Int
-  branchId        Int?
-  outletId        Int?
-  address         String?
-  latitude        Float?
-  longitude       Float?
-  recurrence      RecurrenceType
-  startDate       DateTime
-  endDate         DateTime?
-  timeOfDay       String
-  dayOfWeek       Int?
-  dayOfMonth      Int?
-  lastTriggeredAt DateTime?
-  emailRecipient  String
-  emailFrom       String?
-  emailSubject    String?
-  emailBody       String?
-  customTimes     Json?
-  isActive        Boolean               @default(true)
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  cycles          RestockCycle[]
-  org             Organization          @relation(fields: [orgId], references: [id])
-  branch          Branch?               @relation(fields: [branchId], references: [id])
-  outlet          Outlet?               @relation(fields: [outletId], references: [id])
-  scheduleItems   RestockScheduleItem[]
-  supplierOrders  SupplierOrder[]
-}
-
-model RestockScheduleItem {
-  id         Int             @id @default(autoincrement())
-  scheduleId Int
-  itemId     Int
-  quantity   Float // quantity to request from supplier
-  // Per-item timing overrides (nullable to fall back to schedule values)
-  timeOfDay  String? // "HH:MM" format, if null uses schedule's timeOfDay
-  dayOfWeek  Int? // 0-6 (Sunday-Saturday), if null uses schedule's dayOfWeek
-  dayOfMonth Int? // 1-31, if null uses schedule's dayOfMonth
-  schedule   RestockSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-  item       Item            @relation(fields: [itemId], references: [id])
-
-  @@unique([scheduleId, itemId])
-}
-
-enum RecurrenceType {
-  once
-  daily
-  weekly
-  monthly
-  custom
-}
-
-// .... other models ....
-model Media {
-  id        Int        @id @default(autoincrement())
-  url       String
-  type      MediaType?
-  itemId    Int?
-  sortOrder Int        @default(0)
-  item      Item?      @relation(fields: [itemId], references: [id], onDelete: Cascade)
-
-  @@index([itemId, sortOrder])
-}
-
-model StockLocation {
-  id      Int    @id @default(autoincrement())
-  name    String
-  address String
-}
-
-model Brand {
-  id            Int          @id @default(autoincrement())
-  email         String?
-  webUrl        String?
-  contactNumber String?
-  name          String       @unique
-  orgId         Int
-  org           Organization @relation(fields: [orgId], references: [id])
-  Item          Item[]
-
-  @@unique([orgId, name])
+enum SalesOrderStatus {
+  ORDERED
+  PROCESSING
+  SHIPPED
+  RECEIVED
+  CANCELLED
 }
 
 model ItemUnit {
@@ -658,45 +536,34 @@ model ItemUnit {
   Item        Item[]  @relation("ItemToItemUnit")
 }
 
-model CartItem {
-  transactionId Int
-  itemId        Int
-  quantity      Float // Int → Float
-  priceAtSale   Float              @default(0) // ← add
-  unitId        Int? // ← add
-  unitName      String? // ← add
-  item          Item               @relation(fields: [itemId], references: [id])
-  transaction   Transaction        @relation(fields: [transactionId], references: [id])
-  unit          InventoryItemUnit? @relation(fields: [unitId], references: [id])
+model InventoryItemUnit {
+  id               Int                @id @default(autoincrement())
+  inventoryItemId  Int
+  unitName         String
+  unitLabel        String
+  price            Float
+  quantity         Float              @default(0)
+  conversionFactor Float              @default(1)
+  baseUnit         String             @default("piece")
+  barcode          String?
+  isDefault        Boolean            @default(false)
+  isActive         Boolean            @default(true)
+  minOrderQty      Float?
+  maxOrderQty      Float?
+  reorderPoint     Float?
+  allowDecimal     Boolean            @default(false)
+  cartItems        CartItem[]
+  inventoryItem    InventoryItems     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  orderItems       KompraCOrderItem[]
 
-  @@id([transactionId, itemId])
-}
-
-model Notification {
-  id        Int              @id @default(autoincrement())
-  orgId     Int
-  outletId  Int?
-  itemId    Int?
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  outlet    Outlet?          @relation(fields: [outletId], references: [id])
-  item      Item?            @relation(fields: [itemId], references: [id])
-}
-
-enum NotificationType {
-  OUTLET_LOW_STOCK
-  ORG_CRITICAL_STOCK
-  NEW_TRANSACTION
+  @@unique([inventoryItemId, unitName])
+  @@index([inventoryItemId])
 }
 
 model Transaction {
   id                Int              @id @default(autoincrement())
   outletId          Int
-  cashierId         Int
+  cashierId         Int?
   total             Float
   vatAmount         Float
   subtotal          Float
@@ -707,23 +574,15 @@ model Transaction {
   createdAt         DateTime
   syncedAt          DateTime         @default(now())
   customerDetailsId Int?
-  // SC / PWD Benefit (government-mandated, separate from promos)
   isVatExempt       Boolean          @default(false)
+  scPwdDiscountAmt  Float?
+  vatExemptAmount   Float?
+  vatExemptRefNo    String?
   vatExemptType     VatExemptType?
-  vatExemptRefNo    String? // SC/PWD ID — BIR required on receipt
-  vatExemptAmount   Float? // total VAT stripped
-  scPwdDiscountAmt  Float? // 20% computed peso amount — for receipt
   items             CartItem[]
   customerDetails   CustomerDetails?
-  cashier           User             @relation(fields: [cashierId], references: [id])
+  cashier           User?            @relation(fields: [cashierId], references: [id])
   outlet            Outlet           @relation(fields: [outletId], references: [id])
-}
-
-enum VatExemptType {
-  SENIOR_CITIZEN
-  PWD
-  DIPLOMAT
-  GOVERNMENT
 }
 
 model CustomerDetails {
@@ -742,32 +601,45 @@ model CustomerDetails {
 }
 
 model KompraCOrder {
-  id                  Int                       @id @default(autoincrement())
-  transactionNumber   String                    @unique
-  customerId          Int
-  outletId            Int
-  deliveryAddressId   Int
-  subtotal            Float
-  total               Float
-  status              OrderStatus               @default(pending)
-  scheduledDeliveryAt DateTime?
-  estimatedDeliveryAt DateTime?
-  deliveredAt         DateTime?
-  paymentMethod       KompraCPaymentMethod
-  paymentStatus       String                    @default("unpaid")
-  paymentReference    String?
-  riderName           String?
-  riderPhone          String?
-  customerNote        String?
-  outletNote          String?
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
-  tracking            KompraCDeliveryTracking[]
-  customer            KompraCustomer            @relation(fields: [customerId], references: [id])
-  deliveryAddress     DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
-  outlet              Outlet                    @relation(fields: [outletId], references: [id])
-  fees                KompraCOrderFee[]
-  items               KompraCOrderItem[]
+  id                     Int                       @id @default(autoincrement())
+  transactionNumber      String                    @unique
+  customerId             Int
+  outletId               Int
+  deliveryAddressId      Int
+  subtotal               Float
+  total                  Float
+  status                 OrderStatus               @default(pending)
+  scheduledDeliveryAt    DateTime?
+  estimatedDeliveryAt    DateTime?
+  deliveredAt            DateTime?
+  paymentMethod          KompraCPaymentMethod
+  paymentStatus          String                    @default("unpaid")
+  paymentReference       String?
+  riderName              String?
+  riderPhone             String?
+  customerNote           String?
+  outletNote             String?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  courierId              Int?
+  tracking               KompraCDeliveryTracking[]
+  courier                Courier?                  @relation(fields: [courierId], references: [id])
+  customer               KompraCustomer            @relation(fields: [customerId], references: [id])
+  deliveryAddress        DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
+  outlet                 Outlet                    @relation(fields: [outletId], references: [id])
+  fees                   KompraCOrderFee[]
+  items                  KompraCOrderItem[]
+  OrderCourierPreference OrderCourierPreference[]
+}
+
+model Courier {
+  id                     Int                      @id @default(autoincrement())
+  name                   String
+  phone                  String
+  createdAt              DateTime                 @default(now())
+  orders                 KompraCOrder[]
+  OrderCourierPreference OrderCourierPreference[]
+  api_order              api_order[]
 }
 
 model KompraCustomer {
@@ -784,15 +656,6 @@ model KompraCustomer {
   deviceTokens CustomerDeviceToken[]
   addresses    DeliveryAddress[]
   orders       KompraCOrder[]
-}
-
-model CustomerDeviceToken {
-  id         Int            @id @default(autoincrement())
-  customerId Int
-  token      String         @unique
-  platform   String
-  createdAt  DateTime       @default(now())
-  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model DeliveryAddress {
@@ -880,40 +743,233 @@ model OutletItemSearchIndex {
   @@index([outletId])
 }
 
-model InventoryItemUnit {
-  id               Int                @id @default(autoincrement())
-  inventoryItemId  Int
-  unitName         String
-  unitLabel        String
-  price            Float
-  quantity         Float              @default(0)
-  conversionFactor Float              @default(1)
-  baseUnit         String             @default("piece")
-  barcode          String?
-  isDefault        Boolean            @default(false)
-  allowDecimal     Boolean            @default(false)
-  isActive         Boolean            @default(true)
-  minOrderQty      Float?
-  maxOrderQty      Float?
-  reorderPoint     Float?
-  inventoryItem    InventoryItems     @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
-  orderItems       KompraCOrderItem[]
-  cartItems        CartItem[]
-
-  @@unique([inventoryItemId, unitName])
-  @@index([inventoryItemId])
+model Color {
+  id      Int     @id @default(autoincrement())
+  name    String  @unique
+  hexCode String?
+  items   Item[]  @relation("ColorToItem")
 }
 
-model VatType {
-  id      Int          @id @default(autoincrement())
+model CostLines {
+  id     Int    @id @default(autoincrement())
+  itemId Int
+  label  String
+  amount Float
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+
+model SupplierOrder {
+  id              Int                 @id @default(autoincrement())
+  orgId           Int
+  scheduleId      Int?
+  supplierEmail   String
+  supplierToken   String              @unique
+  tokenExpiresAt  DateTime
+  status          SupplierOrderStatus @default(pending)
+  supplierMessage String?
+  userMessage     String?
+  expectedArrival DateTime
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  cycleId         Int?
+  cycle           RestockCycle?       @relation(fields: [cycleId], references: [id])
+  org             Organization        @relation(fields: [orgId], references: [id])
+  schedule        RestockSchedule?    @relation(fields: [scheduleId], references: [id])
+  items           SupplierOrderItem[]
+
+  @@index([orgId, status])
+  @@index([supplierToken])
+}
+
+model SupplierOrderItem {
+  id              Int           @id @default(autoincrement())
+  orderId         Int
+  itemId          Int
+  requestedQty    Float
+  deliveredQty    Float?
+  confirmedQty    Float?
+  expiryStartDate DateTime?
+  expiryEndDate   DateTime?
+  exactExpiryDate DateTime?
+  item            Item          @relation(fields: [itemId], references: [id])
+  order           SupplierOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model RestockCycle {
+  id             Int                @id @default(autoincrement())
+  scheduleId     Int
+  orgId          Int
+  scheduledAt    DateTime
+  emailRecipient String
+  emailSubject   String?
+  emailBody      String?
+  isActive       Boolean            @default(true)
+  firedAt        DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  address        String?
+  branchId       Int?
+  latitude       Float?
+  longitude      Float?
+  outletId       Int?
+  branch         Branch?            @relation(fields: [branchId], references: [id])
+  org            Organization       @relation(fields: [orgId], references: [id])
+  outlet         Outlet?            @relation(fields: [outletId], references: [id])
+  schedule       RestockSchedule    @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  cycleItems     RestockCycleItem[]
+  supplierOrders SupplierOrder[]
+
+  @@index([scheduleId, scheduledAt])
+  @@index([orgId, scheduledAt])
+}
+
+model RestockCycleItem {
+  id       Int          @id @default(autoincrement())
+  cycleId  Int
+  itemId   Int
+  quantity Float
+  cycle    RestockCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  item     Item         @relation(fields: [itemId], references: [id])
+
+  @@unique([cycleId, itemId])
+}
+
+model StockBatch {
+  id              Int          @id @default(autoincrement())
+  itemId          Int
+  orgId           Int
+  orderId         Int?
+  quantity        Float
+  remainingQty    Float
+  expiryStartDate DateTime?
+  expiryEndDate   DateTime?
+  exactExpiryDate DateTime?
+  receivedAt      DateTime     @default(now())
+  item            Item         @relation(fields: [itemId], references: [id])
+  org             Organization @relation(fields: [orgId], references: [id])
+
+  @@index([itemId, expiryStartDate])
+  @@index([itemId, exactExpiryDate])
+}
+
+model RestockSchedule {
+  id              Int                   @id @default(autoincrement())
+  orgId           Int
+  recurrence      RecurrenceType
+  startDate       DateTime
+  endDate         DateTime?
+  timeOfDay       String
+  dayOfWeek       Int?
+  dayOfMonth      Int?
+  emailRecipient  String
+  emailFrom       String?
+  emailSubject    String?
+  emailBody       String?
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  lastTriggeredAt DateTime?
+  customTimes     Json?
+  branchId        Int?
+  outletId        Int?
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  cycles          RestockCycle[]
+  branch          Branch?               @relation(fields: [branchId], references: [id])
+  org             Organization          @relation(fields: [orgId], references: [id])
+  outlet          Outlet?               @relation(fields: [outletId], references: [id])
+  scheduleItems   RestockScheduleItem[]
+  supplierOrders  SupplierOrder[]
+}
+
+model RestockScheduleItem {
+  id         Int             @id @default(autoincrement())
+  scheduleId Int
+  itemId     Int
+  quantity   Float
+  dayOfMonth Int?
+  dayOfWeek  Int?
+  timeOfDay  String?
+  item       Item            @relation(fields: [itemId], references: [id])
+  schedule   RestockSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, itemId])
+}
+
+model Media {
+  id        Int        @id @default(autoincrement())
+  url       String
+  type      MediaType?
+  itemId    Int?
+  sortOrder Int        @default(0)
+  item      Item?      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, sortOrder])
+}
+
+model StockLocation {
+  id      Int    @id @default(autoincrement())
   name    String
-  rate    Float
-  orgId   Int
-  org     Organization @relation(fields: [orgId], references: [id])
-  items   Item[]
-  outlets Outlet[]
+  address String
+}
+
+model Brand {
+  id            Int          @id @default(autoincrement())
+  email         String?
+  webUrl        String?
+  contactNumber String?
+  name          String       @unique
+  orgId         Int
+  org           Organization @relation(fields: [orgId], references: [id])
+  Item          Item[]
 
   @@unique([orgId, name])
+}
+
+// used in pos terminal to track items in a transaction, separate from inventory which tracks stock levels. this allows us to record the price and quantity of each item at the time of sale, even if the inventory levels change later. it also allows us to track the unit of measurement used for each item in the transaction, which may be different from the base unit used in inventory.
+model CartItem {
+  transactionId Int
+  itemId        Int
+  quantity      Float
+  priceAtSale   Float              @default(0)
+  unitId        Int?
+  unitName      String?
+  item          Item               @relation(fields: [itemId], references: [id])
+  transaction   Transaction        @relation(fields: [transactionId], references: [id])
+  unit          InventoryItemUnit? @relation(fields: [unitId], references: [id])
+
+  @@id([transactionId, itemId])
+}
+
+model CustomerDeviceToken {
+  id         Int            @id @default(autoincrement())
+  customerId Int
+  token      String         @unique
+  platform   String
+  createdAt  DateTime       @default(now())
+  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model InventoryItem {
+  id       String       @id
+  name     String
+  sku      String
+  stock    Int
+  minStock Int
+  category String
+  price    Float
+  lowStock Boolean
+  orgId    Int
+  userId   Int?
+  org      Organization @relation(fields: [orgId], references: [id])
+  user     User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
 }
 
 model Department {
@@ -927,18 +983,33 @@ model Department {
   @@unique([orgId, label])
 }
 
+model Notification {
+  id        Int              @id @default(autoincrement())
+  orgId     Int
+  outletId  Int?
+  itemId    Int?
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  item      Item?            @relation(fields: [itemId], references: [id])
+  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  outlet    Outlet?          @relation(fields: [outletId], references: [id])
+}
+
 model Position {
   id                 String                      @id @default(cuid())
   orgId              Int
-  name               String
-  description        String?
-  permissionsVersion DateTime                    @default(now())
   createdAt          DateTime                    @default(now())
+  description        String?
+  name               String
+  permissionsVersion DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
-  users              User[]
-  permissions        PositionPermission[]
-  controlPermissions PositionControlPermission[]
   org                Organization                @relation(fields: [orgId], references: [id])
+  controlPermissions PositionControlPermission[]
+  permissions        PositionPermission[]
+  users              User[]
 }
 
 model Center {
@@ -956,8 +1027,8 @@ model SubCenter {
   id          Int          @id @default(autoincrement())
   label       String
   orgId       Int
-  org         Organization @relation(fields: [orgId], references: [id])
   gisrows     GISRow[]
+  org         Organization @relation(fields: [orgId], references: [id])
   summaryRows SummaryRow[]
 
   @@unique([orgId, label])
@@ -966,11 +1037,11 @@ model SubCenter {
 model AccountTitle {
   id          Int          @id @default(autoincrement())
   label       String
-  code        String?
   orgId       Int
+  code        String?
   org         Organization @relation(fields: [orgId], references: [id])
-  summaryRows SummaryRow[]
   gisrows     GISRow[]
+  summaryRows SummaryRow[]
 
   @@unique([orgId, label])
 }
@@ -1008,13 +1079,6 @@ model Shift {
   @@index([orgId])
 }
 
-enum AttendanceStatus {
-  PRESENT
-  ON_BREAK
-  OFF_DUTY
-  ABSENT
-}
-
 model UserShift {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -1033,47 +1097,34 @@ model Attendance {
   userId          Int
   shiftId         Int
   shiftDate       DateTime
-  // Time In
   timeIn          DateTime?
-  photoIn         String? // URL from your file service
-  noteIn          String? // what they plan to do today
-  // Break Start
-  breakStart      DateTime?
-  photoBreakStart String?
-  noteBreakStart  String? // note when going on break
-  // Break End
-  breakEnd        DateTime?
-  photoBreakEnd   String? // photo required on return
-  noteBreakEnd    String? // note on return from break
-  // Time Out
   timeOut         DateTime?
+  breakStart      DateTime?
+  breakEnd        DateTime?
+  photoIn         String?
   photoOut        String?
-  noteOut         String? // end of day note
-  // Status & relations
+  photoBreakStart String?
+  photoBreakEnd   String?
   status          AttendanceStatus @default(PRESENT)
   orgId           Int
+  noteBreakEnd    String?
+  noteBreakStart  String?
+  noteIn          String?
+  noteOut         String?
   org             Organization     @relation(fields: [orgId], references: [id])
   shift           Shift            @relation(fields: [shiftId], references: [id])
   user            User             @relation(fields: [userId], references: [id])
 
-  @@unique([userId, shiftDate]) // one record per user per day — CRITICAL
+  @@unique([userId, shiftDate])
   @@index([userId, shiftDate])
   @@index([shiftId, shiftDate])
-  @@index([orgId, shiftDate]) // added orgId+date for owner queries
+  @@index([orgId, shiftDate])
 }
 
 model GISRow {
-  id             Int          @id @unique @default(autoincrement())
   main           String
   group          String
   code           String
-  centerId       Int
-  subCenterId    Int
-  amount         Float        @default(0)
-  subCenter      SubCenter    @relation(fields: [subCenterId], references: [id])
-  center         Center       @relation(fields: [centerId], references: [id])
-  accountTitle   AccountTitle @relation(fields: [accountTitleId], references: [id])
-  accountTitleId Int
   description    String
   debit          Float
   credit         Float
@@ -1081,74 +1132,72 @@ model GISRow {
   orgId          Int
   userId         Int?
   createdAt      DateTime     @default(now())
+  accountTitleId Int
+  centerId       Int
+  subCenterId    Int
+  id             Int          @id @unique @default(autoincrement())
+  accountTitle   AccountTitle @relation(fields: [accountTitleId], references: [id])
+  center         Center       @relation(fields: [centerId], references: [id])
   org            Organization @relation(fields: [orgId], references: [id])
+  subCenter      SubCenter    @relation(fields: [subCenterId], references: [id])
   user           User?        @relation(fields: [userId], references: [id])
 
   @@index([orgId])
   @@index([orgId, createdAt])
 }
 
+model Budget {
+  id        Int          @id @default(autoincrement())
+  year      Int
+  account   String
+  begBal    Float
+  months    Json         @default("{}")
+  orgId     Int
+  userId    Int?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  org       Organization @relation(fields: [orgId], references: [id])
+  user      User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId, year])
+}
+
 model SummaryRow {
-  id               Int          @id @unique @default(autoincrement())
   itemCode         String
   description      String
-  opExPct          Float
-  amount           Float        @default(0)
+  opExPct          Float        @default(0)
   computedCost     Float
   costContribution Float
   sellingPrice     Float
-  centerId         Int
-  subCenterId      Int
-  subCenter        SubCenter    @relation(fields: [subCenterId], references: [id])
-  center           Center       @relation(fields: [centerId], references: [id])
-  accountTitle     AccountTitle @relation(fields: [accountTitleId], references: [id])
   status           String?
-  itemName         String?
-  createdAt        DateTime     @default(now())
-  itemId           Int
   orgId            Int
   userId           Int?
-  item             Item?        @relation(fields: [itemId], references: [id]) // ← add
-  org              Organization @relation(fields: [orgId], references: [id])
-  user             User?        @relation(fields: [userId], references: [id])
+  createdAt        DateTime     @default(now())
+  itemId           Int?
+  itemName         String?
   accountTitleId   Int
+  amount           Float        @default(0)
+  centerId         Int
+  subCenterId      Int
+  id               Int          @id @unique @default(autoincrement())
+  vatTypeId        Int
+  baseCost         Float        @default(0)
+  costLines        Json?        @default("[]")
+  grossProfit      Float        @default(0)
+  netProfit        Float        @default(0)
+  opExAmount       Float        @default(0)
+  vatInput         Float?       @default(0)
+  vatOutput        Float?       @default(0)
+  accountTitle     AccountTitle @relation(fields: [accountTitleId], references: [id])
+  center           Center       @relation(fields: [centerId], references: [id])
+  item             Item?        @relation(fields: [itemId], references: [id])
+  org              Organization @relation(fields: [orgId], references: [id])
+  subCenter        SubCenter    @relation(fields: [subCenterId], references: [id])
+  user             User?        @relation(fields: [userId], references: [id])
+  vatType          VatType      @relation(fields: [vatTypeId], references: [id])
 
   @@index([orgId])
   @@index([orgId, createdAt])
-}
-
-model SalesOrder {
-  id       String       @id
-  customer String
-  product  String
-  qty      Int
-  total    Float
-  status   String
-  date     DateTime
-  outlet   String
-  orgId    Int
-  userId   Int?
-  org      Organization @relation(fields: [orgId], references: [id])
-  user     User?        @relation(fields: [userId], references: [id])
-
-  @@index([orgId])
-}
-
-model InventoryItem {
-  id       String       @id
-  name     String
-  sku      String
-  stock    Int
-  minStock Int
-  category String
-  price    Float
-  lowStock Boolean
-  orgId    Int
-  userId   Int?
-  org      Organization @relation(fields: [orgId], references: [id])
-  user     User?        @relation(fields: [userId], references: [id])
-
-  @@index([orgId])
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1160,8 +1209,6 @@ model api_cart {
   user_id      BigInt         @unique
   api_user     api_user       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_cart_user_id_79972181_fk_api_user_id")
   api_cartitem api_cartitem[]
-
-  @@ignore
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1180,7 +1227,6 @@ model api_cartitem {
 
   @@unique([cart_id, product_id, branch_id], map: "api_cartitem_cart_id_product_id_branch_id_f5ebbd4b_uniq")
   @@index([cart_id], map: "api_cartitem_cart_id_26c2013b")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1205,7 +1251,6 @@ model api_deliveryaddress {
   api_order      api_order[]
 
   @@index([user_id], map: "api_deliveryaddress_user_id_51efe5a9")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1225,6 +1270,8 @@ model api_order {
   updated_at          DateTime             @db.Timestamptz(6)
   delivery_address_id BigInt?
   user_id             BigInt
+  courierId           Int?
+  courier             Courier?             @relation(fields: [courierId], references: [id])
   api_deliveryaddress api_deliveryaddress? @relation(fields: [delivery_address_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_order_delivery_address_id_025337a3_fk_api_deliv")
   api_user            api_user             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_order_user_id_52781ff0_fk_api_user_id")
   api_orderitem       api_orderitem[]
@@ -1233,7 +1280,6 @@ model api_order {
   @@index([delivery_address_id], map: "api_order_delivery_address_id_025337a3")
   @@index([order_number], map: "api_order_order_number_10840d1e_like")
   @@index([user_id], map: "api_order_user_id_52781ff0")
-  @@ignore
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1249,7 +1295,6 @@ model api_orderitem {
   api_order    api_order @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_orderitem_order_id_f9c0afc0_fk_api_order_id")
 
   @@index([order_id], map: "api_orderitem_order_id_f9c0afc0")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1264,8 +1309,6 @@ model api_payment {
   created_at        DateTime  @db.Timestamptz(6)
   order_id          BigInt    @unique
   api_order         api_order @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_payment_order_id_7b6d4bf5_fk_api_order_id")
-
-  @@ignore
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1282,7 +1325,6 @@ model api_review {
 
   @@unique([user_id, product_id], map: "api_review_user_id_product_id_62dfd71f_uniq")
   @@index([user_id], map: "api_review_user_id_8bf97ad4")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1301,8 +1343,6 @@ model api_store {
   created_at           DateTime @db.Timestamptz(6)
   user_id              BigInt   @unique
   api_user             api_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_store_user_id_19eb3736_fk_api_user_id")
-
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1324,8 +1364,6 @@ model api_supplier {
   created_at        DateTime @db.Timestamptz(6)
   user_id           BigInt   @unique
   api_user          api_user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "api_supplier_user_id_d696b80f_fk_api_user_id")
-
-  @@ignore
 }
 
 model api_user {
@@ -1346,6 +1384,7 @@ model api_user {
   date_of_birth             DateTime?                   @db.Date
   gender                    String?                     @db.VarChar(10)
   role                      String                      @db.VarChar(10)
+  profile_image             String?                     @db.VarChar(255)
   api_cart                  api_cart?
   api_deliveryaddress       api_deliveryaddress[]
   api_order                 api_order[]
@@ -1358,7 +1397,6 @@ model api_user {
   django_admin_log          django_admin_log[]
 
   @@index([email], map: "api_user_email_9ef5afa6_like")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1372,7 +1410,6 @@ model api_user_groups {
   @@unique([user_id, group_id], map: "api_user_groups_user_id_group_id_9c7ddfb5_uniq")
   @@index([group_id], map: "api_user_groups_group_id_3af85785")
   @@index([user_id], map: "api_user_groups_user_id_a5ff39fa")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1386,7 +1423,6 @@ model api_user_user_permissions {
   @@unique([user_id, permission_id], map: "api_user_user_permissions_user_id_permission_id_a06dd704_uniq")
   @@index([permission_id], map: "api_user_user_permissions_permission_id_305b7fea")
   @@index([user_id], map: "api_user_user_permissions_user_id_f3945d65")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1399,7 +1435,6 @@ model api_wishlist {
 
   @@unique([user_id, product_id], map: "api_wishlist_user_id_product_id_c48793dd_uniq")
   @@index([user_id], map: "api_wishlist_user_id_798e25cf")
-  @@ignore
 }
 
 model auth_group {
@@ -1409,7 +1444,6 @@ model auth_group {
   auth_group_permissions auth_group_permissions[]
 
   @@index([name], map: "auth_group_name_a6ea08ec_like")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1423,7 +1457,6 @@ model auth_group_permissions {
   @@unique([group_id, permission_id], map: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq")
   @@index([group_id], map: "auth_group_permissions_group_id_b120cbf9")
   @@index([permission_id], map: "auth_group_permissions_permission_id_84c5c92e")
-  @@ignore
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -1438,7 +1471,6 @@ model auth_permission {
 
   @@unique([content_type_id, codename], map: "auth_permission_content_type_id_codename_01ab375a_uniq")
   @@index([content_type_id], map: "auth_permission_content_type_id_2f476e4b")
-  @@ignore
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -1457,7 +1489,6 @@ model django_admin_log {
 
   @@index([content_type_id], map: "django_admin_log_content_type_id_c4bce8eb")
   @@index([user_id], map: "django_admin_log_user_id_c564eba6")
-  @@ignore
 }
 
 model django_content_type {
@@ -1468,7 +1499,6 @@ model django_content_type {
   django_admin_log django_admin_log[]
 
   @@unique([app_label, model], map: "django_content_type_app_label_model_76bd3d3b_uniq")
-  @@ignore
 }
 
 model django_migrations {
@@ -1476,8 +1506,6 @@ model django_migrations {
   app     String   @db.VarChar(255)
   name    String   @db.VarChar(255)
   applied DateTime @db.Timestamptz(6)
-
-  @@ignore
 }
 
 model Page {
@@ -1498,8 +1526,8 @@ model PositionPermission {
   canCreate  Boolean  @default(false)
   canEdit    Boolean  @default(false)
   canDelete  Boolean  @default(false)
-  position   Position @relation(fields: [positionId], references: [id])
   page       Page     @relation(fields: [pageId], references: [id])
+  position   Position @relation(fields: [positionId], references: [id])
 }
 
 model UserPermissionOverride {
@@ -1510,8 +1538,8 @@ model UserPermissionOverride {
   canCreate Boolean?
   canEdit   Boolean?
   canDelete Boolean?
-  user      User     @relation(fields: [userId], references: [id])
   page      Page     @relation(fields: [pageId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model PositionControlPermission {
@@ -1538,6 +1566,60 @@ model AuditLog {
   user       User        @relation(fields: [userId], references: [id])
 }
 
+model OrderCourierPreference {
+  id           Int          @id @default(autoincrement())
+  order_id     Int
+  courier_id   Int
+  Courier      Courier      @relation(fields: [courier_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier")
+  KompraCOrder KompraCOrder @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order")
+}
+
+enum StockMovementType {
+  ASSIGN_TO_OUTLET
+  SALE
+  RESTOCK_TO_OUTLET
+  PURCHASE_RECEIVED
+  CUSTOMER_RETURN
+  WRITE_OFF
+  ADJUSTMENT
+}
+
+enum SupplierOrderStatus {
+  pending
+  acknowledged
+  sent
+  delivered
+  cancelled
+}
+
+enum RecurrenceType {
+  once
+  daily
+  weekly
+  monthly
+  custom
+}
+
+enum NotificationType {
+  OUTLET_LOW_STOCK
+  ORG_CRITICAL_STOCK
+  NEW_TRANSACTION
+}
+
+enum VatExemptType {
+  SENIOR_CITIZEN
+  PWD
+  DIPLOMAT
+  GOVERNMENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ON_BREAK
+  OFF_DUTY
+  ABSENT
+}
+
 enum AuditAction {
   CREATE
   EDIT
@@ -1546,11 +1628,7 @@ enum AuditAction {
   LOGIN
   LOGOUT
   PERMISSION_CHANGE
-}
-
-enum SubscriptionPlan {
-  BASIC
-  GOLD
+  STATUS_CHANGE
 }
 
 enum EmployeeStatus {

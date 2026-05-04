@@ -27,19 +27,49 @@ export const summaryRowQuery = extendType({
         });
       },
     })
-    t.field('summaryRow', {
+    t.list.field('summaryRowExpenses', {
       type: 'SummaryRow',
       args: {
-        id: intArg()
+        startDate: stringArg(),
+        endDate: nullable(stringArg()),
       },
-      resolve: async (_, { id }, ctx) => {
+      resolve: async (_, { startDate, endDate }, ctx) => {
+
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'ADMIN'])
         const orgId = Number(ctx.user?.orgId)
-        return ctx.prisma.summaryRow.findUnique({
-          where: { id, orgId }
+        return ctx.prisma.summaryRow.findMany({
+          where: {
+            orgId,
+            ...(startDate || endDate ? {
+              createdAt: {
+                ...(startDate && { gte: new Date(startDate) }),  // parse string → Date
+                ...(endDate && { lte: new Date(endDate) }),
+              },
+            } : {}),
+          },
+          select: {
+            id: true,
+            netProfit: true,
+            status: true,
+            createdAt: true,
+          }
         })
       }
-    })
+    }),
+      t.field('summaryRow', {
+        type: 'SummaryRow',
+        args: {
+          id: intArg()
+        },
+        resolve: async (_, { id }, ctx) => {
+          requireAuth(ctx)
+          requireRole(ctx, ['OWNER', 'ADMIN'])
+          const orgId = Number(ctx.user?.orgId)
+          return ctx.prisma.summaryRow.findUnique({
+            where: { id, orgId }
+          })
+        }
+      })
   }
 })

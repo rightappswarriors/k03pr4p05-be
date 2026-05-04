@@ -1,6 +1,8 @@
 // services/user.service.js
 // This file acts as the 'cook'. It contains the core business logic and interacts directly with the database.
 import { prisma } from '../lib/prisma.js';
+import dotenv from "dotenv";
+dotenv.config();
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 // A secret key to sign and verify your JWTs. In a real-world app, this should be an environment variable.

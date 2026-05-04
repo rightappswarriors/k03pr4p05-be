@@ -1,4 +1,6 @@
 //transaction.service.ts
+// this is how I would rewrite processTransaction to be more robust and handle inventory deductions, stock movements, and notifications all in one transaction. it also includes a new function for processing customer returns, which adds back to inventory if the item is resellable, and logs a stock movement either way.
+// posterminal
 import { prisma } from '../lib/prisma.js';
 
 import { decrypt } from "../lib/encrypt.js";

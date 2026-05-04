@@ -19,7 +19,7 @@ export const InventoryItems = objectType({
           .inventory();
       },
     });
-    
+
     t.nullable.int("categoryId");
     t.nullable.field("category", {
       type: "ItemCategory",
@@ -57,6 +57,37 @@ export const InventoryItems = objectType({
         })
       },
     })
-    
+
+    // ─── Item with vatExempt ─────────────────────────────────────────────
+    // Use "SalesItem" if your global Item type does not yet expose vatExempt.
+    // Switch back to type: "Item" once vatExempt is on the global Item type.
+    t.nonNull.field("item", {
+      type: "SalesItem",
+      resolve: (parent: any, _, ctx) =>
+        ctx.prisma.item.findUnique({ where: { id: parent.itemId } }),
+    });
+
+    // ─── Units ───────────────────────────────────────────────────────────
+    t.list.field("units", {
+      type: "InventoryItemUnit",
+      resolve: (parent: any, _, ctx) =>
+        ctx.prisma.inventoryItemUnit.findMany({
+          where: { inventoryItemId: parent.id, isActive: true },
+        }),
+    });
+
+    // ─── Inventory → Outlet tag ───────────────────────────────────────────
+    // Required by the "show all org items, tag each with outlet name" feature.
+    // When outletId IS selected this field is ignored by the frontend.
+    t.nullable.field("inventory", {
+      type: "InventoryForItem",
+      resolve: (parent: any, _, ctx) =>
+        ctx.prisma.inventory.findUnique({
+          where: { id: parent.inventoryId },
+          include: {
+            outlet: { select: { id: true, name: true, code: true } },
+          },
+        }),
+    });
   },
 });

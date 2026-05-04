@@ -89,6 +89,10 @@ export * from './subscription/subscription.query.js';
 export * from './summaryRow/summaryRow.mutation.js';
 export * from './summaryRow/summaryRow.query.js';
 
+// Budget
+export * from './budget/budget.mutation.js';
+export * from './budget/budget.query.js';
+
 // Token
 export * from './token/token.mutation.js';
 

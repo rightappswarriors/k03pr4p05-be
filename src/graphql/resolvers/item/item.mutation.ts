@@ -30,6 +30,7 @@ export const CreateItemInput = inputObjectType({
     t.nonNull.string("barcode")
     t.nullable.string("image")
     t.nullable.string("description")
+    t.nullable.string("itemCode")
     t.nullable.string("brand")
     t.nullable.int("categoryId")
     t.nonNull.string("stockLabel")
@@ -91,6 +92,7 @@ export const UpdateItemInput = inputObjectType({
     t.nullable.string("barcode");
     t.nullable.string("brand");
     t.nullable.string("stockLabel")
+    t.nullable.string("itemCode")
     t.nullable.string("stockDescription")
     t.nonNull.float("sellingPrice")
     t.list.field("costLines", { type: "CostLineInput" })

@@ -1,11 +1,11 @@
 import crypto from 'crypto'
 
+import dotenv from "dotenv";
+dotenv.config();
 const ALGORITHM = 'aes-256-cbc'
 const SECRET_KEY = process.env.ENCRYPTION_KEY // 32 bytes key, store in .env
 const IV_LENGTH = 16 // For AES, this is always 16
-if (!SECRET_KEY) {
-     throw new Error("ENCRYPTION_KEY is missing in environment variables");
-   }
+
    
 export function encrypt(text: string) {
   const iv = crypto.randomBytes(IV_LENGTH)

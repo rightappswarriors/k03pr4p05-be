@@ -25,11 +25,21 @@ export const AnalyticsSummaryType = objectType({
         t.nonNull.float('grossProfit');
         t.nonNull.float('profitMargin');
         t.nonNull.int('totalOrders');
-        t.nonNull.int('totalItemsSold');
+        t.nonNull.float('totalItemsSold');
         t.nonNull.float('revenueChange');
         t.nonNull.float('profitChange');
         t.nonNull.int('profitableBranches');
         t.nonNull.int('totalBranches');
+    },
+});
+export const PaginatedItemAnalyticsPayloadType = objectType({
+    name: 'PaginatedItemAnalyticsPayload',
+    definition(t) {
+        t.nonNull.list.nonNull.field('items', { type: 'ItemPerformance' });
+        t.nonNull.int('total');
+        t.nonNull.int('page');
+        t.nonNull.int('totalPages');
+        t.nonNull.int('take');
     },
 });
 export const BranchPerformanceType = objectType({
@@ -59,7 +69,7 @@ export const ItemPerformanceType = objectType({
         t.nonNull.float('totalCost');
         t.nonNull.float('grossProfit');
         t.nonNull.float('profitMargin');
-        t.nonNull.int('unitsSold');
+        t.nonNull.float('unitsSold');
         t.nonNull.float('revenuePerUnit');
         t.nonNull.field('trend', { type: 'ItemTrend' });
         t.nonNull.float('trendPct');
@@ -279,7 +289,7 @@ export const AnalyticsQuery = extendType({
                         const id = ci.itemId;
                         const qty = Number(ci.quantity ?? 0);
                         // Use InventoryItems price if available, fall back to item.sellingPrice
-                        const price = Number(ci.item?.sellingPrice ?? 0);
+                        const price = Number(ci.priceAtSale ?? ci.item?.sellingPrice ?? 0);
                         const cost = Number(ci.item?.totalCost ?? 0);
                         if (!itemMap[id]) {
                             itemMap[id] = {
@@ -426,6 +436,155 @@ export const AnalyticsQuery = extendType({
                 };
             },
         });
+        // ── getItemAnalyticsPaginated ──────────────────────────────────────────────
+        t.nonNull.field('getItemAnalyticsPaginated', {
+            type: 'PaginatedItemAnalyticsPayload',
+            args: {
+                preset: nonNull('DateRangePreset'),
+                startDate: nullable(stringArg()),
+                endDate: nullable(stringArg()),
+                take: nullable(intArg()), // items per page, default 20
+                page: nullable(intArg()), // 1-based, default 1
+                search: nullable(stringArg()), // filter by name or category
+                section: nullable(stringArg()), // 'top' | 'bottom', default 'top'
+            },
+            async resolve(_, { preset, startDate, endDate, take = 20, page = 1, search, section = 'top' }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
+                const orgId = Number(ctx.user.orgId);
+                const { currentStart, currentEnd, prevStart, prevEnd } = resolveDateWindow(preset, startDate, endDate);
+                const [currentTx, prevTx, orgItems] = await Promise.all([
+                    ctx.prisma.transaction.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: currentStart, lte: currentEnd },
+                            status: { in: ['PAID', 'SYNCED'] },
+                        },
+                        include: {
+                            items: { include: { item: { include: { orgCategory: true } } } },
+                        },
+                    }),
+                    ctx.prisma.transaction.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: prevStart, lte: prevEnd },
+                            status: { in: ['PAID', 'SYNCED'] },
+                        },
+                        include: { items: { select: { itemId: true, quantity: true } } },
+                    }),
+                    ctx.prisma.item.findMany({
+                        where: { orgId },
+                        select: {
+                            id: true,
+                            name: true,
+                            image: true,
+                            sellingPrice: true,
+                            totalCost: true,
+                            orgCategory: { select: { name: true } },
+                        },
+                    }),
+                ]);
+                // ── Build item map ─────────────────────────────────────────────────
+                const itemMap = {};
+                for (const item of orgItems) {
+                    itemMap[item.id] = {
+                        itemId: item.id,
+                        itemName: item.name,
+                        itemImage: item.image ?? undefined,
+                        categoryName: item.orgCategory?.name ?? undefined,
+                        revenue: 0,
+                        cost: 0,
+                        units: 0,
+                        sellingPrice: Number(item.sellingPrice ?? 0),
+                        totalCost: Number(item.totalCost ?? 0),
+                    };
+                }
+                for (const tx of currentTx) {
+                    for (const ci of tx.items) {
+                        const id = ci.itemId;
+                        const qty = Number(ci.quantity ?? 0);
+                        const price = Number(ci.priceAtSale ??
+                            ci.item?.sellingPrice ??
+                            itemMap[id]?.sellingPrice ??
+                            0);
+                        const cost = Number(ci.item?.totalCost ?? itemMap[id]?.totalCost ?? 0);
+                        if (!itemMap[id]) {
+                            itemMap[id] = {
+                                itemId: id,
+                                itemName: ci.item?.name ?? `Item #${id}`,
+                                itemImage: ci.item?.image ?? undefined,
+                                categoryName: ci.item?.orgCategory?.name ?? undefined,
+                                revenue: 0,
+                                cost: 0,
+                                units: 0,
+                                sellingPrice: price,
+                                totalCost: cost,
+                            };
+                        }
+                        itemMap[id].revenue += qty * price;
+                        itemMap[id].cost += qty * cost;
+                        itemMap[id].units += qty;
+                    }
+                }
+                // ── Previous period units for trend ────────────────────────────────
+                const prevUnits = {};
+                for (const tx of prevTx) {
+                    for (const ci of tx.items) {
+                        prevUnits[ci.itemId] = (prevUnits[ci.itemId] ?? 0) + Number(ci.quantity ?? 0);
+                    }
+                }
+                // ── Sort by section ────────────────────────────────────────────────
+                let all = Object.values(itemMap);
+                if (section === 'bottom') {
+                    all.sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost));
+                }
+                else {
+                    all.sort((a, b) => b.revenue - a.revenue);
+                }
+                const totalAll = all.length;
+                // ── Search filter ──────────────────────────────────────────────────
+                if (search?.trim()) {
+                    const q = search.trim().toLowerCase();
+                    all = all.filter((item) => item.itemName.toLowerCase().includes(q) ||
+                        (item.categoryName ?? '').toLowerCase().includes(q));
+                }
+                const total = all.length;
+                const safeTake = Math.max(1, take ?? 20);
+                const safePage = Math.max(1, page ?? 1);
+                const totalPages = Math.max(1, Math.ceil(total / safeTake));
+                const clampedPage = Math.min(safePage, totalPages);
+                // ── Paginate ───────────────────────────────────────────────────────
+                const pageSlice = all.slice((clampedPage - 1) * safeTake, clampedPage * safeTake);
+                const toPerf = (item, rank) => {
+                    const profit = item.revenue - item.cost;
+                    const margin = item.revenue > 0 ? (profit / item.revenue) * 100 : 0;
+                    const trendPct = delta(item.units, prevUnits[item.itemId] ?? 0);
+                    return {
+                        itemId: item.itemId,
+                        itemName: item.itemName,
+                        itemImage: item.itemImage,
+                        categoryName: item.categoryName,
+                        totalRevenue: item.revenue,
+                        totalCost: item.cost,
+                        grossProfit: profit,
+                        profitMargin: margin,
+                        unitsSold: item.units,
+                        revenuePerUnit: item.units > 0 ? item.revenue / item.units : 0,
+                        trend: trendPct > 5 ? 'up' : trendPct < -5 ? 'down' : 'stable',
+                        trendPct,
+                        status: classifyItem(margin, trendPct, rank, totalAll),
+                    };
+                };
+                const startRank = (clampedPage - 1) * safeTake + 1;
+                return {
+                    items: pageSlice.map((item, i) => toPerf(item, startRank + i)),
+                    total,
+                    page: clampedPage,
+                    totalPages,
+                    take: safeTake,
+                };
+            },
+        });
         // ── getItemAnalytics ───────────────────────────────────────────────────────
         t.nonNull.field('getItemAnalytics', {
             type: 'ItemAnalyticsPayload',
@@ -440,7 +599,7 @@ export const AnalyticsQuery = extendType({
                 requireAuth(ctx);
                 requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
                 const { currentStart, currentEnd, prevStart, prevEnd } = resolveDateWindow(preset, startDate, endDate);
-                const [currentTx, prevTx] = await Promise.all([
+                const [currentTx, prevTx, orgItems] = await Promise.all([
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
@@ -459,21 +618,49 @@ export const AnalyticsQuery = extendType({
                         },
                         include: { items: { select: { itemId: true, quantity: true } } },
                     }),
+                    ctx.prisma.item.findMany({
+                        where: { orgId },
+                        select: {
+                            id: true,
+                            name: true,
+                            image: true,
+                            sellingPrice: true,
+                            totalCost: true,
+                            orgCategory: { select: { name: true } },
+                        },
+                    }),
                 ]);
                 const itemMap = {};
+                for (const item of orgItems) {
+                    itemMap[item.id] = {
+                        itemId: item.id,
+                        itemName: item.name,
+                        itemImage: item.image,
+                        categoryName: item.orgCategory?.name,
+                        revenue: 0,
+                        cost: 0,
+                        units: 0,
+                        sellingPrice: Number(item.sellingPrice ?? 0),
+                        totalCost: Number(item.totalCost ?? 0),
+                    };
+                }
                 for (const tx of currentTx) {
                     for (const ci of tx.items) {
                         const id = ci.itemId;
                         const qty = Number(ci.quantity ?? 0);
-                        const price = Number(ci.item?.sellingPrice ?? 0);
-                        const cost = Number(ci.item?.totalCost ?? 0);
+                        const price = Number(ci.item?.sellingPrice ??
+                            itemMap[id]?.sellingPrice ??
+                            0);
+                        const cost = Number(ci.item?.totalCost ?? itemMap[id]?.totalCost ?? 0);
                         if (!itemMap[id]) {
                             itemMap[id] = {
                                 itemId: id,
                                 itemName: ci.item?.name ?? `Item #${id}`,
                                 itemImage: ci.item?.image,
                                 categoryName: ci.item?.orgCategory?.name,
-                                revenue: 0, cost: 0, units: 0,
+                                revenue: 0,
+                                cost: 0,
+                                units: 0,
                             };
                         }
                         itemMap[id].revenue += qty * price;

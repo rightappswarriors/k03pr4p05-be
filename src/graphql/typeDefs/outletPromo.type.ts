@@ -11,6 +11,7 @@ export const OutletPromo = objectType({
         t.nonNull.dateTime("createdAt")
         t.nonNull.boolean("isActive")
         t.nonNull.int("userId")
+        t.boolean("vatable")
         t.nonNull.field("user", {
             type: "User",
             resolve: (parent, _, ctx) => {

@@ -32,6 +32,7 @@ export * from './salesOrder.type.js';
 export * from './subCenter.type.js';
 export * from './subscription.type.js';
 export * from './summaryRow.type.js';
+export * from './budget.type.js';
 export * from './transaction.type.js';
 export * from './unauthorized.type.js';
 export * from './user.type.js';

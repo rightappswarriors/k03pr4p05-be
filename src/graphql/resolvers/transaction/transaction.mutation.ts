@@ -168,7 +168,7 @@ export const TransactionMutation = extendType({
             fullTransactionData,
             itemsSold
           );
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.error(
             `Error upon finalizing transaction: ${error}`
           );

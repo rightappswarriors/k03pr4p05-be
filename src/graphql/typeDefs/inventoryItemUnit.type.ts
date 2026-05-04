@@ -5,8 +5,6 @@ import {
   nonNull, nullable, intArg, floatArg, stringArg, booleanArg, list, arg,
 } from "nexus";
 
-// ─── Object type ──────────────────────────────────────────────────────────────
-
 export const InventoryItemUnitType = objectType({
   name: "InventoryItemUnit",
   definition(t) {

@@ -5,7 +5,7 @@ import { makeSchema, plugin } from "nexus";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
-import { PrismaClient } from "@prisma/client";
+
 import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
 import { fileURLToPath } from "url";

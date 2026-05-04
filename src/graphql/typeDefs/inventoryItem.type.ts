@@ -27,3 +27,5 @@ export const InventoryItem = objectType({
         })
     }
 })
+
+

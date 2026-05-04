@@ -13,8 +13,7 @@
 // Step 7 — Frontend renders pins on map, color-coded by match score
 // Step 8 — Customer taps pin → opens outlet catalog filtered to matched items
 // ─────────────────────────────────────────────────────────────────────────────
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from '../prisma.js';
 // ─── Haversine formula — distance between two GPS points in km ────────────────
 function haversineKm(lat1, lng1, lat2, lng2) {
     const R = 6371; // Earth radius in km

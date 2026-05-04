@@ -1,4 +1,4 @@
-import { extendType, intArg, stringArg, floatArg } from 'nexus'
+import { extendType, intArg, stringArg, floatArg, nonNull } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
 export const gisRowMutation = extendType({
@@ -11,15 +11,18 @@ export const gisRowMutation = extendType({
         group: stringArg(),
         code: stringArg(),
         description: stringArg(),
+        centerId: nonNull(intArg()),
+        subCenterId: nonNull(intArg()),
+        accountTitleId: nonNull(intArg()),
         debit: floatArg(),
         credit: floatArg(),
-        total: floatArg(),
       },
-      resolve: async (_, { main, group, code, description, debit, credit, total }, ctx) => {
+      resolve: async (_, { main, group, code, description, centerId, subCenterId, accountTitleId, debit, credit }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ['OWNER', 'ADMIN']);
         const orgId = Number(ctx.user?.orgId);
         const userId = Number(ctx.user?.id);
+        const finalTotal = (debit ?? 0) - (credit ?? 0);
         return ctx.prisma.gISRow.create({
           data: {
             orgId,
@@ -27,10 +30,13 @@ export const gisRowMutation = extendType({
             main: main ?? 'Expenses',
             group: group ?? 'General',
             code: code ?? '',
+            centerId: centerId,
+            subCenterId: subCenterId,
+            accountTitleId: accountTitleId,
             description: description ?? '',
             debit: debit ?? 0,
             credit: credit ?? 0,
-            total: total ?? 0,
+            total: finalTotal ?? 0,
           },
         });
       },
@@ -38,23 +44,36 @@ export const gisRowMutation = extendType({
     t.field('updateGISRow', {
       type: 'GISRow',
       args: {
-        id: stringArg(),
+        id: nonNull(intArg()),
         main: stringArg(),
         group: stringArg(),
         code: stringArg(),
         description: stringArg(),
+        accountTitleId: intArg(),
+        centerId: intArg(),
+        subCenterId: intArg(),
         debit: floatArg(),
         credit: floatArg(),
-        total: floatArg(),
-        amount: floatArg(),
       },
-      resolve: async (_, { id, main, group, code, description, debit, credit, total }, ctx) => {
+      resolve: async (_, { id, main, group, code, description, accountTitleId, centerId, subCenterId, debit, credit }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'ADMIN'])
         const orgId = Number(ctx.user?.orgId);
+        const finalTotal = (debit ?? 0) - (credit ?? 0);
         return ctx.prisma.gISRow.update({
           where: { id, orgId },
-          data: { main, group, code, description, debit, credit, total }
+          data: {
+            ...(main !== undefined && { main }),
+            ...(group !== undefined && { group }),
+            ...(code !== undefined && { code }),
+            ...(description !== undefined && { description }),
+            ...(accountTitleId !== undefined && { accountTitleId }),
+            ...(centerId !== undefined && { centerId }),
+            ...(subCenterId !== undefined && { subCenterId }),
+            ...(debit !== undefined && { debit }),
+            ...(credit !== undefined && { credit }),
+            total: finalTotal,
+          },
         })
       }
     })

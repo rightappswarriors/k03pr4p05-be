@@ -14,9 +14,8 @@
 // Step 8 — Customer taps pin → opens outlet catalog filtered to matched items
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../prisma.js';
 
-const prisma = new PrismaClient();
 
 // ─── Haversine formula — distance between two GPS points in km ────────────────
 
