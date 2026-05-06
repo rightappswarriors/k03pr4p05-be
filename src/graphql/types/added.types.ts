@@ -2,7 +2,7 @@ import { enumType, objectType, inputObjectType } from 'nexus'
 
 export const AuditActionEnum = enumType({
   name: 'AuditAction',
-  members: ['CREATE', 'EDIT', 'DELETE', 'VIEW', 'LOGIN', 'LOGOUT', 'PERMISSION_CHANGE']
+  members: ['CREATE', 'EDIT', 'DELETE', 'VIEW', 'LOGIN', 'LOGOUT', 'PERMISSION_CHANGE', 'STATUS_CHANGE']
 })
 
 export const PageType = objectType({

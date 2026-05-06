@@ -5,7 +5,7 @@ export const PaymentMethodEnum = enumType({
 });
 export const StatusEnum = enumType({
     name: "Status",
-    members: ["PENDING", "PAID", "SYNCED", "FAILED", "CANCELED"],
+    members: ["PENDING", "PAID", "SYNCED", "FAILED", "CANCELED", "COMPLETED"],
 });
 // ── New enum for VAT exempt type ─────────────────────────────────────────────
 export const VatExemptTypeEnum = enumType({
@@ -35,6 +35,8 @@ export const Transaction = objectType({
         t.nonNull.float("vatAmount");
         t.nullable.float("cashReceived");
         t.nullable.float("change");
+        t.nullable.string("discountType");
+        t.nullable.float("discountAmount");
         t.nonNull.field("paymentMethod", { type: "PaymentMethod" });
         t.nonNull.field("status", { type: "Status" });
         t.nonNull.dateTime("createdAt");

@@ -204,7 +204,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
@@ -215,7 +215,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         select: { total: true, outletId: true, outlet: { select: { branchId: true } } },
                     }),
@@ -393,7 +393,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outletId: { in: outletIds },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         include: { items: { include: { item: true } } },
                     }),
@@ -401,7 +401,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outletId: { in: outletIds },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         select: { total: true },
                     }),
@@ -458,7 +458,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ['PAID', 'SYNCED'] },
+                            status: { in: ['PAID', 'SYNCED', 'COMPLETED'] },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
@@ -468,7 +468,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ['PAID', 'SYNCED'] },
+                            status: { in: ['PAID', 'SYNCED', 'COMPLETED'] },
                         },
                         include: { items: { select: { itemId: true, quantity: true } } },
                     }),
@@ -604,7 +604,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
@@ -614,7 +614,7 @@ export const AnalyticsQuery = extendType({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED"] },
+                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
                         },
                         include: { items: { select: { itemId: true, quantity: true } } },
                     }),

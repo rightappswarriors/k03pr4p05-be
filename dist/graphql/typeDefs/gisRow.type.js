@@ -19,31 +19,31 @@ export const GISRow = objectType({
         t.nonNull.field('org', {
             type: 'Organization',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.gisRow.findUnique({ where: { id: parent.id } }).org();
+                return ctx.prisma.gISRow.findUnique({ where: { id: parent.id } }).org();
             }
         });
         t.nonNull.field('accountTitle', {
             type: 'AccountTitle',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.gisRow.findUnique({ where: { id: parent.id } }).accountTitle();
+                return ctx.prisma.gISRow.findUnique({ where: { id: parent.id } }).accountTitle();
             }
         });
         t.nonNull.field('center', {
             type: 'Center',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.gisRow.findUnique({ where: { id: parent.id } }).center();
+                return ctx.prisma.gISRow.findUnique({ where: { id: parent.id } }).center();
             }
         });
         t.nonNull.field('subCenter', {
             type: 'SubCenter',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.gisRow.findUnique({ where: { id: parent.id } }).subCenter();
+                return ctx.prisma.gISRow.findUnique({ where: { id: parent.id } }).subCenter();
             }
         });
         t.nullable.field('user', {
             type: 'User',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.gisRow.findUnique({ where: { id: parent.id } }).user();
+                return ctx.prisma.gISRow.findUnique({ where: { id: parent.id } }).user();
             }
         });
     }

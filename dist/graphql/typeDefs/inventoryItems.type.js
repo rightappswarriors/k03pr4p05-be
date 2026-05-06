@@ -55,13 +55,6 @@ export const InventoryItems = objectType({
                 });
             },
         });
-        // ─── Item with vatExempt ─────────────────────────────────────────────
-        // Use "SalesItem" if your global Item type does not yet expose vatExempt.
-        // Switch back to type: "Item" once vatExempt is on the global Item type.
-        t.nonNull.field("item", {
-            type: "SalesItem",
-            resolve: (parent, _, ctx) => ctx.prisma.item.findUnique({ where: { id: parent.itemId } }),
-        });
         // ─── Units ───────────────────────────────────────────────────────────
         t.list.field("units", {
             type: "InventoryItemUnit",

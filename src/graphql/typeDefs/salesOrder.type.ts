@@ -60,8 +60,8 @@ export const SalesOrderDeliveryType = objectType({
     t.nullable.string("contactNumber");
     t.nullable.string("notes");
     t.nullable.string("estimatedDate");
-    t.nullable.string("shippedAt");
-    t.nullable.string("receivedAt");
+    t.nullable.dateTime("shippedAt");
+    t.nullable.dateTime("receivedAt");
   },
 });
 
@@ -76,6 +76,9 @@ export const SalesOrderItemType = objectType({
     t.nonNull.float("totalPrice");
     t.nullable.int("unitId");
     t.nullable.string("unitName");
+    t.nullable.float("discountQuantity");
+    t.nullable.float("discountRate");
+    t.nullable.float("discountAmount");
     t.field("item", {
       type: "Item",
       resolve: (parent, _, ctx) =>
@@ -127,24 +130,6 @@ export const InventoryForItemType = objectType({
             })
           : null,
     });
-  },
-});
-
-// ─── Item sub-type for sales (includes vatExempt) ────────────────────────────
-// If your global Item objectType already exposes vatExempt you can remove this
-// and keep using the shared "Item" type reference in InventoryItemsType below.
-export const SalesItemType = objectType({
-  name: "SalesItem",
-  definition(t) {
-    t.nonNull.int("id");
-    t.nonNull.string("name");
-    t.nullable.string("image");
-    t.nonNull.float("sellingPrice");
-    t.nonNull.string("barcode");
-    t.nullable.string("description");
-    // ─── FIX 4: vatExempt must be exposed so the frontend can exclude
-    //            VAT-exempt items from the vatableSubtotal calculation.
-    t.nullable.boolean("vatExempt");
   },
 });
 

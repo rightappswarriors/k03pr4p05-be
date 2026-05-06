@@ -10,6 +10,9 @@ export const SalesOrderItemInput = inputObjectType({
     t.nonNull.float("unitPrice");
     t.nullable.int("unitId");
     t.nullable.string("unitName");
+    t.nullable.float("discountQuantity");
+    t.nullable.float("discountRate");
+    t.nullable.float("discountAmount");
   },
 });
  
@@ -91,6 +94,9 @@ export const SalesOrderMutation = extendType({
                 totalPrice: item.quantity * item.unitPrice,
                 unitId: item.unitId ?? null,
                 unitName: item.unitName ?? null,
+                discountQuantity: item.discountQuantity ?? 0,
+                discountRate: item.discountRate ?? 0,
+                discountAmount: item.discountAmount ?? 0,
               })),
             },
           },

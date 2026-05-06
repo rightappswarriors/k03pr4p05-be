@@ -70,10 +70,6 @@ export const processTransaction = async (transactionData: any, itemsSold: any) =
       });
 
       // 4 — Deduct from org-level Item.stock
-      const itemBefore = await tx.item.findUnique({
-        where: { id: item.itemId },
-        select: { stock: true },
-      });
       const outletWithOrg = await tx.outlet.findUnique({
         where: { id: transactionData.outletId },
         select: { orgId: true, ownerId: true },
@@ -158,6 +154,9 @@ export const processTransaction = async (transactionData: any, itemsSold: any) =
               priceAtSale: item.priceAtSale ?? item.price,
               unitId: item.unitId ?? null,
               unitName: item.unitName ?? null,
+              discountAmount: item.discountAmount ?? null,
+              discountQuantity: item.discountQuantity ?? null,  // ← NEW
+              discountRate: item.discountRate ?? null,          // ← NEW
             })),
           },
         },

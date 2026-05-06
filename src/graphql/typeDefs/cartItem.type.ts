@@ -1,14 +1,18 @@
+// graphql/types/cartItem.type.ts
 import { objectType } from "nexus";
-// cartItem.type.ts
+
 export const CartItem = objectType({
   name: "CartItem",
   definition(t) {
     t.nonNull.int("transactionId");
     t.nonNull.int("itemId");
-    t.nonNull.float("quantity");       // Int → Float (supports 0.875 kg)
-    t.nullable.int("unitId");          // new
-    t.nullable.string("unitName");     // new — e.g. "kg", "dozen"
-    t.nonNull.float("priceAtSale");    // new — price locked at sale time
+    t.nonNull.float("quantity");
+    t.nullable.int("unitId");
+    t.nullable.string("unitName");
+    t.nonNull.float("priceAtSale");
+    t.nullable.float("discountAmount");
+    t.nullable.float("discountQuantity");  // ← NEW
+    t.nullable.float("discountRate");      // ← NEW
 
     t.nonNull.field("transaction", {
       type: "Transaction",

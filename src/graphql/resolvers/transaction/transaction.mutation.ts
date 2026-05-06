@@ -42,7 +42,10 @@ export const CartItemInput = inputObjectType({
     t.nonNull.float("price"); // unit price
     t.nonNull.float("priceAtSale")   // ← add
     t.nullable.int("unitId")         // ← add
-    t.nullable.string("unitName")    // ← ad
+    t.nullable.string("unitName")    // ← add
+    t.nullable.float("discountAmount") // ← new — per-item discount amount
+    t.nullable.float("discountQuantity") // ← new — per-item discount quantity
+    t.nullable.float("discountRate") // ← new — per-item discount rate
   },
 });
 

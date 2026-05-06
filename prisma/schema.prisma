@@ -247,6 +247,7 @@ model OutletPromo {
   outlet      Outlet    @relation(fields: [outletId], references: [id], onDelete: Cascade)
   promoType   PromoType @relation(fields: [promoTypeId], references: [id], onDelete: Cascade)
   user        User      @relation("UserOutletPromos", fields: [userId], references: [id])
+  transactions Transaction[]
 
   @@unique([outletId, promoTypeId])
 }
@@ -452,9 +453,6 @@ model Item {
   @@unique([orgId, name])
 }
 
-// this is my current attempt at modeling sales orders and inventory for a POS system. I want to be able to track sales orders, inventory items, and their relationships to organizations and users. I also want to include some additional fields for tracking the status of sales orders and inventory levels.
-// ─── Replace the existing SalesOrder model with this ─────────────────────────
-
 model SalesOrder {
   id          String           @id @default(cuid())
   orderNumber String           @unique
@@ -492,16 +490,19 @@ model SalesOrder {
 }
 
 model SalesOrderItem {
-  id           Int        @id @default(autoincrement())
-  salesOrderId String
-  itemId       Int
-  quantity     Float
-  unitPrice    Float
-  totalPrice   Float
-  unitId       Int?
-  unitName     String?
-  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  item         Item       @relation(fields: [itemId], references: [id])
+  id               Int        @id @default(autoincrement())
+  salesOrderId     String
+  itemId           Int
+  quantity         Float
+  unitPrice        Float
+  totalPrice       Float
+  discountQuantity Float?     @default(0)
+  discountRate     Float?     @default(0)
+  discountAmount   Float?     @default(0)
+  unitId           Int?
+  unitName         String?
+  salesOrder       SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  item             Item       @relation(fields: [itemId], references: [id])
 
   @@index([salesOrderId])
 }
@@ -558,31 +559,6 @@ model InventoryItemUnit {
 
   @@unique([inventoryItemId, unitName])
   @@index([inventoryItemId])
-}
-
-model Transaction {
-  id                Int              @id @default(autoincrement())
-  outletId          Int
-  cashierId         Int?
-  total             Float
-  vatAmount         Float
-  subtotal          Float
-  cashReceived      Float?
-  change            Float?
-  paymentMethod     PaymentMethod
-  status            Status
-  createdAt         DateTime
-  syncedAt          DateTime         @default(now())
-  customerDetailsId Int?
-  isVatExempt       Boolean          @default(false)
-  scPwdDiscountAmt  Float?
-  vatExemptAmount   Float?
-  vatExemptRefNo    String?
-  vatExemptType     VatExemptType?
-  items             CartItem[]
-  customerDetails   CustomerDetails?
-  cashier           User?            @relation(fields: [cashierId], references: [id])
-  outlet            Outlet           @relation(fields: [outletId], references: [id])
 }
 
 model CustomerDetails {
@@ -933,17 +909,50 @@ model Brand {
 
 // used in pos terminal to track items in a transaction, separate from inventory which tracks stock levels. this allows us to record the price and quantity of each item at the time of sale, even if the inventory levels change later. it also allows us to track the unit of measurement used for each item in the transaction, which may be different from the base unit used in inventory.
 model CartItem {
-  transactionId Int
-  itemId        Int
-  quantity      Float
-  priceAtSale   Float              @default(0)
-  unitId        Int?
-  unitName      String?
-  item          Item               @relation(fields: [itemId], references: [id])
-  transaction   Transaction        @relation(fields: [transactionId], references: [id])
-  unit          InventoryItemUnit? @relation(fields: [unitId], references: [id])
+  transactionId    Int
+  itemId           Int
+  quantity         Float
+  priceAtSale      Float              @default(0)
+  unitId           Int?
+  unitName         String?
+  discountAmount   Float?             @default(0)
+  discountQuantity Float?             @default(0) // ← NEW: quantity that gets the discount
+  discountRate     Float?             @default(0) // ← NEW: discount percentage (0.0 - 1.0)
+  item             Item               @relation(fields: [itemId], references: [id])
+  transaction      Transaction        @relation(fields: [transactionId], references: [id])
+  unit             InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@id([transactionId, itemId])
+}
+
+model Transaction {
+  id                Int              @id @default(autoincrement())
+  outletId          Int
+  cashierId         Int?
+  total             Float
+  vatAmount         Float
+  subtotal          Float
+  cashReceived      Float?
+  change            Float?
+  paymentMethod     PaymentMethod
+  status            Status
+  createdAt         DateTime
+  syncedAt          DateTime         @default(now())
+  customerDetailsId Int?
+  isVatExempt       Boolean          @default(false)
+  scPwdDiscountAmt  Float?
+  vatExemptAmount   Float?
+  vatExemptRefNo    String?
+  vatExemptType     VatExemptType?
+  items             CartItem[]
+  customerDetails   CustomerDetails?
+  cashier           User?            @relation(fields: [cashierId], references: [id])
+  discountType      String?
+  discountAmount    Float?           @default(0)
+  outletPromoId     Int?
+  promoDiscountAmt  Float?
+  outletPromo       OutletPromo?     @relation(fields: [outletPromoId], references: [id])
+  outlet            Outlet           @relation(fields: [outletId], references: [id])
 }
 
 model CustomerDeviceToken {
@@ -1665,6 +1674,7 @@ enum PaymentMethod {
 
 enum Status {
   PENDING
+  COMPLETED
   PAID
   SYNCED
   FAILED

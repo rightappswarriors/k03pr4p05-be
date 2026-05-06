@@ -160,6 +160,7 @@ enum AuditAction {
   LOGIN
   LOGOUT
   PERMISSION_CHANGE
+  STATUS_CHANGE
   VIEW
 }
 
@@ -258,6 +259,9 @@ type Budget {
 }
 
 type CartItem {
+  discountAmount: Float
+  discountQuantity: Float
+  discountRate: Float
   item: Item!
   itemId: Int!
   priceAtSale: Float!
@@ -270,6 +274,9 @@ type CartItem {
 }
 
 input CartItemInput {
+  discountAmount: Float
+  discountQuantity: Float
+  discountRate: Float
   itemId: Int!
   price: Float!
   priceAtSale: Float!
@@ -701,7 +708,7 @@ type InventoryItems {
   id: Int!
   inventory: InventoryForItem
   inventoryId: Int!
-  item: SalesItem!
+  item: Item!
   itemId: Int!
   location: Location
   locationId: Int
@@ -1509,6 +1516,7 @@ type Query {
   getOutletTransactionsMoney(endDate: DateTime, outletId: ID!, startDate: DateTime): [Transaction!]!
   getOutlets: [Outlet!]!
   getOutletsByBranch(branchId: Int!): [Outlet]
+  getOutletsByBranchIDD(branchId: ID!, search: String): [Outlet!]!
   getOwnedBranches(search: String): [Branch!]!
   getPresentStaffs(outletId: ID!): [OutletPresentStaffs!]!
   getRestockCycles(scheduleId: Int!): [RestockCycle!]!
@@ -1736,16 +1744,6 @@ type SalesAnalyticsPayload {
   trend: [SalesTrendPoint!]!
 }
 
-type SalesItem {
-  barcode: String!
-  description: String
-  id: Int!
-  image: String
-  name: String!
-  sellingPrice: Float!
-  vatExempt: Boolean
-}
-
 type SalesOrder {
   branch: Branch
   branchId: Int
@@ -1778,13 +1776,16 @@ type SalesOrderDelivery {
   estimatedDate: String
   id: Int!
   notes: String
-  receivedAt: String
+  receivedAt: DateTime
   salesOrderId: String!
-  shippedAt: String
+  shippedAt: DateTime
   trackingNumber: String
 }
 
 type SalesOrderItem {
+  discountAmount: Float
+  discountQuantity: Float
+  discountRate: Float
   id: Int!
   item: Item
   itemId: Int!
@@ -1797,6 +1798,9 @@ type SalesOrderItem {
 }
 
 input SalesOrderItemInput {
+  discountAmount: Float
+  discountQuantity: Float
+  discountRate: Float
   itemId: Int!
   quantity: Float!
   unitId: Int
@@ -1840,6 +1844,7 @@ type Shift {
 
 enum Status {
   CANCELED
+  COMPLETED
   FAILED
   PAID
   PENDING
@@ -1968,6 +1973,8 @@ type Transaction {
   change: Float
   createdAt: DateTime!
   customerDetails: CustomerDetails
+  discountAmount: Float
+  discountType: String
   id: Int!
   isVatExempt: Boolean!
   items: [CartItem!]!

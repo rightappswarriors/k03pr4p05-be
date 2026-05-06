@@ -81,7 +81,7 @@ export const OutletQuery = extendType({
                 }
             },
         });
-        t.nonNull.list.nonNull.field("getOutletsByBranch", {
+        t.nonNull.list.nonNull.field("getOutletsByBranchIDD", {
             type: "Outlet",
             args: {
                 branchId: nonNull(arg({ type: "ID" })),
