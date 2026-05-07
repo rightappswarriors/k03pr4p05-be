@@ -21,7 +21,7 @@ export const gisRowMutation = extendType({
                 requireRole(ctx, ['OWNER', 'ADMIN']);
                 const orgId = Number(ctx.user?.orgId);
                 const userId = Number(ctx.user?.id);
-                const finalTotal = (debit ?? 0) - (credit ?? 0);
+                const finalTotal = (credit ?? 0) - (debit ?? 0);
                 return ctx.prisma.gISRow.create({
                     data: {
                         orgId,

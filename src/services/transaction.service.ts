@@ -434,6 +434,7 @@ export const getOutletTransactions = async (
     },
   });
 };
+
 export const finalizeTransaction = async (transactionDatas, itemsSold) => {
   return prisma.$transaction(async (tx) => {
     // 1. Deduct items from the inventory.

@@ -63,7 +63,8 @@ export const SalesOrderItemType = objectType({
     definition(t) {
         t.nonNull.int("id");
         t.nonNull.string("salesOrderId");
-        t.nonNull.int("itemId");
+        // itemId is now nullable — null when isCustomItem = true
+        t.nullable.int("itemId");
         t.nonNull.float("quantity");
         t.nonNull.float("unitPrice");
         t.nonNull.float("totalPrice");
@@ -72,9 +73,16 @@ export const SalesOrderItemType = objectType({
         t.nullable.float("discountQuantity");
         t.nullable.float("discountRate");
         t.nullable.float("discountAmount");
-        t.field("item", {
+        // ── Custom item fields ────────────────────────────────────────────────
+        t.nonNull.boolean("isCustomItem");
+        t.nullable.string("customItemName");
+        t.nonNull.boolean("vatExempt");
+        // item resolver is nullable — will be null for custom items
+        t.nullable.field("item", {
             type: "Item",
-            resolve: (parent, _, ctx) => ctx.prisma.item.findUnique({ where: { id: parent.itemId } }),
+            resolve: (parent, _, ctx) => parent.itemId
+                ? ctx.prisma.item.findUnique({ where: { id: parent.itemId } })
+                : null,
         });
     },
 });

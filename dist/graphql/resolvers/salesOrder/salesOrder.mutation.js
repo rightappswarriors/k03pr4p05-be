@@ -1,10 +1,12 @@
 // salesOrder.mutation.ts
 import { extendType, intArg, stringArg, floatArg, inputObjectType, nonNull, list, arg, nullable } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+// ─── Input Types ──────────────────────────────────────────────────────────────
 export const SalesOrderItemInput = inputObjectType({
     name: "SalesOrderItemInput",
     definition(t) {
-        t.nonNull.int("itemId");
+        // itemId is nullable — omit for custom/manual items
+        t.nullable.int("itemId");
         t.nonNull.float("quantity");
         t.nonNull.float("unitPrice");
         t.nullable.int("unitId");
@@ -12,6 +14,10 @@ export const SalesOrderItemInput = inputObjectType({
         t.nullable.float("discountQuantity");
         t.nullable.float("discountRate");
         t.nullable.float("discountAmount");
+        // ── Custom item fields ────────────────────────────────────────────────
+        t.nullable.boolean("isCustomItem"); // true = manual entry, no inventory record
+        t.nullable.string("customItemName"); // required when isCustomItem = true
+        t.nullable.boolean("vatExempt"); // per-item VAT override for custom items
     },
 });
 export const DeliveryInput = inputObjectType({
@@ -35,10 +41,11 @@ async function generateOrderNumber(prisma, orgId) {
     const mm = String(date.getMonth() + 1).padStart(2, "0");
     return `SO-${yy}${mm}-${pad}`;
 }
+// ─── Mutations ────────────────────────────────────────────────────────────────
 export const SalesOrderMutation = extendType({
     type: "Mutation",
     definition(t) {
-        // Create a new sales order (status: ORDERED)
+        // ── Create a new sales order (status: ORDERED) ────────────────────────
         t.field("createSalesOrder", {
             type: "SalesOrder",
             args: {
@@ -59,6 +66,15 @@ export const SalesOrderMutation = extendType({
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
                 const orgId = Number(ctx.user.orgId);
                 const userId = Number(ctx.user.userId);
+                // Validate custom items have a name
+                for (const item of args.items) {
+                    if (item.isCustomItem && !item.customItemName?.trim()) {
+                        throw new Error("Custom items must have a name.");
+                    }
+                    if (!item.isCustomItem && item.itemId == null) {
+                        throw new Error("Non-custom items must have an itemId.");
+                    }
+                }
                 const orderNumber = await generateOrderNumber(ctx.prisma, orgId);
                 const salesOrder = await ctx.prisma.salesOrder.create({
                     data: {
@@ -78,7 +94,8 @@ export const SalesOrderMutation = extendType({
                         outletPromoId: args.outletPromoId ?? null,
                         items: {
                             create: args.items.map((item) => ({
-                                itemId: item.itemId,
+                                // itemId is null for custom items — Prisma allows this since field is now Int?
+                                itemId: item.isCustomItem ? null : item.itemId,
                                 quantity: item.quantity,
                                 unitPrice: item.unitPrice,
                                 totalPrice: item.quantity * item.unitPrice,
@@ -87,12 +104,15 @@ export const SalesOrderMutation = extendType({
                                 discountQuantity: item.discountQuantity ?? 0,
                                 discountRate: item.discountRate ?? 0,
                                 discountAmount: item.discountAmount ?? 0,
+                                // Custom item fields
+                                isCustomItem: item.isCustomItem ?? false,
+                                customItemName: item.isCustomItem ? (item.customItemName?.trim() ?? null) : null,
+                                vatExempt: item.vatExempt ?? false,
                             })),
                         },
                     },
                     include: { items: true, delivery: true, outlet: true, branch: true },
                 });
-                // Audit log
                 await ctx.prisma.auditLog.create({
                     data: {
                         orgId,
@@ -107,13 +127,14 @@ export const SalesOrderMutation = extendType({
                             outletId: args.outletId,
                             total: args.total,
                             status: "ORDERED",
+                            customItemCount: args.items.filter((i) => i.isCustomItem).length,
                         },
                     },
                 });
                 return salesOrder;
             },
         });
-        // Move ORDERED → PROCESSING
+        // ── Move ORDERED → PROCESSING ─────────────────────────────────────────
         t.field("processSalesOrder", {
             type: "SalesOrder",
             args: { id: nonNull(stringArg()) },
@@ -150,7 +171,7 @@ export const SalesOrderMutation = extendType({
                 return updated;
             },
         });
-        // Move PROCESSING → SHIPPED (requires delivery details)
+        // ── Move PROCESSING → SHIPPED (requires delivery details) ─────────────
         t.field("shipSalesOrder", {
             type: "SalesOrder",
             args: {
@@ -171,7 +192,6 @@ export const SalesOrderMutation = extendType({
                 if (existing.status !== "PROCESSING")
                     throw new Error(`Cannot ship an order with status: ${existing.status}`);
                 const updated = await ctx.prisma.$transaction(async (tx) => {
-                    // Upsert delivery record
                     await tx.salesOrderDelivery.upsert({
                         where: { salesOrderId: id },
                         create: {
@@ -228,7 +248,7 @@ export const SalesOrderMutation = extendType({
                 return updated;
             },
         });
-        // Mark SHIPPED → RECEIVED
+        // ── Mark SHIPPED → RECEIVED ───────────────────────────────────────────
         t.field("receiveSalesOrder", {
             type: "SalesOrder",
             args: { id: nonNull(stringArg()) },
@@ -271,7 +291,7 @@ export const SalesOrderMutation = extendType({
                 return updated;
             },
         });
-        // Cancel a sales order (ORDERED or PROCESSING only)
+        // ── Cancel a sales order (ORDERED or PROCESSING only) ─────────────────
         t.field("cancelSalesOrder", {
             type: "SalesOrder",
             args: {

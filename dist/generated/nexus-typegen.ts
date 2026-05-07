@@ -287,14 +287,17 @@ export interface NexusGenInputs {
     unitId?: number | null; // Int
   }
   SalesOrderItemInput: { // input type
+    customItemName?: string | null; // String
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
-    itemId: number; // Int!
+    isCustomItem?: boolean | null; // Boolean
+    itemId?: number | null; // Int
     quantity: number; // Float!
     unitId?: number | null; // Int
     unitName?: string | null; // String
     unitPrice: number; // Float!
+    vatExempt?: boolean | null; // Boolean
   }
   SearchItemInput: { // input type
     itemId: number; // Int!
@@ -1230,17 +1233,20 @@ export interface NexusGenObjects {
     trackingNumber?: string | null; // String
   }
   SalesOrderItem: { // root type
+    customItemName?: string | null; // String
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
     id: number; // Int!
-    itemId: number; // Int!
+    isCustomItem: boolean; // Boolean!
+    itemId?: number | null; // Int
     quantity: number; // Float!
     salesOrderId: string; // String!
     totalPrice: number; // Float!
     unitId?: number | null; // Int
     unitName?: string | null; // String
     unitPrice: number; // Float!
+    vatExempt: boolean; // Boolean!
   }
   SalesTrendPoint: { // root type
     cost: number; // Float!
@@ -2634,18 +2640,21 @@ export interface NexusGenFieldTypes {
     trackingNumber: string | null; // String
   }
   SalesOrderItem: { // field return type
+    customItemName: string | null; // String
     discountAmount: number | null; // Float
     discountQuantity: number | null; // Float
     discountRate: number | null; // Float
     id: number; // Int!
+    isCustomItem: boolean; // Boolean!
     item: NexusGenRootTypes['Item'] | null; // Item
-    itemId: number; // Int!
+    itemId: number | null; // Int
     quantity: number; // Float!
     salesOrderId: string; // String!
     totalPrice: number; // Float!
     unitId: number | null; // Int
     unitName: string | null; // String
     unitPrice: number; // Float!
+    vatExempt: boolean; // Boolean!
   }
   SalesTrendPoint: { // field return type
     cost: number; // Float!
@@ -4066,10 +4075,12 @@ export interface NexusGenFieldTypeNames {
     trackingNumber: 'String'
   }
   SalesOrderItem: { // field return type name
+    customItemName: 'String'
     discountAmount: 'Float'
     discountQuantity: 'Float'
     discountRate: 'Float'
     id: 'Int'
+    isCustomItem: 'Boolean'
     item: 'Item'
     itemId: 'Int'
     quantity: 'Float'
@@ -4078,6 +4089,7 @@ export interface NexusGenFieldTypeNames {
     unitId: 'Int'
     unitName: 'String'
     unitPrice: 'Float'
+    vatExempt: 'Boolean'
   }
   SalesTrendPoint: { // field return type name
     cost: 'Float'

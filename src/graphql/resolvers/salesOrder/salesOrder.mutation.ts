@@ -1,11 +1,14 @@
 // salesOrder.mutation.ts
-import { extendType, intArg, stringArg, floatArg, inputObjectType, nonNull, list, arg, nullable } from 'nexus'
+import { extendType, intArg, stringArg, floatArg, inputObjectType, nonNull, list, arg, nullable, booleanArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+
+// ─── Input Types ──────────────────────────────────────────────────────────────
 
 export const SalesOrderItemInput = inputObjectType({
   name: "SalesOrderItemInput",
   definition(t) {
-    t.nonNull.int("itemId");
+    // itemId is nullable — omit for custom/manual items
+    t.nullable.int("itemId");
     t.nonNull.float("quantity");
     t.nonNull.float("unitPrice");
     t.nullable.int("unitId");
@@ -13,9 +16,13 @@ export const SalesOrderItemInput = inputObjectType({
     t.nullable.float("discountQuantity");
     t.nullable.float("discountRate");
     t.nullable.float("discountAmount");
+    // ── Custom item fields ────────────────────────────────────────────────
+    t.nullable.boolean("isCustomItem");      // true = manual entry, no inventory record
+    t.nullable.string("customItemName");     // required when isCustomItem = true
+    t.nullable.boolean("vatExempt");         // per-item VAT override for custom items
   },
 });
- 
+
 export const DeliveryInput = inputObjectType({
   name: "DeliveryInput",
   definition(t) {
@@ -28,10 +35,9 @@ export const DeliveryInput = inputObjectType({
     t.nullable.string("estimatedDate");
   },
 });
- 
 
 // ─── Helper: generate order number ────────────────────────────────────────────
- 
+
 async function generateOrderNumber(prisma: any, orgId: number): Promise<string> {
   const count = await prisma.salesOrder.count({ where: { orgId } });
   const pad = String(count + 1).padStart(5, "0");
@@ -40,13 +46,13 @@ async function generateOrderNumber(prisma: any, orgId: number): Promise<string> 
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   return `SO-${yy}${mm}-${pad}`;
 }
- 
 
+// ─── Mutations ────────────────────────────────────────────────────────────────
 
 export const SalesOrderMutation = extendType({
   type: "Mutation",
   definition(t) {
-    // Create a new sales order (status: ORDERED)
+    // ── Create a new sales order (status: ORDERED) ────────────────────────
     t.field("createSalesOrder", {
       type: "SalesOrder",
       args: {
@@ -67,9 +73,19 @@ export const SalesOrderMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
- 
+
+        // Validate custom items have a name
+        for (const item of args.items) {
+          if (item.isCustomItem && !item.customItemName?.trim()) {
+            throw new Error("Custom items must have a name.");
+          }
+          if (!item.isCustomItem && item.itemId == null) {
+            throw new Error("Non-custom items must have an itemId.");
+          }
+        }
+
         const orderNumber = await generateOrderNumber(ctx.prisma, orgId);
- 
+
         const salesOrder = await ctx.prisma.salesOrder.create({
           data: {
             orderNumber,
@@ -88,7 +104,8 @@ export const SalesOrderMutation = extendType({
             outletPromoId: args.outletPromoId ?? null,
             items: {
               create: args.items.map((item: any) => ({
-                itemId: item.itemId,
+                // itemId is null for custom items — Prisma allows this since field is now Int?
+                itemId: item.isCustomItem ? null : item.itemId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 totalPrice: item.quantity * item.unitPrice,
@@ -97,13 +114,16 @@ export const SalesOrderMutation = extendType({
                 discountQuantity: item.discountQuantity ?? 0,
                 discountRate: item.discountRate ?? 0,
                 discountAmount: item.discountAmount ?? 0,
+                // Custom item fields
+                isCustomItem: item.isCustomItem ?? false,
+                customItemName: item.isCustomItem ? (item.customItemName?.trim() ?? null) : null,
+                vatExempt: item.vatExempt ?? false,
               })),
             },
           },
           include: { items: true, delivery: true, outlet: true, branch: true },
         });
- 
-        // Audit log
+
         await ctx.prisma.auditLog.create({
           data: {
             orgId,
@@ -118,15 +138,16 @@ export const SalesOrderMutation = extendType({
               outletId: args.outletId,
               total: args.total,
               status: "ORDERED",
+              customItemCount: args.items.filter((i: any) => i.isCustomItem).length,
             },
           },
         });
- 
+
         return salesOrder;
       },
     });
- 
-    // Move ORDERED → PROCESSING
+
+    // ── Move ORDERED → PROCESSING ─────────────────────────────────────────
     t.field("processSalesOrder", {
       type: "SalesOrder",
       args: { id: nonNull(stringArg()) },
@@ -135,7 +156,7 @@ export const SalesOrderMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
- 
+
         const existing = await ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
           select: { id: true, status: true, orderNumber: true },
@@ -143,13 +164,13 @@ export const SalesOrderMutation = extendType({
         if (!existing) throw new Error("Sales order not found");
         if (existing.status !== "ORDERED")
           throw new Error(`Cannot process an order with status: ${existing.status}`);
- 
+
         const updated = await ctx.prisma.salesOrder.update({
           where: { id },
           data: { status: "PROCESSING" },
           include: { items: true, delivery: true, outlet: true, branch: true },
         });
- 
+
         await ctx.prisma.auditLog.create({
           data: {
             orgId,
@@ -162,12 +183,12 @@ export const SalesOrderMutation = extendType({
             newValue: { status: "PROCESSING" },
           },
         });
- 
+
         return updated;
       },
     });
- 
-    // Move PROCESSING → SHIPPED (requires delivery details)
+
+    // ── Move PROCESSING → SHIPPED (requires delivery details) ─────────────
     t.field("shipSalesOrder", {
       type: "SalesOrder",
       args: {
@@ -179,7 +200,7 @@ export const SalesOrderMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
- 
+
         const existing = await ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
           select: { id: true, status: true },
@@ -187,9 +208,8 @@ export const SalesOrderMutation = extendType({
         if (!existing) throw new Error("Sales order not found");
         if (existing.status !== "PROCESSING")
           throw new Error(`Cannot ship an order with status: ${existing.status}`);
- 
+
         const updated = await ctx.prisma.$transaction(async (tx: any) => {
-          // Upsert delivery record
           await tx.salesOrderDelivery.upsert({
             where: { salesOrderId: id },
             create: {
@@ -218,14 +238,14 @@ export const SalesOrderMutation = extendType({
               shippedAt: new Date(),
             },
           });
- 
+
           return tx.salesOrder.update({
             where: { id },
             data: { status: "SHIPPED" },
             include: { items: true, delivery: true, outlet: true, branch: true },
           });
         });
- 
+
         await ctx.prisma.auditLog.create({
           data: {
             orgId,
@@ -245,12 +265,12 @@ export const SalesOrderMutation = extendType({
             },
           },
         });
- 
+
         return updated;
       },
     });
- 
-    // Mark SHIPPED → RECEIVED
+
+    // ── Mark SHIPPED → RECEIVED ───────────────────────────────────────────
     t.field("receiveSalesOrder", {
       type: "SalesOrder",
       args: { id: nonNull(stringArg()) },
@@ -259,7 +279,7 @@ export const SalesOrderMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
- 
+
         const existing = await ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
           select: { id: true, status: true },
@@ -267,7 +287,7 @@ export const SalesOrderMutation = extendType({
         if (!existing) throw new Error("Sales order not found");
         if (existing.status !== "SHIPPED")
           throw new Error(`Cannot receive an order with status: ${existing.status}`);
- 
+
         const updated = await ctx.prisma.$transaction(async (tx: any) => {
           await tx.salesOrderDelivery.update({
             where: { salesOrderId: id },
@@ -279,7 +299,7 @@ export const SalesOrderMutation = extendType({
             include: { items: true, delivery: true, outlet: true, branch: true },
           });
         });
- 
+
         await ctx.prisma.auditLog.create({
           data: {
             orgId,
@@ -292,12 +312,12 @@ export const SalesOrderMutation = extendType({
             newValue: { status: "RECEIVED" },
           },
         });
- 
+
         return updated;
       },
     });
- 
-    // Cancel a sales order (ORDERED or PROCESSING only)
+
+    // ── Cancel a sales order (ORDERED or PROCESSING only) ─────────────────
     t.field("cancelSalesOrder", {
       type: "SalesOrder",
       args: {
@@ -309,7 +329,7 @@ export const SalesOrderMutation = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
- 
+
         const existing = await ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
           select: { id: true, status: true },
@@ -317,13 +337,13 @@ export const SalesOrderMutation = extendType({
         if (!existing) throw new Error("Sales order not found");
         if (["SHIPPED", "RECEIVED", "CANCELLED"].includes(existing.status))
           throw new Error(`Cannot cancel an order with status: ${existing.status}`);
- 
+
         const updated = await ctx.prisma.salesOrder.update({
           where: { id },
           data: { status: "CANCELLED" },
           include: { items: true, delivery: true, outlet: true, branch: true },
         });
- 
+
         await ctx.prisma.auditLog.create({
           data: {
             orgId,
@@ -336,7 +356,7 @@ export const SalesOrderMutation = extendType({
             newValue: { status: "CANCELLED", reason: reason ?? null },
           },
         });
- 
+
         return updated;
       },
     });

@@ -492,7 +492,7 @@ model SalesOrder {
 model SalesOrderItem {
   id               Int        @id @default(autoincrement())
   salesOrderId     String
-  itemId           Int
+  itemId           Int?                   
   quantity         Float
   unitPrice        Float
   totalPrice       Float
@@ -501,8 +501,14 @@ model SalesOrderItem {
   discountAmount   Float?     @default(0)
   unitId           Int?
   unitName         String?
+
+  // ── Custom / manual item fields ──────────────────────────────────────────
+  isCustomItem     Boolean    @default(false)   // true = manually entered, not from inventory
+  customItemName   String?                      // display name for custom items
+  vatExempt        Boolean    @default(false)   // VAT override; used when isCustomItem = true
+
   salesOrder       SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  item             Item       @relation(fields: [itemId], references: [id])
+  item             Item?      @relation(fields: [itemId], references: [id])  // ← nullable relation
 
   @@index([salesOrderId])
 }

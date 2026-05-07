@@ -1783,29 +1783,35 @@ type SalesOrderDelivery {
 }
 
 type SalesOrderItem {
+  customItemName: String
   discountAmount: Float
   discountQuantity: Float
   discountRate: Float
   id: Int!
+  isCustomItem: Boolean!
   item: Item
-  itemId: Int!
+  itemId: Int
   quantity: Float!
   salesOrderId: String!
   totalPrice: Float!
   unitId: Int
   unitName: String
   unitPrice: Float!
+  vatExempt: Boolean!
 }
 
 input SalesOrderItemInput {
+  customItemName: String
   discountAmount: Float
   discountQuantity: Float
   discountRate: Float
-  itemId: Int!
+  isCustomItem: Boolean
+  itemId: Int
   quantity: Float!
   unitId: Int
   unitName: String
   unitPrice: Float!
+  vatExempt: Boolean
 }
 
 enum SalesOrderStatusEnum {
