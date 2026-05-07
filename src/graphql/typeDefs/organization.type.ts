@@ -96,6 +96,22 @@ export const Organization = objectType({
                 return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).salesOrders();
             }
         })
+        t.nonNull.list.nonNull.field('kompraCOrders', {
+            type: 'KompraCOrder',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).kompraCOrders({
+                    include: {
+                        items: true,
+                        fees: true,
+                        tracking: true,
+                        outlet: true,
+                        customer: true,
+                        courier: true,
+                        deliveryAddress: true,
+                    }
+                });
+            }
+        })
         t.nonNull.list.nonNull.field('inventoryItems', {
             type: 'InventoryItem',
             resolve: (parent, _, ctx) => {

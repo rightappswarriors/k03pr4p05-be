@@ -456,7 +456,7 @@ export const addItemToInventoryWithUnits = async (itemData, inventoryId, orgId) 
                 data: {
                     price: itemData.price,
                     quantity: existingItem.quantity + itemData.quantity,
-                    categoryId: item.categoryId ?? null, // ✅ add
+                    categoryId: itemData.categoryId ?? item.categoryId ?? null,
                 },
                 include: {
                     item: true,
@@ -471,7 +471,7 @@ export const addItemToInventoryWithUnits = async (itemData, inventoryId, orgId) 
                     itemId: itemData.itemId,
                     price: itemData.price,
                     quantity: itemData.quantity,
-                    categoryId: item.categoryId ?? null, // ✅ add
+                    categoryId: itemData.categoryId ?? item.categoryId ?? null,
                 },
                 include: {
                     item: true,

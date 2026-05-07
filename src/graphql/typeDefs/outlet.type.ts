@@ -62,8 +62,23 @@ export const Outlet = objectType({
           .findUnique({ where: { id: parent.id } })
           .kompraCOrders();
       },
-    }); */}
-    t.nonNull.list.nonNull.field("itemSearchIndex", {
+    }); */}    t.nonNull.list.nonNull.field("kompraCOrders", {
+      type: "KompraCOrder",
+      resolve: (parent, _, ctx) => {
+        return ctx.prisma.outlet
+          .findUnique({ where: { id: parent.id } })
+          .kompraCOrders({
+            include: {
+              items: true,
+              fees: true,
+              tracking: true,
+              customer: true,
+              courier: true,
+              deliveryAddress: true,
+            }
+          });
+      },
+    });    t.nonNull.list.nonNull.field("itemSearchIndex", {
       type: "OutletItemSearchIndex",
       resolve: (parent, _, ctx) => {
         return ctx.prisma.outlet

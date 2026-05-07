@@ -88,6 +88,7 @@ input AddItemToInventoryInput {
 }
 
 input AddItemToInventoryWithUnitsInput {
+  categoryId: Int
   costLines: [CostLineInput]
   itemId: Int!
   minQuantity: Int
@@ -358,7 +359,7 @@ input CreateItemInput {
   description: String
   image: String
   itemCode: String
-  minQuantity: Int
+  minQuantity: Int!
   name: String!
   opExPct: Float
   orgCategoryId: Int
@@ -433,6 +434,38 @@ type DashboardInventoryStats {
   totalUnits: Float!
 }
 
+type DashboardOrderStats {
+  cancelledReturnedOrders: Int!
+  kompraCompletedCount: Int!
+  kompraCompletedTotal: Float!
+  kompraReceivableCount: Int!
+  kompraReceivableTotal: Float!
+  orderStatusBreakdown: [DashboardOrderStatusBreakdown!]!
+  pendingOrders: Int!
+  processingOrders: Int!
+  receivableOrderCount: Int!
+  receivableSalesTotal: Float!
+  receivedOrders: Int!
+  salesOrderCompletedCount: Int!
+  salesOrderCompletedTotal: Float!
+  salesOrderReceivableCount: Int!
+  salesOrderReceivableTotal: Float!
+  salesTrend: [DashboardOrderTrendPoint!]!
+  totalSalesAmount: Float!
+  totalSalesOrderCount: Int!
+}
+
+type DashboardOrderStatusBreakdown {
+  amount: Float!
+  category: String!
+  count: Int!
+}
+
+type DashboardOrderTrendPoint {
+  period: String!
+  total: Float!
+}
+
 enum DateRangePreset {
   all
   custom
@@ -447,7 +480,7 @@ scalar DateTime
 type DeliveryAddress {
   address: String!
   createdAt: String!
-  customer: EkumpraCustomer!
+  customer: KompraCustomer!
   customerId: Int!
   id: Int!
   isDefault: Boolean!
@@ -486,99 +519,6 @@ type Department {
   label: String!
   org: Organization!
   orgId: Int!
-}
-
-type EkumpraCDeliveryTracking {
-  actorId: Int
-  actorType: String!
-  currentLat: Float
-  currentLng: Float
-  event: DeliveryStatusEvent!
-  id: Int!
-  note: String
-  orderId: Int!
-  statusAt: String!
-}
-
-type EkumpraCOrder {
-  createdAt: String!
-  customer: EkumpraCustomer!
-  customerId: Int!
-  customerNote: String
-  deliveredAt: String
-  deliveryAddress: DeliveryAddress!
-  deliveryAddressId: Int!
-  estimatedDeliveryAt: String
-  fees: [EkumpraCOrderFee!]!
-  id: Int!
-  items: [EkumpraCOrderItem!]!
-  outlet: Outlet!
-  outletId: Int!
-  outletNote: String
-  paymentMethod: EkumpraCPaymentMethod!
-  paymentReference: String
-  paymentStatus: String!
-  riderName: String
-  riderPhone: String
-  scheduledDeliveryAt: String
-  status: OrderStatus!
-  subtotal: Float!
-  total: Float!
-  tracking: [EkumpraCDeliveryTracking!]!
-  transactionNumber: String!
-  updatedAt: String!
-}
-
-type EkumpraCOrderFee {
-  amount: Float!
-  id: Int!
-  label: String!
-  orderId: Int!
-  type: FeeType!
-}
-
-type EkumpraCOrderItem {
-  id: Int!
-  inventoryItem: InventoryItems!
-  inventoryItemId: Int!
-  item: Item!
-  itemId: Int!
-  orderId: Int!
-  priceSnapshot: Float!
-  quantity: Int!
-  subtotal: Float!
-}
-
-enum EkumpraCPaymentMethod {
-  card
-  cash_on_delivery
-  gcash
-  paymaya
-  qrph
-}
-
-type EkumpraCustomer {
-  addresses: [DeliveryAddress!]!
-  createdAt: String!
-  email: String
-  fullname: String!
-  id: Int!
-  isActive: Boolean!
-  isVerified: Boolean!
-  orders: [EkumpraCOrder!]!
-  phone: String!
-  profilePhoto: String
-  updatedAt: String!
-}
-
-type EkumpraItemGroup {
-  categories: [ItemCategory!]!
-  createdAt: String!
-  description: String
-  icon: String
-  id: Int!
-  isActive: Boolean!
-  name: String!
 }
 
 type Employee {
@@ -866,6 +806,105 @@ type ItemsByRack {
 """Arbitrary JSON value"""
 scalar Json
 
+type KompraCDeliveryTracking {
+  actorId: Int
+  actorType: String!
+  currentLat: Float
+  currentLng: Float
+  event: DeliveryStatusEvent!
+  id: Int!
+  note: String
+  orderId: Int!
+  statusAt: String!
+}
+
+type KompraCOrder {
+  createdAt: String!
+  customer: KompraCustomer!
+  customerId: Int!
+  customerNote: String
+  deliveredAt: String
+  deliveryAddress: DeliveryAddress!
+  deliveryAddressId: Int!
+  estimatedDeliveryAt: String
+  fees: [KompraCOrderFee!]!
+  id: Int!
+  items: [KompraCOrderItem!]!
+  outlet: Outlet!
+  outletId: Int!
+  outletNote: String
+  paymentMethod: KompraCPaymentMethod!
+  paymentReference: String
+  paymentStatus: String!
+  riderName: String
+  riderPhone: String
+  scheduledDeliveryAt: String
+  status: OrderStatus!
+  subtotal: Float!
+  total: Float!
+  tracking: [KompraCDeliveryTracking!]!
+  transactionNumber: String!
+  updatedAt: String!
+}
+
+type KompraCOrderFee {
+  amount: Float!
+  id: Int!
+  label: String!
+  orderId: Int!
+  type: FeeType!
+}
+
+type KompraCOrderItem {
+  id: Int!
+  inventoryItem: InventoryItems!
+  inventoryItemId: Int!
+  item: Item!
+  itemId: Int!
+  orderId: Int!
+  priceSnapshot: Float!
+  quantity: Int!
+  subtotal: Float!
+}
+
+type KompraCOrderSummary {
+  createdAt: String!
+  status: OrderStatus!
+  total: Float!
+}
+
+enum KompraCPaymentMethod {
+  card
+  cash_on_delivery
+  gcash
+  paymaya
+  qrph
+}
+
+type KompraCustomer {
+  addresses: [DeliveryAddress!]!
+  createdAt: String!
+  email: String
+  fullname: String!
+  id: Int!
+  isActive: Boolean!
+  isVerified: Boolean!
+  orders: [KompraCOrder!]!
+  phone: String!
+  profilePhoto: String
+  updatedAt: String!
+}
+
+type KompraItemGroup {
+  categories: [ItemCategory!]!
+  createdAt: String!
+  description: String
+  icon: String
+  id: Int!
+  isActive: Boolean!
+  name: String!
+}
+
 type Location {
   aisle: String!
   id: Int!
@@ -907,11 +946,11 @@ type Mutation {
   addItemToInventoryWithUnits(data: AddItemToInventoryWithUnitsInput!, outletId: ID!): InventoryItems
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
-  cancelEkumpraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): EkumpraCOrder!
+  cancelKompraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): KompraCOrder!
   cancelSalesOrder(id: String!, reason: String): SalesOrder
   confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
-  confirmEkumpraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): EkumpraCOrder!
-  confirmOrderReceived(customerId: Int!, orderId: Int!): EkumpraCOrder!
+  confirmKompraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): KompraCOrder!
+  confirmOrderReceived(customerId: Int!, orderId: Int!): KompraCOrder!
   createAccountTitle(code: String, label: String): AccountTitle
   createBranch(address: String!, name: String!, phone: String): Branch!
   createBudgetEntry(account: String, begBal: Float, months: Json, year: Int): Budget
@@ -978,16 +1017,16 @@ type Mutation {
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
-  markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): EkumpraCOrder!
+  markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): KompraCOrder!
   me: User!
-  placeEkumpraOrder(customerId: Int!, input: PlaceOrderInput!): EkumpraCOrder!
+  placeKompraOrder(customerId: Int!, input: PlaceOrderInput!): KompraCOrder!
   processCustomerReturn(items: [ReturnItemInput!]!, outletId: Int!, transactionId: Int!): ReturnResult
   processSalesOrder(id: String!): SalesOrder
   receivePurchaseOrder(items: [ReceivePurchaseOrderItemInput!]!, supplierOrderId: Int!): SupplierOrder
   receiveSalesOrder(id: String!): SalesOrder
   refreshToken(refresh_token: String!): AuthPayload!
   registerAdmin(contactNumber: String, email: String!, fullname: String!, password: String!, role: String): User!
-  registerEkumpraCustomer(input: RegisterCustomerInput!): EkumpraCustomer!
+  registerKompraCustomer(input: RegisterCustomerInput!): KompraCustomer!
   registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   resendOTP(email: String!): String!
@@ -1101,6 +1140,7 @@ type Organization {
   itemCategories: [ItemCategory!]!
   itemGroups: [ItemGroup!]!
   items: [Item!]!
+  kompraCOrders: [KompraCOrder!]!
   name: String!
   outlets: [Outlet!]!
   positions: [Position!]!
@@ -1130,6 +1170,7 @@ type Outlet {
   isActive: Boolean!
   isVatRegistered: Boolean
   itemSearchIndex: [OutletItemSearchIndex!]!
+  kompraCOrders: [KompraCOrder!]!
   latitude: Float
   longitude: Float
   name: String!
@@ -1412,7 +1453,7 @@ input PlaceOrderInput {
   deliveryAddressId: Int!
   items: [OrderItemInput!]!
   outletId: Int!
-  paymentMethod: EkumpraCPaymentMethod!
+  paymentMethod: KompraCPaymentMethod!
   scheduledDeliveryAt: String
 }
 
@@ -1476,7 +1517,6 @@ type Query {
   contacts(branchId: Int, query: String): [Contact]
   department(id: Int): Department
   departments(orgId: Int): [Department]
-  ekumpraCOrder(id: Int!): EkumpraCOrder
   employee(id: Int): Employee
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
@@ -1493,6 +1533,7 @@ type Query {
   getCategoryById(id: ID!): ItemCategory!
   getCenters: [Center]
   getDashboardInventoryStats: DashboardInventoryStats
+  getDashboardOrderStats(endDate: String, organizationId: Int, startDate: String): DashboardOrderStats
   getInventoryByOutletId(outletId: Int!): Outlet
   getInventoryItemById(id: ID!): InventoryItems
   getInventoryItemsByRack(outletId: Int!): [ItemsByRack!]!
@@ -1502,6 +1543,7 @@ type Query {
   getItemStockDistribution(itemId: Int!): ItemStockDistribution
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
   getItemsByOutlet(outletId: ID!): [InventoryItems]
+  getKompraCOrdersSummary(endDate: String, organizationId: Int, skip: Int, startDate: String, take: Int): [KompraCOrderSummary!]!
   getMySubscription: Subscription
   getOrgBranches: [Branch!]!
   getOrgCategories(groupId: Int, isActive: Boolean, orderBy: String, pageSize: Int, query: String): [OrgItemCategory!]!
@@ -1543,16 +1585,17 @@ type Query {
   itemGroups(orgId: Int): [ItemGroup]
   itemMedia(itemId: Int!): [Media!]!
   items(excludeIds: [Int!], limit: Int, search: String): [Item!]!
+  kompraCOrder(id: Int!): KompraCOrder
   myAttendanceHistory(limit: Int = 20, page: Int = 1): PaginatedAttendance
   myAttendanceToday: Attendance
-  myOrders(customerId: Int!): [EkumpraCOrder!]!
+  myOrders(customerId: Int!): [KompraCOrder!]!
   myOutletAssignment: MyOutletAssignment
   myPerformanceSummary(from: String!, to: String!): PerformanceSummary
   nearestOutletsWithItems(customerLat: Float!, customerLng: Float!, items: [SearchItemInput!]!, maxResults: Int): [OutletSearchResult!]!
   organization(id: Int): Organization
   organizations: [Organization]
   outletCatalog(outletId: Int!): OutletCatalogResult!
-  outletOrderQueue(outletId: Int!): [EkumpraCOrder!]!
+  outletOrderQueue(outletId: Int!): [KompraCOrder!]!
   outletPromo(id: Int!): OutletPromo
   outletPromos: [OutletPromo!]!
   outletPromosByOutlet(outletId: Int!): [OutletPromo!]!

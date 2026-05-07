@@ -35,7 +35,6 @@ export const CreateItemInput = inputObjectType({
         t.nullable.int("orgCategoryId"); // ✅ org category
         t.nonNull.int("stock"); // ← new required field
         t.nullable.int("brandId"); // ← missing
-        t.nullable.string("itemCode"); // ← missing
         t.nullable.string("skuNumber"); // ← missing
         t.nullable.boolean("vatExempt"); // ← missing
         t.nullable.boolean("ServiceCharge"); // ← missing
@@ -44,7 +43,7 @@ export const CreateItemInput = inputObjectType({
         t.nullable.float("opExPct"); // ← new field
         t.nullable.float("priceB"); // ← new field
         t.nullable.float("priceC"); // ← new field
-        t.nullable.int("minQuantity"); // ← new field
+        t.nonNull.int("minQuantity"); // ← new field
         t.nullable.int("vatTypeId");
     },
 });

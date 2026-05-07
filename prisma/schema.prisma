@@ -220,6 +220,7 @@ model Outlet {
   @@unique([orgId, code])
 }
 
+
 model PromoType {
   id           Int           @id @default(autoincrement())
   name         String        @unique
@@ -453,6 +454,14 @@ model Item {
   @@unique([orgId, name])
 }
 
+enum SalesOrderStatus {
+  ORDERED
+  PROCESSING
+  SHIPPED
+  RECEIVED
+  CANCELLED
+}
+
 model SalesOrder {
   id          String           @id @default(cuid())
   orderNumber String           @unique
@@ -526,14 +535,6 @@ model SalesOrderDelivery {
   shippedAt      DateTime?
   receivedAt     DateTime?
   salesOrder     SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-}
-
-enum SalesOrderStatus {
-  ORDERED
-  PROCESSING
-  SHIPPED
-  RECEIVED
-  CANCELLED
 }
 
 model ItemUnit {
@@ -613,6 +614,16 @@ model KompraCOrder {
   items                  KompraCOrderItem[]
   OrderCourierPreference OrderCourierPreference[]
 }
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  in_delivery
+  received
+  cancelled
+  returned
+}
+
 
 model Courier {
   id                     Int                      @id @default(autoincrement())
@@ -1699,15 +1710,6 @@ enum MediaType {
   video
 }
 
-enum OrderStatus {
-  pending
-  confirmed
-  preparing
-  in_delivery
-  received
-  cancelled
-  returned
-}
 
 enum DeliveryStatusEvent {
   order_placed

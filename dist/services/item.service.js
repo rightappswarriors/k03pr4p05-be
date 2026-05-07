@@ -14,7 +14,7 @@ export const bulkCreateItems = async (items) => {
         const itemTotalCost = item.costLines?.reduce((sum, line) => sum + line.amount, 0) || 0;
         return prisma.item.create({
             data: {
-                orgId: item.orgId,
+                org: { connect: { id: item.orgId } },
                 name: item.name,
                 barcode: item.barcode,
                 stock: item.stock ?? 0,
@@ -25,7 +25,9 @@ export const bulkCreateItems = async (items) => {
                 priceC: item.priceC ?? null,
                 totalCost: itemTotalCost,
                 opExPct: item.opExPct ?? 0.1,
-                vatTypeId: item.vatTypeId ?? null, // ✅ optional
+                ...(item.vatTypeId ? { vatType: { connect: { id: item.vatTypeId } } } : {}),
+                stockLabel: item.stockLabel ?? 'piece',
+                stockDescription: item.stockDescription ?? null,
                 costLines: item.costLines?.length
                     ? {
                         create: item.costLines.map((line) => ({
@@ -36,9 +38,9 @@ export const bulkCreateItems = async (items) => {
                     : undefined,
                 description: item.description ?? null,
                 image: item.image ?? null,
-                categoryId: item.categoryId ?? null,
-                orgCategoryId: item.orgCategoryId ?? null, // ✅ add
-                brandId: item.brandId ?? null,
+                ...(item.categoryId ? { category: { connect: { id: item.categoryId } } } : {}),
+                ...(item.orgCategoryId ? { orgCategory: { connect: { id: item.orgCategoryId } } } : {}),
+                ...(item.brandId ? { brandDetails: { connect: { id: item.brandId } } } : {}),
                 itemCode: item.itemCode ?? null,
                 skuNumber: item.skuNumber ?? null,
                 vatExempt: item.vatExempt ?? false,
@@ -225,6 +227,8 @@ export const updateItem = async (id, data) => {
             ServiceCharge: data.ServiceCharge ?? undefined,
             assembly: data.assembly ?? undefined,
             skuNumber: data.skuNumber ?? undefined,
+            stockLabel: data.stockLabel ?? undefined,
+            stockDescription: data.stockDescription ?? undefined,
             // Only touch totalCost / costLines when caller provided costLines
             ...(totalCost !== undefined && { totalCost }),
             ...(data.costLines != null && {

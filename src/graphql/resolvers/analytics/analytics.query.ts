@@ -136,6 +136,49 @@ export const ItemAnalyticsPayloadType = objectType({
     },
 });
 
+// ─── Dashboard Order Stats Types ─────────────────────────────────────────────
+
+export const DashboardOrderTrendPointType = objectType({
+    name: 'DashboardOrderTrendPoint',
+    definition(t) {
+        t.nonNull.string('period');
+        t.nonNull.float('total');
+    },
+});
+
+export const DashboardOrderStatusBreakdownType = objectType({
+    name: 'DashboardOrderStatusBreakdown',
+    definition(t) {
+        t.nonNull.string('category');
+        t.nonNull.int('count');
+        t.nonNull.float('amount');
+    },
+});
+
+export const DashboardOrderStatsType = objectType({
+    name: 'DashboardOrderStats',
+    definition(t) {
+        t.nonNull.float('receivableSalesTotal');
+        t.nonNull.int('receivableOrderCount');
+        t.nonNull.float('totalSalesAmount');
+        t.nonNull.int('totalSalesOrderCount');
+        t.nonNull.int('processingOrders');
+        t.nonNull.int('pendingOrders');
+        t.nonNull.int('receivedOrders');
+        t.nonNull.int('cancelledReturnedOrders');
+        t.nonNull.float('salesOrderReceivableTotal');
+        t.nonNull.int('salesOrderReceivableCount');
+        t.nonNull.float('kompraReceivableTotal');
+        t.nonNull.int('kompraReceivableCount');
+        t.nonNull.float('salesOrderCompletedTotal');
+        t.nonNull.int('salesOrderCompletedCount');
+        t.nonNull.float('kompraCompletedTotal');
+        t.nonNull.int('kompraCompletedCount');
+        t.nonNull.list.nonNull.field('orderStatusBreakdown', { type: 'DashboardOrderStatusBreakdown' });
+        t.nonNull.list.nonNull.field('salesTrend', { type: 'DashboardOrderTrendPoint' });
+    },
+});
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -261,7 +304,7 @@ export const AnalyticsQuery = extendType({
                         },
                         select: { total: true, outletId: true, outlet: { select: { branchId: true } } },
                     }),
-                    
+
                     ctx.prisma.branch.findMany({
                         where: { orgId, isActive: true },
                         include: { outlets: true },
@@ -831,6 +874,170 @@ export const AnalyticsQuery = extendType({
                         .sort((a, b) => (a.revenue - a.cost) - (b.revenue - b.cost))
                         .slice(0, limit ?? 20)
                         .map((item, i) => toPerf(item, total - i)),
+                };
+            },
+        });
+
+        // ── getDashboardOrderStats ─────────────────────────────────────────────────
+        t.nullable.field("getDashboardOrderStats", {
+            type: "DashboardOrderStats",
+            args: {
+                organizationId: nullable(intArg()),
+                startDate: nullable(stringArg()),
+                endDate: nullable(stringArg()),
+            },
+            resolve: async (_, args, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+
+                const orgId = args.organizationId ?? Number(ctx.user.orgId);
+
+                const dateFilter: any = {};
+                if (args.startDate || args.endDate) {
+                    dateFilter.date = {
+                        ...(args.startDate && { gte: new Date(args.startDate) }),
+                        ...(args.endDate && { lte: new Date(args.endDate) }),
+                    };
+                }
+
+                const where = { orgId, ...dateFilter };
+                const kompraDateFilter: any = {};
+                if (args.startDate || args.endDate) {
+                    kompraDateFilter.createdAt = {
+                        ...(args.startDate && { gte: new Date(args.startDate) }),
+                        ...(args.endDate && { lte: new Date(args.endDate) }),
+                    };
+                }
+
+                // Pull only the fields you need — keep the DB query lean
+                const [allOrders, kompraCOrders] = await Promise.all([
+                    ctx.prisma.salesOrder.findMany({
+                        where,
+                        select: { status: true, total: true, date: true },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            ...kompraDateFilter,
+                        },
+                        select: { status: true, total: true, createdAt: true },
+                    }),
+                ]);
+
+                // ── Aggregate status buckets ────────────────────────────────────────────
+                const statusMap: Record<string, { count: number; amount: number }> = {};
+                let receivableSalesTotal = 0;
+                let receivableOrderCount = 0;
+                let totalSalesAmount = 0;
+                let totalSalesOrderCount = 0;
+                let processingOrders = 0;
+                let pendingOrders = 0;
+                let receivedOrders = 0;
+                let cancelledReturnedOrders = 0;
+                let salesOrderReceivableTotal = 0;
+                let salesOrderReceivableCount = 0;
+                let kompraReceivableTotal = 0;
+                let kompraReceivableCount = 0;
+                let salesOrderCompletedTotal = 0;
+                let salesOrderCompletedCount = 0;
+                let kompraCompletedTotal = 0;
+                let kompraCompletedCount = 0;
+
+                for (const order of allOrders) {
+                    const s = order.status;
+                    const t = Number(order.total ?? 0);
+
+                    if (!statusMap[s]) statusMap[s] = { count: 0, amount: 0 };
+                    statusMap[s].count += 1;
+                    statusMap[s].amount += t;
+
+                    if (s === "ORDERED") {
+                        receivableSalesTotal += t;
+                        receivableOrderCount += 1;
+                        salesOrderReceivableTotal += t;
+                        salesOrderReceivableCount += 1;
+                    }
+                    if (s === "PROCESSING") processingOrders += 1;
+                    if (s === "ORDERED") pendingOrders += 1;
+                    if (s === "RECEIVED") {
+                        receivedOrders += 1;
+                        totalSalesAmount += t;
+                        totalSalesOrderCount += 1;
+                        salesOrderCompletedTotal += t;
+                        salesOrderCompletedCount += 1;
+                    }
+                    if (s === "CANCELLED") cancelledReturnedOrders += 1;
+                }
+
+                for (const order of kompraCOrders) {
+                    const s = order.status;
+                    const t = Number(order.total ?? 0);
+                    const category = `KOMPRA_${s.toUpperCase()}`;
+
+                    if (!statusMap[category]) statusMap[category] = { count: 0, amount: 0 };
+                    statusMap[category].count += 1;
+                    statusMap[category].amount += t;
+
+                    if (s === "pending" || s === "confirmed" || s === "preparing" || s === "in_delivery") {
+                        receivableSalesTotal += t;
+                        receivableOrderCount += 1;
+                        kompraReceivableTotal += t;
+                        kompraReceivableCount += 1;
+                    }
+                    if (s === "pending" || s === "confirmed") pendingOrders += 1;
+                    if (s === "preparing" || s === "in_delivery") processingOrders += 1;
+                    if (s === "received") {
+                        receivedOrders += 1;
+                        totalSalesAmount += t;
+                        totalSalesOrderCount += 1;
+                        kompraCompletedTotal += t;
+                        kompraCompletedCount += 1;
+                    }
+                    if (s === "cancelled" || s === "returned") cancelledReturnedOrders += 1;
+                }
+
+                const orderStatusBreakdown = Object.entries(statusMap).map(
+                    ([category, { count, amount }]) => ({ category, count, amount }),
+                );
+
+                // ── Sales trend — group by month ────────────────────────────────────────
+                const trendMap: Record<string, number> = {};
+                for (const order of allOrders) {
+                    if (order.status !== "RECEIVED") continue;
+                    const d = new Date(order.date);
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                    trendMap[key] = (trendMap[key] ?? 0) + Number(order.total ?? 0);
+                }
+                for (const order of kompraCOrders) {
+                    if (order.status !== "received") continue;
+                    const d = new Date(order.createdAt);
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                    trendMap[key] = (trendMap[key] ?? 0) + Number(order.total ?? 0);
+                }
+
+                const salesTrend = Object.entries(trendMap)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([period, total]) => ({ period, total }));
+
+                return {
+                    receivableSalesTotal,
+                    receivableOrderCount,
+                    totalSalesAmount,
+                    totalSalesOrderCount,
+                    processingOrders,
+                    pendingOrders,
+                    receivedOrders,
+                    cancelledReturnedOrders,
+                    salesOrderReceivableTotal,
+                    salesOrderReceivableCount,
+                    kompraReceivableTotal,
+                    kompraReceivableCount,
+                    salesOrderCompletedTotal,
+                    salesOrderCompletedCount,
+                    kompraCompletedTotal,
+                    kompraCompletedCount,
+                    orderStatusBreakdown,
+                    salesTrend,
                 };
             },
         });

@@ -73,6 +73,7 @@ export const AddItemToInventoryWithUnitsInput = inputObjectType({
     t.list.field("costLines", { type: "CostLineInput" })
     t.float("priceB")
     t.float("priceC")
+    t.nullable.int("categoryId")
     t.list.field("units", { type: "CreateInventoryItemUnitInput" })
   }
 })
@@ -351,15 +352,20 @@ export const InventoryMutation = extendType({
               brand: data.brand ?? null,
               ServiceCharge: data.ServiceCharge ?? false,
               image: data.image ?? null,
-              brandId: data.brandId,
+              ...(data.brandId ? { brandDetails: { connect: { id: data.brandId } } } : {}),
               itemCode: data.itemCode,
-              categoryId: data.categoryId,
+              ...(data.categoryId ? { category: { connect: { id: data.categoryId } } } : {}),
+              ...(data.orgCategoryId ? { orgCategory: { connect: { id: data.orgCategoryId } } } : {}),
               skuNumber: data.skuNumber,
               vatExempt: data.vatExempt ?? false,
               assembly: data.assembly ?? false,
               priceB: data.priceB ?? null,
               priceC: data.priceC ?? null,
               sellingPrice: data.sellingPrice,
+              stockLabel: data.stockLabel,
+              stockDescription: data.stockDescription ?? null,
+              minQuantity: data.minQuantity ?? null,
+              ...(data.vatTypeId ? { vatType: { connect: { id: data.vatTypeId } } } : {}),
               totalCost: totalCost,
               opExPct: data.opExPct,
               costLines: data.costLines?.length
@@ -371,7 +377,11 @@ export const InventoryMutation = extendType({
                 }
                 : undefined,
 
-              orgId: ctx.user.orgId,
+              org: {
+                connect: {
+                  id: Number(ctx.user.orgId)
+                }
+              }
             },
             include: {
               costLines: true,
@@ -424,6 +434,8 @@ export const InventoryMutation = extendType({
             data: {
               ...updateData,
               stock: data.stock,
+              stockLabel: data.stockLabel ?? undefined,
+              stockDescription: data.stockDescription ?? undefined,
             },
             include: {
               category: true,

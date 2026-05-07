@@ -1,5 +1,5 @@
-// graphql/ekumpra/types.ts
-// Nexus type definitions for all new Ekumpra models
+// graphql/kompra/types.ts
+// Nexus type definitions for all new Kompra models
 // Run after adding to your existing Nexus schema
 
 import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, list, arg, intArg, stringArg, floatArg } from 'nexus'
@@ -21,15 +21,15 @@ export const FeeTypeEnum = enumType({
   members: ['delivery', 'packaging', 'priority', 'handling', 'voucher_discount'],
 })
 
-export const EkumpraCPaymentMethodEnum = enumType({
-  name: 'EkumpraCPaymentMethod',
+export const KompraCPaymentMethodEnum = enumType({
+  name: 'KompraCPaymentMethod',
   members: ['cash_on_delivery', 'gcash', 'paymaya', 'card', 'qrph'],
 })
 
 // ─── ITEM TAXONOMY ────────────────────────────────────────────────────────────
 
 export const ItemGroupType = objectType({
-  name: 'EkumpraItemGroup',
+  name: 'KompraItemGroup',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.string('name')
@@ -53,8 +53,8 @@ export const ItemCategoryMapType = objectType({
 
 // ─── EKUMPRA CUSTOMER ─────────────────────────────────────────────────────────
 
-export const EkumpraCustomerType = objectType({
-  name: 'EkumpraCustomer',
+export const KompraCustomerType = objectType({
+  name: 'KompraCustomer',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.string('fullname')
@@ -66,7 +66,7 @@ export const EkumpraCustomerType = objectType({
     t.nonNull.string('createdAt')
     t.nonNull.string('updatedAt')
     t.nonNull.list.nonNull.field('addresses', { type: 'DeliveryAddress' })
-    t.nonNull.list.nonNull.field('orders', { type: 'EkumpraCOrder' })
+    t.nonNull.list.nonNull.field('orders', { type: 'KompraCOrder' })
   },
 })
 
@@ -92,14 +92,14 @@ export const DeliveryAddressType = objectType({
     t.nonNull.float('longitude')
     t.nonNull.boolean('isDefault')
     t.nonNull.string('createdAt')
-    t.nonNull.field('customer', { type: 'EkumpraCustomer' })
+    t.nonNull.field('customer', { type: 'KompraCustomer' })
   },
 })
 
 // ─── ORDER ────────────────────────────────────────────────────────────────────
 
-export const EkumpraCOrderType = objectType({
-  name: 'EkumpraCOrder',
+export const KompraCOrderType = objectType({
+  name: 'KompraCOrder',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.string('transactionNumber')
@@ -112,7 +112,7 @@ export const EkumpraCOrderType = objectType({
     t.nullable.string('scheduledDeliveryAt')
     t.nullable.string('estimatedDeliveryAt')
     t.nullable.string('deliveredAt')
-    t.nonNull.field('paymentMethod', { type: 'EkumpraCPaymentMethod' })
+    t.nonNull.field('paymentMethod', { type: 'KompraCPaymentMethod' })
     t.nonNull.string('paymentStatus')
     t.nullable.string('paymentReference')
     t.nullable.string('riderName')
@@ -121,17 +121,26 @@ export const EkumpraCOrderType = objectType({
     t.nullable.string('outletNote')
     t.nonNull.string('createdAt')
     t.nonNull.string('updatedAt')
-    t.nonNull.field('customer', { type: 'EkumpraCustomer' })
+    t.nonNull.field('customer', { type: 'KompraCustomer' })
     t.nonNull.field('outlet', { type: 'Outlet' })
     t.nonNull.field('deliveryAddress', { type: 'DeliveryAddress' })
-    t.nonNull.list.nonNull.field('items', { type: 'EkumpraCOrderItem' })
-    t.nonNull.list.nonNull.field('fees', { type: 'EkumpraCOrderFee' })
-    t.nonNull.list.nonNull.field('tracking', { type: 'EkumpraCDeliveryTracking' })
+    t.nonNull.list.nonNull.field('items', { type: 'KompraCOrderItem' })
+    t.nonNull.list.nonNull.field('fees', { type: 'KompraCOrderFee' })
+    t.nonNull.list.nonNull.field('tracking', { type: 'KompraCDeliveryTracking' })
   },
 })
 
-export const EkumpraCOrderItemType = objectType({
-  name: 'EkumpraCOrderItem',
+export const KompraCOrderSummaryType = objectType({
+  name: 'KompraCOrderSummary',
+  definition(t) {
+    t.nonNull.field('status', { type: 'OrderStatus' })
+    t.nonNull.float('total')
+    t.nonNull.string('createdAt')
+  },
+})
+
+export const KompraCOrderItemType = objectType({
+  name: 'KompraCOrderItem',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.int('orderId')
@@ -145,8 +154,8 @@ export const EkumpraCOrderItemType = objectType({
   },
 })
 
-export const EkumpraCOrderFeeType = objectType({
-  name: 'EkumpraCOrderFee',
+export const KompraCOrderFeeType = objectType({
+  name: 'KompraCOrderFee',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.int('orderId')
@@ -156,8 +165,8 @@ export const EkumpraCOrderFeeType = objectType({
   },
 })
 
-export const EkumpraCDeliveryTrackingType = objectType({
-  name: 'EkumpraCDeliveryTracking',
+export const KompraCDeliveryTrackingType = objectType({
+  name: 'KompraCDeliveryTracking',
   definition(t) {
     t.nonNull.int('id')
     t.nonNull.int('orderId')
@@ -253,7 +262,7 @@ export const PlaceOrderInput = inputObjectType({
   definition(t) {
     t.nonNull.int('outletId')
     t.nonNull.int('deliveryAddressId')
-    t.nonNull.field('paymentMethod', { type: 'EkumpraCPaymentMethod' })
+    t.nonNull.field('paymentMethod', { type: 'KompraCPaymentMethod' })
     t.nonNull.list.nonNull.field('items', { type: 'OrderItemInput' })
     t.nullable.string('customerNote')
     t.nullable.string('scheduledDeliveryAt')
@@ -283,7 +292,7 @@ export const AddDeliveryAddressInput = inputObjectType({
 
 // ─── QUERIES ──────────────────────────────────────────────────────────────────
 
-export const EkumpraCQuery = extendType({
+export const KompraCQuery = extendType({
   type: 'Query',
   definition(t) {
 
@@ -330,11 +339,11 @@ export const EkumpraCQuery = extendType({
     })
 
     // Get order with full tracking timeline
-    t.nullable.field('ekumpraCOrder', {
-      type: 'EkumpraCOrder',
+    t.nullable.field('kompraCOrder', {
+      type: 'KompraCOrder',
       args: { id: nonNull(intArg()) },
       resolve: (_root, { id }, ctx) =>
-        ctx.prisma.ekumpraCOrder.findUnique({
+        ctx.prisma.kompraCOrder.findUnique({
           where: { id },
           include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
         }),
@@ -342,10 +351,10 @@ export const EkumpraCQuery = extendType({
 
     // Customer's order history
     t.nonNull.list.nonNull.field('myOrders', {
-      type: 'EkumpraCOrder',
+      type: 'KompraCOrder',
       args: { customerId: nonNull(intArg()) },
       resolve: (_root, { customerId }, ctx) =>
-        ctx.prisma.ekumpraCOrder.findMany({
+        ctx.prisma.kompraCOrder.findMany({
           where: { customerId },
           orderBy: { createdAt: 'desc' },
           include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
@@ -354,10 +363,10 @@ export const EkumpraCQuery = extendType({
 
     // Outlet's incoming order queue (for outlet dashboard)
     t.nonNull.list.nonNull.field('outletOrderQueue', {
-      type: 'EkumpraCOrder',
+      type: 'KompraCOrder',
       args: { outletId: nonNull(intArg()) },
       resolve: (_root, { outletId }, ctx) =>
-        ctx.prisma.ekumpraCOrder.findMany({
+        ctx.prisma.kompraCOrder.findMany({
           where: {
             outletId,
             status: { in: ['pending', 'confirmed', 'preparing'] },
@@ -366,23 +375,60 @@ export const EkumpraCQuery = extendType({
           include: { items: { include: { item: true } }, fees: true, customer: true },
         }),
     })
+
+    // Get KompraC orders for dashboard/analytics (filtered by organization)
+    t.nonNull.list.nonNull.field('getKompraCOrdersSummary', {
+      type: 'KompraCOrderSummary',
+      args: {
+        organizationId: nullable(intArg()),
+        startDate: nullable(stringArg()),
+        endDate: nullable(stringArg()),
+        take: nullable(intArg()),
+        skip: nullable(intArg()),
+      },
+      resolve: async (_root, args, ctx) => {
+        const orgId = args.organizationId ?? Number(ctx.user?.orgId);
+
+        const where: any = {
+          outlet: { orgId },
+        };
+
+        if (args.startDate || args.endDate) {
+          where.createdAt = {};
+          if (args.startDate) where.createdAt.gte = new Date(args.startDate);
+          if (args.endDate) where.createdAt.lte = new Date(args.endDate);
+        }
+
+        return ctx.prisma.kompraCOrder.findMany({
+          where,
+          take: args.take ?? undefined,
+          skip: args.skip ?? undefined,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            total: true,
+            status: true,
+            createdAt: true,
+          },
+        });
+      },
+    })
   },
 })
 
 // ─── MUTATIONS ────────────────────────────────────────────────────────────────
 
-export const EkumpraCMutation = extendType({
+export const KompraCMutation = extendType({
   type: 'Mutation',
   definition(t) {
 
-    // Register a new Ekumpra customer
-    t.nonNull.field('registerEkumpraCustomer', {
-      type: 'EkumpraCustomer',
+    // Register a new Kompra customer
+    t.nonNull.field('registerKompraCustomer', {
+      type: 'KompraCustomer',
       args: { input: nonNull(arg({ type: 'RegisterCustomerInput' })) },
       resolve: async (_root, { input }, ctx) => {
         const bcrypt = await import('bcrypt')
         const passwordHash = await bcrypt.hash(input.password, 10)
-        return ctx.prisma.ekumpraCustomer.create({
+        return ctx.prisma.kompraCustomer.create({
           data: { fullname: input.fullname, phone: input.phone, email: input.email, passwordHash },
         })
       },
@@ -407,9 +453,9 @@ export const EkumpraCMutation = extendType({
       },
     })
 
-    // Place an order — the main Ekumpra flow
-    t.nonNull.field('placeEkumpraOrder', {
-      type: 'EkumpraCOrder',
+    // Place an order — the main Kompra flow
+    t.nonNull.field('placeKompraOrder', {
+      type: 'KompraCOrder',
       args: {
         customerId: nonNull(intArg()),
         input: nonNull(arg({ type: 'PlaceOrderInput' })),
@@ -454,13 +500,13 @@ export const EkumpraCMutation = extendType({
         const total = subtotal + deliveryFee
 
         // 5. Generate transaction number
-        const count = await ctx.prisma.ekumpraCOrder.count()
+        const count = await ctx.prisma.kompraCOrder.count()
         const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
         const txnNumber = `EKU-${date}-${String(count + 1).padStart(4, '0')}`
 
         // 6. Create order in a transaction (atomic)
         return ctx.prisma.$transaction(async (tx) => {
-          const order = await tx.ekumpraCOrder.create({
+          const order = await tx.kompraCOrder.create({
             data: {
               transactionNumber: txnNumber,
               customerId,
@@ -496,8 +542,8 @@ export const EkumpraCMutation = extendType({
     })
 
     // Outlet confirms the order
-    t.nonNull.field('confirmEkumpraOrder', {
-      type: 'EkumpraCOrder',
+    t.nonNull.field('confirmKompraOrder', {
+      type: 'KompraCOrder',
       args: {
         orderId: nonNull(intArg()),
         estimatedDeliveryAt: nullable(stringArg()),
@@ -505,10 +551,10 @@ export const EkumpraCMutation = extendType({
       },
       resolve: async (_root, args, ctx) => {
         return ctx.prisma.$transaction(async (tx) => {
-          await tx.ekumpraCDeliveryTracking.create({
+          await tx.kompraCDeliveryTracking.create({
             data: { orderId: args.orderId, event: 'outlet_confirmed', actorType: 'outlet' },
           })
-          return tx.ekumpraCOrder.update({
+          return tx.kompraCOrder.update({
             where: { id: args.orderId },
             data: {
               status: 'confirmed',
@@ -523,7 +569,7 @@ export const EkumpraCMutation = extendType({
 
     // Rider picked up — order goes in_delivery
     t.nonNull.field('markOrderInDelivery', {
-      type: 'EkumpraCOrder',
+      type: 'KompraCOrder',
       args: {
         orderId: nonNull(intArg()),
         riderName: nonNull(stringArg()),
@@ -531,10 +577,10 @@ export const EkumpraCMutation = extendType({
       },
       resolve: async (_root, args, ctx) => {
         return ctx.prisma.$transaction(async (tx) => {
-          await tx.ekumpraCDeliveryTracking.create({
+          await tx.kompraCDeliveryTracking.create({
             data: { orderId: args.orderId, event: 'rider_picked_up', actorType: 'rider' },
           })
-          return tx.ekumpraCOrder.update({
+          return tx.kompraCOrder.update({
             where: { id: args.orderId },
             data: { status: 'in_delivery', riderName: args.riderName, riderPhone: args.riderPhone },
             include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
@@ -545,14 +591,14 @@ export const EkumpraCMutation = extendType({
 
     // Customer confirms delivery received
     t.nonNull.field('confirmOrderReceived', {
-      type: 'EkumpraCOrder',
+      type: 'KompraCOrder',
       args: { orderId: nonNull(intArg()), customerId: nonNull(intArg()) },
       resolve: async (_root, { orderId, customerId }, ctx) => {
         return ctx.prisma.$transaction(async (tx) => {
-          await tx.ekumpraCDeliveryTracking.create({
+          await tx.kompraCDeliveryTracking.create({
             data: { orderId, event: 'delivered', actorType: 'customer', actorId: customerId },
           })
-          return tx.ekumpraCOrder.update({
+          return tx.kompraCOrder.update({
             where: { id: orderId },
             data: { status: 'received', deliveredAt: new Date() },
             include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
@@ -562,8 +608,8 @@ export const EkumpraCMutation = extendType({
     })
 
     // Cancel order (only before in_delivery)
-    t.nonNull.field('cancelEkumpraOrder', {
-      type: 'EkumpraCOrder',
+    t.nonNull.field('cancelKompraOrder', {
+      type: 'KompraCOrder',
       args: {
         orderId: nonNull(intArg()),
         actorType: nonNull(stringArg()),
@@ -571,7 +617,7 @@ export const EkumpraCMutation = extendType({
         reason: nullable(stringArg()),
       },
       resolve: async (_root, args, ctx) => {
-        const order = await ctx.prisma.ekumpraCOrder.findUnique({ where: { id: args.orderId } })
+        const order = await ctx.prisma.kompraCOrder.findUnique({ where: { id: args.orderId } })
         if (!order) throw new Error('Order not found')
         if (['in_delivery', 'received', 'returned'].includes(order.status)) {
           throw new Error('Cannot cancel an order that is already in delivery or completed')
@@ -579,7 +625,7 @@ export const EkumpraCMutation = extendType({
 
         return ctx.prisma.$transaction(async (tx) => {
           // Restore stock
-          const orderItems = await tx.ekumpraCOrderItem.findMany({ where: { orderId: args.orderId } })
+          const orderItems = await tx.kompraCOrderItem.findMany({ where: { orderId: args.orderId } })
           for (const item of orderItems) {
             await tx.inventoryItems.update({
               where: { id: item.inventoryItemId },
@@ -587,11 +633,11 @@ export const EkumpraCMutation = extendType({
             })
           }
 
-          await tx.ekumpraCDeliveryTracking.create({
+          await tx.kompraCDeliveryTracking.create({
             data: { orderId: args.orderId, event: 'cancelled', note: args.reason, actorType: args.actorType, actorId: args.actorId },
           })
 
-          return tx.ekumpraCOrder.update({
+          return tx.kompraCOrder.update({
             where: { id: args.orderId },
             data: { status: 'cancelled' },
             include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
