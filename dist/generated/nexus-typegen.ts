@@ -4582,6 +4582,7 @@ export interface NexusGenArgTypes {
       tin?: string | null; // String
       vatTypeId?: number | null; // Int
       vatZeroSale?: number | null; // Float
+      wifiSSID?: string | null; // String
     }
     createOutletPromo: { // args
       data: NexusGenInputs['CreateOutletPromoInput']; // CreateOutletPromoInput!
@@ -5030,6 +5031,7 @@ export interface NexusGenArgTypes {
       tin?: string | null; // String
       vatTypeId?: number | null; // Int
       vatZeroSale?: number | null; // Float
+      wifiSSID?: string | null; // String
     }
     updateOutletItem: { // args
       data: NexusGenInputs['UpdateOutletItemInput']; // UpdateOutletItemInput!

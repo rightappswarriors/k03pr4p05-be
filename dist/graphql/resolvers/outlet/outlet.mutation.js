@@ -44,6 +44,7 @@ export const outletMutation = extendType({
                 longitude: nullable(arg({ type: "Float" })),
                 latitude: nullable(floatArg()),
                 bannerImage: nullable(arg({ type: "String" })),
+                wifiSSID: nullable(arg({ type: "String" })),
                 tin: nullable(arg({ type: "String" })),
                 ptu: nullable(arg({ type: "String" })),
                 bir: nullable(arg({ type: "String" })),
@@ -52,7 +53,7 @@ export const outletMutation = extendType({
                 vatTypeId: nullable(intArg()),
                 outletPromos: nullable(list(nonNull(arg({ type: "OutletPromoInput" })))),
             },
-            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive, bannerImage, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos // ← new
+            async resolve(_, { branchId, name, address, phone, code, governmentTax, serviceCharge, outletType, longitude, latitude, status, isActive, bannerImage, wifiSSID, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos // ← new
              }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
@@ -63,6 +64,7 @@ export const outletMutation = extendType({
                         governmentTax, serviceCharge, outletType,
                         longitude, latitude, status, isActive,
                         bannerImage: bannerImage || null,
+                        wifiSSID: wifiSSID || null,
                         tin: tin || null,
                         ptu: ptu || null,
                         bir: bir || null,
@@ -174,6 +176,7 @@ export const outletMutation = extendType({
                 longitude: nullable(arg({ type: "Float" })),
                 latitude: nullable(floatArg()),
                 bannerImage: nullable(arg({ type: "String" })),
+                wifiSSID: nullable(arg({ type: "String" })),
                 tin: nullable(arg({ type: "String" })),
                 ptu: nullable(arg({ type: "String" })),
                 bir: nullable(arg({ type: "String" })),
@@ -182,7 +185,7 @@ export const outletMutation = extendType({
                 vatTypeId: nullable(intArg()),
                 outletPromos: nullable(list(nonNull(arg({ type: "OutletPromoInput" })))),
             },
-            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos }, ctx) {
+            async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage, wifiSSID, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER"]);
                 await requireOwnership(ctx, "Outlet", outletId);
@@ -198,7 +201,15 @@ export const outletMutation = extendType({
                     latitude === undefined &&
                     longitude === undefined &&
                     isActive === undefined &&
-                    bannerImage === undefined) {
+                    bannerImage === undefined &&
+                    wifiSSID === undefined &&
+                    tin === undefined &&
+                    ptu === undefined &&
+                    bir === undefined &&
+                    isVatRegistered === undefined &&
+                    vatZeroSale === undefined &&
+                    vatTypeId === undefined &&
+                    outletPromos === undefined) {
                     throw new Error("At least one field is required to update the outlet.");
                 }
                 try {
@@ -227,6 +238,8 @@ export const outletMutation = extendType({
                         updateData.isActive = isActive;
                     if (bannerImage !== undefined && bannerImage !== null)
                         updateData.bannerImage = bannerImage;
+                    if (wifiSSID !== undefined && wifiSSID !== null)
+                        updateData.wifiSSID = wifiSSID;
                     // In the resolver updateData block, add:
                     if (tin !== undefined)
                         updateData.tin = tin;

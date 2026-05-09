@@ -968,7 +968,7 @@ type Mutation {
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrgItemCategory(categoryId: Int, cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, name: String!, sales: String, stocks: String): OrgItemCategory!
   createOrganization(name: String!): Organization
-  createOutlet(address: String!, bannerImage: String, bir: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String!, outletPromos: [OutletPromoInput!], outletType: OutletType!, phone: String, ptu: String, serviceCharge: Float!, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float): Outlet!
+  createOutlet(address: String!, bannerImage: String, bir: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String!, outletPromos: [OutletPromoInput!], outletType: OutletType!, phone: String, ptu: String, serviceCharge: Float!, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(input: PositionInput!): Position!
@@ -1060,7 +1060,7 @@ type Mutation {
   updateItemGroup(id: Int, name: String): ItemGroup
   updateOrgItemCategory(cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, id: Int!, isActive: Boolean, name: String, sales: String, stocks: String): OrgItemCategory!
   updateOrganization(id: Int, name: String): Organization
-  updateOutlet(address: String, bannerImage: String, bir: String, code: String, governmentTax: Float, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String, outletId: ID!, outletPromos: [OutletPromoInput!], outletType: OutletType, phone: String, ptu: String, serviceCharge: Float, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float): Outlet!
+  updateOutlet(address: String, bannerImage: String, bir: String, code: String, governmentTax: Float, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String, outletId: ID!, outletPromos: [OutletPromoInput!], outletType: OutletType, phone: String, ptu: String, serviceCharge: Float, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   updateOutletItem(data: UpdateOutletItemInput!): InventoryItems
   updateOutletPromo(data: UpdateOutletPromoInput!, id: Int!): OutletPromo!
   updatePlaceLocation(address: String, id: Int, name: String): PlaceLocation
