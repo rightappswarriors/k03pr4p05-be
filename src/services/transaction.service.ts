@@ -7,6 +7,149 @@ import { decrypt } from "../lib/encrypt.js";
 import * as paymongoService from "./paymongo.service.js";
 import { sendToUser } from "../lib/ws.js"
 import * as notificationService from "./notification.service.js";
+
+const SC_PWD_RATE = 0.2;
+const BNPC_RATE = 0.05;
+
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const isScPwdDiscount = (type?: string | null) =>
+  type === "SENIOR_CITIZEN" || type === "PWD";
+
+const isBnpcDiscount = (type?: string | null) =>
+  type === "BNPC_SENIOR_CITIZEN" || type === "BNPC_PWD";
+
+const getDiscountRate = (type?: string | null, customRate?: number | null) => {
+  if (isScPwdDiscount(type)) return SC_PWD_RATE;
+  if (isBnpcDiscount(type)) return BNPC_RATE;
+  if (type === "CUSTOM") return Number(customRate ?? 0);
+  return 0;
+};
+
+export const computeScPwdBreakdown = async (tx: any, transactionData: any, itemsSold: any[]) => {
+  const discountType = transactionData.discountType ?? "NONE";
+  const rate = getDiscountRate(discountType, transactionData.discountRate);
+  const totalPax = Number(transactionData.totalPax || 0);
+  const scPwdPax = Number(transactionData.scPwdPax || 0);
+  const proportion =
+    totalPax > 0 && scPwdPax > 0 ? Math.min(scPwdPax / totalPax, 1) : 1;
+
+  if (discountType === "NONE" || rate <= 0) {
+    const itemBreakdown = itemsSold.map((item) => {
+      const originalPrice = Number(item.priceAtSale ?? item.price ?? 0);
+      const quantity = Number(item.quantity ?? 0);
+      return {
+        ...item,
+        discountType: "NONE",
+        discountRate: 0,
+        discountAmount: roundMoney(item.discountAmount ?? 0),
+        originalPrice,
+        vatExclusivePrice: originalPrice,
+        finalPrice: originalPrice,
+        lineTotal: roundMoney(originalPrice * quantity),
+      };
+    });
+    return {
+      itemBreakdown,
+      discountRate: 0,
+      discountAmount: 0,
+      vatExemptSale: 0,
+      vatAmount: roundMoney(transactionData.vatAmount ?? 0),
+      netTotal: roundMoney(transactionData.total ?? 0),
+    };
+  }
+
+  const itemIds = itemsSold
+    .map((item) => Number(item.itemId))
+    .filter((itemId) => Number.isFinite(itemId));
+  const itemRecords = await tx.item.findMany({
+    where: { id: { in: itemIds } },
+    select: { id: true, isBNPC: true, isVatExempt: true, vatExempt: true, vatRate: true },
+  });
+  const itemMeta = new Map<number, any>(itemRecords.map((item) => [item.id, item]));
+
+  let discountAmount = 0;
+  let vatExemptSale = 0;
+  let vatAmount = 0;
+  let netTotal = 0;
+
+  const itemBreakdown = itemsSold.map((item) => {
+    const originalPrice = Number(item.priceAtSale ?? item.price ?? 0);
+    const quantity = Number(item.quantity ?? 0);
+    const meta = itemMeta.get(Number(item.itemId));
+    const vatRate = Number(meta?.vatRate ?? 0.12);
+    const itemIsVatExempt = Boolean(meta?.isVatExempt || meta?.vatExempt);
+    const eligible = isScPwdDiscount(discountType) || (isBnpcDiscount(discountType) && meta?.isBNPC);
+    const eligibleQty = quantity * proportion;
+    const regularQty = quantity - eligibleQty;
+
+    if (!eligible) {
+      const lineVat = itemIsVatExempt ? 0 : originalPrice - originalPrice / (1 + vatRate);
+      vatAmount += lineVat * quantity;
+      netTotal += originalPrice * quantity;
+      return {
+        ...item,
+        discountType: "NONE",
+        discountRate: 0,
+        discountAmount: 0,
+        originalPrice,
+        vatExclusivePrice: itemIsVatExempt ? originalPrice : roundMoney(originalPrice / (1 + vatRate)),
+        finalPrice: originalPrice,
+        lineTotal: roundMoney(originalPrice * quantity),
+      };
+    }
+
+    if (isBnpcDiscount(discountType)) {
+      const lineDiscount = originalPrice * rate * eligibleQty;
+      const lineVat = itemIsVatExempt ? 0 : originalPrice - originalPrice / (1 + vatRate);
+      const lineTotal = originalPrice * regularQty + (originalPrice - originalPrice * rate) * eligibleQty;
+      discountAmount += lineDiscount;
+      vatAmount += lineVat * quantity;
+      netTotal += lineTotal;
+      return {
+        ...item,
+        discountType,
+        discountRate: rate,
+        discountAmount: roundMoney(lineDiscount),
+        originalPrice,
+        vatExclusivePrice: itemIsVatExempt ? originalPrice : roundMoney(originalPrice / (1 + vatRate)),
+        finalPrice: roundMoney(originalPrice * (1 - rate)),
+        lineTotal: roundMoney(lineTotal),
+      };
+    }
+
+    const vatExclusivePrice = itemIsVatExempt ? originalPrice : originalPrice / (1 + vatRate);
+    const vatRemoved = itemIsVatExempt ? 0 : originalPrice - vatExclusivePrice;
+    const lineDiscount = vatExclusivePrice * rate * eligibleQty;
+    const discountedUnit = vatExclusivePrice * (1 - rate);
+    const lineTotal = originalPrice * regularQty + discountedUnit * eligibleQty;
+
+    discountAmount += lineDiscount;
+    vatExemptSale += vatExclusivePrice * eligibleQty;
+    vatAmount += vatRemoved * regularQty;
+    netTotal += lineTotal;
+
+    return {
+      ...item,
+      discountType,
+      discountRate: rate,
+      discountAmount: roundMoney(lineDiscount),
+      originalPrice,
+      vatExclusivePrice: roundMoney(vatExclusivePrice),
+      finalPrice: roundMoney(discountedUnit),
+      lineTotal: roundMoney(lineTotal),
+    };
+  });
+
+  return {
+    itemBreakdown,
+    discountRate: rate,
+    discountAmount: roundMoney(discountAmount),
+    vatExemptSale: roundMoney(vatExemptSale),
+    vatAmount: roundMoney(vatAmount),
+    netTotal: roundMoney(netTotal),
+  };
+};
 /**
  * @description
  * Processes a new transaction by creating a transaction record, creating
@@ -19,6 +162,57 @@ import * as notificationService from "./notification.service.js";
  */// transaction.service.ts — full rewrite of processTransaction
 export const processTransaction = async (transactionData: any, itemsSold: any) => {
   return prisma.$transaction(async (tx) => {
+    const { scPwdCustomerInput, ...baseTransactionData } = transactionData;
+    transactionData = {
+      ...baseTransactionData,
+      discountType: baseTransactionData.discountType ?? "NONE",
+      customerType: baseTransactionData.customerType ?? "REGULAR",
+      discountRate: baseTransactionData.discountRate ?? 0,
+      discountAmount: baseTransactionData.discountAmount ?? 0,
+      vatExemptSale: baseTransactionData.vatExemptSale ?? 0,
+    };
+
+    const discountBreakdown = await computeScPwdBreakdown(tx, transactionData, itemsSold);
+    itemsSold = discountBreakdown.itemBreakdown;
+    transactionData = {
+      ...transactionData,
+      total: discountBreakdown.netTotal,
+      vatAmount: discountBreakdown.vatAmount,
+      discountRate: discountBreakdown.discountRate,
+      discountAmount: discountBreakdown.discountAmount,
+      scPwdDiscountAmt: isScPwdDiscount(transactionData.discountType)
+        ? discountBreakdown.discountAmount
+        : transactionData.scPwdDiscountAmt,
+      vatExemptAmount: discountBreakdown.vatExemptSale,
+      vatExemptSale: discountBreakdown.vatExemptSale,
+      isVatExempt: isScPwdDiscount(transactionData.discountType) || Boolean(transactionData.isVatExempt),
+    };
+
+    if (scPwdCustomerInput && transactionData.customerType !== "REGULAR") {
+      const orgId = Number(transactionData.orgId || 0) || undefined;
+      const customerData = {
+        orgId,
+        fullName: scPwdCustomerInput.fullName,
+        idNumber: scPwdCustomerInput.idNumber,
+        idType: scPwdCustomerInput.idType,
+        customerType: scPwdCustomerInput.customerType ?? transactionData.customerType,
+        dateOfBirth: scPwdCustomerInput.dateOfBirth ? new Date(scPwdCustomerInput.dateOfBirth) : null,
+        contactNumber: scPwdCustomerInput.contactNumber ?? null,
+        address: scPwdCustomerInput.address ?? null,
+        isRepresentative: scPwdCustomerInput.isRepresentative ?? false,
+        representativeName: scPwdCustomerInput.representativeName ?? null,
+        representativeIdNumber: scPwdCustomerInput.representativeIdNumber ?? null,
+      };
+
+      const customer = scPwdCustomerInput.id
+        ? await tx.scPwdCustomer.update({ where: { id: scPwdCustomerInput.id }, data: customerData })
+        : await tx.scPwdCustomer.create({ data: customerData });
+
+      transactionData.scPwdCustomerId = customer.id;
+      transactionData.vatExemptRefNo = transactionData.vatExemptRefNo ?? customer.idNumber;
+    }
+
+    delete transactionData.orgId;
 
     // 1 — Find outlet inventory
     const inventory = await tx.inventory.findUnique({
@@ -157,11 +351,15 @@ export const processTransaction = async (transactionData: any, itemsSold: any) =
               discountAmount: item.discountAmount ?? null,
               discountQuantity: item.discountQuantity ?? null,  // ← NEW
               discountRate: item.discountRate ?? null,          // ← NEW
+              discountType: item.discountType ?? transactionData.discountType ?? "NONE",
+              originalPrice: item.originalPrice ?? item.priceAtSale ?? item.price,
+              vatExclusivePrice: item.vatExclusivePrice ?? item.priceAtSale ?? item.price,
+              finalPrice: item.finalPrice ?? item.priceAtSale ?? item.price,
             })),
           },
         },
       },
-      include: { items: true },
+      include: { items: true, scPwdCustomer: true },
     });
 
     // 9 — Update StockMovement referenceId now that we have the transaction id
@@ -318,6 +516,7 @@ export const processCustomerReturn = async (data: {
     include: {
       outlet: true,
       cashier: true,
+      scPwdCustomer: true,
       items: {
         include: {
           item: true,
@@ -363,6 +562,7 @@ export const getTransactionsByOrgId = async (
     include: {
       outlet: true,
       cashier: true,
+      scPwdCustomer: true,
       items: {
         include: {
           item: true,
@@ -408,6 +608,14 @@ export const getOutletTransactions = async (
       
       paymentMethod: true,
       cashReceived: true,
+      customerType: true,
+      discountType: true,
+      discountRate: true,
+      discountAmount: true,
+      vatExemptSale: true,
+      totalPax: true,
+      scPwdPax: true,
+      scPwdCustomer: true,
       items: {
         select: {
           quantity: true,
@@ -433,6 +641,67 @@ export const getOutletTransactions = async (
       },
     },
   });
+};
+
+export const getTransactionsByDiscountType = async (
+  discountType: string,
+  orgId?: number,
+) => {
+  return prisma.transaction.findMany({
+    where: {
+      discountType: discountType as any,
+      ...(orgId ? { outlet: { orgId } } : {}),
+    },
+    include: {
+      outlet: true,
+      cashier: true,
+      scPwdCustomer: true,
+      items: { include: { item: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+export const getBirDiscountLogbook = async (
+  startDate?: string,
+  endDate?: string,
+  orgId?: number,
+) => {
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      discountType: {
+        in: ["SENIOR_CITIZEN", "PWD", "BNPC_SENIOR_CITIZEN", "BNPC_PWD"] as any[],
+      },
+      ...(orgId ? { outlet: { orgId } } : {}),
+      ...(startDate || endDate
+        ? {
+          createdAt: {
+            ...(startDate && { gte: new Date(startDate) }),
+            ...(endDate && { lte: new Date(endDate) }),
+          },
+        }
+        : {}),
+    },
+    include: {
+      scPwdCustomer: true,
+      items: { include: { item: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return transactions.map((transaction) => ({
+    date: transaction.createdAt,
+    orNumber: String(transaction.id),
+    fullName: transaction.scPwdCustomer?.fullName ?? "",
+    idNumber: transaction.scPwdCustomer?.idNumber ?? transaction.vatExemptRefNo ?? "",
+    itemsPurchased: transaction.items
+      .map((line) => `${line.item?.name ?? `Item #${line.itemId}`} x ${line.quantity}`)
+      .join(", "),
+    totalBeforeDiscount: roundMoney(transaction.subtotal),
+    discountAmount: roundMoney(transaction.discountAmount ?? 0),
+    netAmountPaid: roundMoney(transaction.total),
+    discountType: transaction.discountType,
+  }));
 };
 
 export const finalizeTransaction = async (transactionDatas, itemsSold) => {

@@ -29,6 +29,7 @@ export * from './placeLocation.type.js';
 export * from './position.type.js';
 export * from './promo.type.js';
 export * from './salesOrder.type.js';
+export * from './scPwdCustomer.type.js';
 export * from './subCenter.type.js';
 export * from './subscription.type.js';
 export * from './summaryRow.type.js';

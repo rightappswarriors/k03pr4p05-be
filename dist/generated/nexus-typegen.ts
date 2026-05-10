@@ -77,12 +77,16 @@ export interface NexusGenInputs {
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+    finalPrice?: number | null; // Float
     itemId: number; // Int!
+    originalPrice?: number | null; // Float
     price: number; // Float!
     priceAtSale: number; // Float!
     quantity: number; // Float!
     unitId?: number | null; // Int
     unitName?: string | null; // String
+    vatExclusivePrice?: number | null; // Float
   }
   CostLineInput: { // input type
     amount: number; // Float!
@@ -112,6 +116,8 @@ export interface NexusGenInputs {
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
     image?: string | null; // String
+    isBNPC?: boolean | null; // Boolean
+    isVatExempt?: boolean | null; // Boolean
     itemCode?: string | null; // String
     minQuantity: number; // Int!
     name: string; // String!
@@ -125,6 +131,7 @@ export interface NexusGenInputs {
     stockDescription?: string | null; // String
     stockLabel: string; // String!
     vatExempt?: boolean | null; // Boolean
+    vatRate?: number | null; // Float
     vatTypeId?: number | null; // Int
   }
   CreateOutletPromoInput: { // input type
@@ -163,6 +170,10 @@ export interface NexusGenInputs {
     estimatedDate?: string | null; // String
     notes?: string | null; // String
     trackingNumber?: string | null; // String
+  }
+  ExtraChargeInput: { // input type
+    amount: number; // Float!
+    label: string; // String!
   }
   InventoryItemInput: { // input type
     inventoryId: number; // Int!
@@ -287,6 +298,14 @@ export interface NexusGenInputs {
     reason?: string | null; // String
     unitId?: number | null; // Int
   }
+  SalesOrderFilterInput: { // input type
+    customerName?: string | null; // String
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+    endDate?: string | null; // String
+    orderMode?: NexusGenEnums['OrderModeEnum'] | null; // OrderModeEnum
+    startDate?: string | null; // String
+    status?: NexusGenEnums['SalesOrderStatusEnum'] | null; // SalesOrderStatusEnum
+  }
   SalesOrderItemInput: { // input type
     customItemName?: string | null; // String
     discountAmount?: number | null; // Float
@@ -299,6 +318,19 @@ export interface NexusGenInputs {
     unitName?: string | null; // String
     unitPrice: number; // Float!
     vatExempt?: boolean | null; // Boolean
+  }
+  ScPwdCustomerInput: { // input type
+    address?: string | null; // String
+    contactNumber?: string | null; // String
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
+    dateOfBirth?: string | null; // String
+    fullName: string; // String!
+    id?: string | null; // String
+    idNumber: string; // String!
+    idType: string; // String!
+    isRepresentative?: boolean | null; // Boolean
+    representativeIdNumber?: string | null; // String
+    representativeName?: string | null; // String
   }
   SearchItemInput: { // input type
     itemId: number; // Int!
@@ -335,6 +367,8 @@ export interface NexusGenInputs {
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
     image?: string | null; // String
+    isBNPC?: boolean | null; // Boolean
+    isVatExempt?: boolean | null; // Boolean
     itemCode?: string | null; // String
     minQuantity?: number | null; // Int
     name?: string | null; // String
@@ -348,6 +382,7 @@ export interface NexusGenInputs {
     stockDescription?: string | null; // String
     stockLabel?: string | null; // String
     vatExempt?: boolean | null; // Boolean
+    vatRate?: number | null; // Float
     vatTypeId?: number | null; // Int
   }
   UpdateOutletItemInput: { // input type
@@ -372,14 +407,17 @@ export interface NexusGenEnums {
   AccountLink: "ACCOUNTS_PAYABLE_NON_TRADE" | "ACCOUNTS_PAYABLE_TRADE" | "ACCOUNTS_RECEIVABLE_NON_TRADE" | "ACCOUNTS_RECEIVABLE_TRADE" | "ACCRUED_EXPENSES" | "ACCUMULATED_DEP_DELIVERY_VEHICLE" | "ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS" | "ACCUMULATED_DEP_OFFICE_EQUIPMENT" | "ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES" | "ACCUMULATED_DEP_SERVICE_VEHICLE" | "ADVANCES_TO_AFFILIATES" | "ADVANCES_TO_EMPLOYEES" | "ADVANCES_TO_OFFICERS_STOCKHOLDERS" | "ADVANCES_TO_OUTSIDE_PERSONNEL" | "CASH_IN_BANK_BDO" | "CASH_IN_BANK_CHINABANK" | "CASH_IN_BANK_SECURITY_BANK" | "CASH_ON_HAND" | "COMMUNICATION" | "COST_OF_SALES_ALL_STOCKS" | "DELIVERY_VEHICLE" | "DEPRECIATION" | "ELECTRICITY" | "EMPLOYEE_BENEFITS" | "FUEL_OIL" | "INCOME_TAX" | "INCOME_TAX_PAYABLE" | "INSURANCE" | "INTEREST_INCOME" | "INVENTORY_ALL_STOCKS" | "LAND" | "LEASEHOLD_IMPROVEMENTS" | "MISCELLANEOUS_INCOME" | "OFFICE_EQUIPMENT" | "OFFICE_FURNITURES_FIXTURES" | "OFFICE_SUPPLIES" | "ORDINARY_SHARES" | "OUTPUT_VAT" | "PETTY_CASH_FUND" | "PREPAID_INSURANCE" | "PROFESSIONAL_FEE" | "RENT" | "REPAIRS_MAINTENANCE" | "REPRESENTATION" | "RETAINED_EARNINGS" | "SALARIES_WAGES" | "SERVICE_VEHICLE" | "SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS" | "SUBSCRIBED_ORDINARY_SHARES" | "SUBSCRIPTION_RECEIVABLE" | "TAXES_LICENSES" | "TRANSPORTATION_TRAVEL" | "UNUSED_OFFICE_SUPPLIES" | "VAT_INPUT" | "VAT_PAYABLE" | "WATER" | "WITHHOLDING_TAX_PAYABLE"
   AttendanceStatus: "ABSENT" | "OFF_DUTY" | "ON_BREAK" | "PRESENT"
   AuditAction: "CREATE" | "DELETE" | "EDIT" | "LOGIN" | "LOGOUT" | "PERMISSION_CHANGE" | "STATUS_CHANGE" | "VIEW"
+  CustomerType: "PWD" | "REGULAR" | "SENIOR_CITIZEN"
   DateRangePreset: "all" | "custom" | "this_month" | "this_week" | "today"
   DeliveryStatusEvent: "arrived_at_door" | "cancelled" | "delivered" | "order_placed" | "outlet_confirmed" | "outlet_preparing" | "return_requested" | "returned" | "rider_assigned" | "rider_en_route" | "rider_picked_up"
+  DiscountType: "BNPC_PWD" | "BNPC_SENIOR_CITIZEN" | "CUSTOM" | "NONE" | "PWD" | "SENIOR_CITIZEN"
   EmployeeStatus: "Active" | "Contract" | "On_Leave"
   FeeType: "delivery" | "handling" | "packaging" | "priority" | "voucher_discount"
   ItemStatus: "loss_item" | "slow_mover" | "stable" | "top_seller"
   ItemTrend: "down" | "stable" | "up"
   KompraCPaymentMethod: "card" | "cash_on_delivery" | "gcash" | "paymaya" | "qrph"
   MediaType: "image" | "video"
+  OrderModeEnum: "DELIVERY" | "PICK_UP" | "WALK_IN"
   OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "pending" | "preparing" | "received" | "returned"
   OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
@@ -388,7 +426,7 @@ export interface NexusGenEnums {
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
   RecurrenceType: "custom" | "daily" | "monthly" | "once" | "weekly"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "OWNER" | "STAFF"
-  SalesOrderStatusEnum: "CANCELLED" | "ORDERED" | "PROCESSING" | "RECEIVED" | "SHIPPED"
+  SalesOrderStatusEnum: "CANCELLED" | "COMPLETED" | "ORDERED" | "OUT_FOR_DELIVERY" | "PENDING" | "PROCESSING" | "READY_FOR_PICKUP" | "RECEIVED" | "SHIPPED"
   Status: "CANCELED" | "COMPLETED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   SubscriptionPlan: "BASIC" | "GOLD"
   SupplierOrderStatus: "acknowledged" | "cancelled" | "delivered" | "pending" | "sent"
@@ -473,6 +511,17 @@ export interface NexusGenObjects {
   BatchPayload: { // root type
     count: number; // Int!
   }
+  BirDiscountLogbookEntry: { // root type
+    date: NexusGenScalars['DateTime']; // DateTime!
+    discountAmount: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    fullName: string; // String!
+    idNumber: string; // String!
+    itemsPurchased: string; // String!
+    netAmountPaid: number; // Float!
+    orNumber: string; // String!
+    totalBeforeDiscount: number; // Float!
+  }
   Branch: { // root type
     address: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -524,12 +573,16 @@ export interface NexusGenObjects {
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    finalPrice: number; // Float!
     itemId: number; // Int!
+    originalPrice: number; // Float!
     priceAtSale: number; // Float!
     quantity: number; // Float!
     transactionId: number; // Int!
     unitId?: number | null; // Int
     unitName?: string | null; // String
+    vatExclusivePrice: number; // Float!
   }
   Center: { // root type
     id: number; // Int!
@@ -645,6 +698,13 @@ export interface NexusGenObjects {
     status: NexusGenEnums['EmployeeStatus']; // EmployeeStatus!
     userId?: number | null; // Int
   }
+  ExtraCharge: { // root type
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    label: string; // String!
+    salesOrderId: string; // String!
+  }
   GISRow: { // root type
     accountTitleId: number; // Int!
     centerId: number; // Int!
@@ -734,6 +794,8 @@ export interface NexusGenObjects {
     expiryStartDate?: NexusGenScalars['DateTime'] | null; // DateTime
     id: number; // Int!
     image?: string | null; // String
+    isBNPC: boolean; // Boolean!
+    isVatExempt: boolean; // Boolean!
     itemCode?: string | null; // String
     minQuantity: number; // Int!
     name: string; // String!
@@ -749,6 +811,7 @@ export interface NexusGenObjects {
     stockLabel?: string | null; // String
     totalCost?: number | null; // Float
     vatExempt?: boolean | null; // Boolean
+    vatRate: number; // Float!
     vatTypeId?: number | null; // Int
   }
   ItemAnalyticsPayload: { // root type
@@ -1238,20 +1301,32 @@ export interface NexusGenObjects {
   SalesOrder: { // root type
     branchId?: number | null; // Int
     customer: string; // String!
+    customerContact?: string | null; // String
+    customerName?: string | null; // String
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
     date: NexusGenScalars['DateTime']; // DateTime!
+    deliveryAddress?: string | null; // String
+    deliveryNotes?: string | null; // String
     discountAmount: number; // Float!
     discountRate: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    extraChargesTotal: number; // Float!
+    grandTotal: number; // Float!
     id: string; // String!
+    orderMode: NexusGenEnums['OrderModeEnum']; // OrderModeEnum!
     orderNumber: string; // String!
     orgId: number; // Int!
     outletId?: number | null; // Int
     outletPromoId?: number | null; // Int
+    scPwdPax?: number | null; // Int
     status: NexusGenEnums['SalesOrderStatusEnum']; // SalesOrderStatusEnum!
     subtotal: number; // Float!
     total: number; // Float!
+    totalPax?: number | null; // Int
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     userId?: number | null; // Int
     vatAmount: number; // Float!
+    vatExemptSale: number; // Float!
     vatRate: number; // Float!
   }
   SalesOrderDelivery: { // root type
@@ -1289,6 +1364,22 @@ export interface NexusGenObjects {
     orders: number; // Int!
     profit: number; // Float!
     revenue: number; // Float!
+  }
+  ScPwdCustomer: { // root type
+    address?: string | null; // String
+    contactNumber?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
+    dateOfBirth?: NexusGenScalars['DateTime'] | null; // DateTime
+    fullName: string; // String!
+    id: string; // String!
+    idNumber: string; // String!
+    idType: string; // String!
+    isRepresentative: boolean; // Boolean!
+    orgId?: number | null; // Int
+    representativeIdNumber?: string | null; // String
+    representativeName?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   Shift: { // root type
     attendances: NexusGenRootTypes['Attendance'][]; // [Attendance!]!
@@ -1380,21 +1471,27 @@ export interface NexusGenObjects {
     cashierId: number; // Int!
     change?: number | null; // Float
     createdAt: NexusGenScalars['DateTime']; // DateTime!
-    discountAmount?: number | null; // Float
-    discountType?: string | null; // String
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
+    discountAmount: number; // Float!
+    discountRate: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
     id: number; // Int!
     isVatExempt: boolean; // Boolean!
     outletId: number; // Int!
     outletPromoId?: number | null; // Int
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     promoDiscountAmt?: number | null; // Float
+    scPwdCustomerId?: string | null; // String
+    scPwdPax?: number | null; // Int
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
     total: number; // Float!
+    totalPax?: number | null; // Int
     vatAmount: number; // Float!
     vatExemptAmount?: number | null; // Float
     vatExemptRefNo?: string | null; // String
+    vatExemptSale: number; // Float!
     vatExemptType?: NexusGenEnums['VatExemptType'] | null; // VatExemptType
   }
   UnauthorizedAttempt: { // root type
@@ -1538,6 +1635,17 @@ export interface NexusGenFieldTypes {
   BatchPayload: { // field return type
     count: number; // Int!
   }
+  BirDiscountLogbookEntry: { // field return type
+    date: NexusGenScalars['DateTime']; // DateTime!
+    discountAmount: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    fullName: string; // String!
+    idNumber: string; // String!
+    itemsPurchased: string; // String!
+    netAmountPaid: number; // Float!
+    orNumber: string; // String!
+    totalBeforeDiscount: number; // Float!
+  }
   Branch: { // field return type
     address: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -1597,8 +1705,11 @@ export interface NexusGenFieldTypes {
     discountAmount: number | null; // Float
     discountQuantity: number | null; // Float
     discountRate: number | null; // Float
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    finalPrice: number; // Float!
     item: NexusGenRootTypes['Item']; // Item!
     itemId: number; // Int!
+    originalPrice: number; // Float!
     priceAtSale: number; // Float!
     quantity: number; // Float!
     transaction: NexusGenRootTypes['Transaction']; // Transaction!
@@ -1606,6 +1717,7 @@ export interface NexusGenFieldTypes {
     unit: NexusGenRootTypes['InventoryItemUnit'] | null; // InventoryItemUnit
     unitId: number | null; // Int
     unitName: string | null; // String
+    vatExclusivePrice: number; // Float!
   }
   Center: { // field return type
     gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
@@ -1732,6 +1844,13 @@ export interface NexusGenFieldTypes {
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
   }
+  ExtraCharge: { // field return type
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    label: string; // String!
+    salesOrderId: string; // String!
+  }
   GISRow: { // field return type
     accountTitle: NexusGenRootTypes['AccountTitle']; // AccountTitle!
     accountTitleId: number; // Int!
@@ -1843,6 +1962,8 @@ export interface NexusGenFieldTypes {
     expiryStartDate: NexusGenScalars['DateTime'] | null; // DateTime
     id: number; // Int!
     image: string | null; // String
+    isBNPC: boolean; // Boolean!
+    isVatExempt: boolean; // Boolean!
     itemCode: string | null; // String
     media: NexusGenRootTypes['Media'][]; // [Media!]!
     minQuantity: number; // Int!
@@ -1864,6 +1985,7 @@ export interface NexusGenFieldTypes {
     summaryRows: NexusGenRootTypes['SummaryRow'][]; // [SummaryRow!]!
     totalCost: number | null; // Float
     vatExempt: boolean | null; // Boolean
+    vatRate: number; // Float!
     vatType: NexusGenRootTypes['VatType']; // VatType!
     vatTypeId: number | null; // Int
   }
@@ -2035,6 +2157,7 @@ export interface NexusGenFieldTypes {
     AddOutletStaff: NexusGenRootTypes['AddedOutletStaffs']; // AddedOutletStaffs!
     StaffLogout: boolean; // Boolean!
     addDeliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
+    addExtraCharge: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     addInventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
     addItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     addItemToInventoryWithUnits: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
@@ -2070,6 +2193,7 @@ export interface NexusGenFieldTypes {
     createRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     createRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
     createSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    createScPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
     createStaff: NexusGenRootTypes['User']; // User!
     createSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     createSubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
@@ -2122,6 +2246,7 @@ export interface NexusGenFieldTypes {
     registerAdmin: NexusGenRootTypes['User']; // User!
     registerKompraCustomer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     registerUser: NexusGenRootTypes['User']; // User!
+    removeExtraCharge: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     reorderItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     resendOTP: string; // String!
     restockOutlet: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
@@ -2162,6 +2287,9 @@ export interface NexusGenFieldTypes {
     updatePromoType: NexusGenRootTypes['PromoType']; // PromoType!
     updateRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     updateRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
+    updateSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    updateSalesOrderStatus: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    updateScPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
     updateSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     updateSubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     updateSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
@@ -2488,6 +2616,7 @@ export interface NexusGenFieldTypes {
     ME: NexusGenRootTypes['User']; // User!
     accountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     auditLogs: NexusGenRootTypes['AuditLogType'][]; // [AuditLogType!]!
+    birDiscountLogbook: NexusGenRootTypes['BirDiscountLogbookEntry'][]; // [BirDiscountLogbookEntry!]!
     budgetEntries: Array<NexusGenRootTypes['Budget'] | null> | null; // [Budget]
     budgetEntry: NexusGenRootTypes['Budget'] | null; // Budget
     checkUserTimeInStatus: NexusGenRootTypes['TimeInStatus'] | null; // TimeInStatus
@@ -2586,6 +2715,12 @@ export interface NexusGenFieldTypes {
     promoType: NexusGenRootTypes['PromoType'] | null; // PromoType
     promoTypes: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
     promoTypesByOrg: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
+    salesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    salesOrders: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
+    salesOrdersByMode: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
+    salesOrdersByStatus: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
+    scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    scPwdCustomers: NexusGenRootTypes['ScPwdCustomer'][]; // [ScPwdCustomer!]!
     searchInventoryItems: NexusGenRootTypes['InventoryItemsSearchResult']; // InventoryItemsSearchResult!
     subCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     subCenters: Array<NexusGenRootTypes['SubCenter'] | null> | null; // [SubCenter]
@@ -2594,6 +2729,7 @@ export interface NexusGenFieldTypes {
     summaryRowExpenses: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
     summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
     todayAttendanceByOrg: NexusGenRootTypes['PaginatedUserAttendance'] | null; // PaginatedUserAttendance
+    transactionsByDiscountType: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     userAttendanceHistory: NexusGenRootTypes['PaginatedAttendance'] | null; // PaginatedAttendance
     userPerformanceSummary: NexusGenRootTypes['PerformanceSummary'] | null; // PerformanceSummary
     vatType: NexusGenRootTypes['VatType'] | null; // VatType
@@ -2680,23 +2816,37 @@ export interface NexusGenFieldTypes {
     branch: NexusGenRootTypes['Branch'] | null; // Branch
     branchId: number | null; // Int
     customer: string; // String!
+    customerContact: string | null; // String
+    customerName: string | null; // String
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
     date: NexusGenScalars['DateTime']; // DateTime!
     delivery: NexusGenRootTypes['SalesOrderDelivery'] | null; // SalesOrderDelivery
+    deliveryAddress: string | null; // String
+    deliveryNotes: string | null; // String
     discountAmount: number; // Float!
     discountRate: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    extraCharges: NexusGenRootTypes['ExtraCharge'][]; // [ExtraCharge!]!
+    extraChargesTotal: number; // Float!
+    grandTotal: number; // Float!
     id: string; // String!
     items: Array<NexusGenRootTypes['SalesOrderItem'] | null> | null; // [SalesOrderItem]
+    orderMode: NexusGenEnums['OrderModeEnum']; // OrderModeEnum!
     orderNumber: string; // String!
     orgId: number; // Int!
     outlet: NexusGenRootTypes['Outlet'] | null; // Outlet
     outletId: number | null; // Int
     outletPromoId: number | null; // Int
+    scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    scPwdPax: number | null; // Int
     status: NexusGenEnums['SalesOrderStatusEnum']; // SalesOrderStatusEnum!
     subtotal: number; // Float!
     total: number; // Float!
+    totalPax: number | null; // Int
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     userId: number | null; // Int
     vatAmount: number; // Float!
+    vatExemptSale: number; // Float!
     vatRate: number; // Float!
   }
   SalesOrderDelivery: { // field return type
@@ -2735,6 +2885,22 @@ export interface NexusGenFieldTypes {
     orders: number; // Int!
     profit: number; // Float!
     revenue: number; // Float!
+  }
+  ScPwdCustomer: { // field return type
+    address: string | null; // String
+    contactNumber: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
+    dateOfBirth: NexusGenScalars['DateTime'] | null; // DateTime
+    fullName: string; // String!
+    id: string; // String!
+    idNumber: string; // String!
+    idType: string; // String!
+    isRepresentative: boolean; // Boolean!
+    orgId: number | null; // Int
+    representativeIdNumber: string | null; // String
+    representativeName: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   Shift: { // field return type
     attendances: NexusGenRootTypes['Attendance'][]; // [Attendance!]!
@@ -2841,8 +3007,10 @@ export interface NexusGenFieldTypes {
     change: number | null; // Float
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     customerDetails: NexusGenRootTypes['CustomerDetails'] | null; // CustomerDetails
-    discountAmount: number | null; // Float
-    discountType: string | null; // String
+    customerType: NexusGenEnums['CustomerType']; // CustomerType!
+    discountAmount: number; // Float!
+    discountRate: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
     id: number; // Int!
     isVatExempt: boolean; // Boolean!
     items: NexusGenRootTypes['CartItem'][]; // [CartItem!]!
@@ -2852,13 +3020,18 @@ export interface NexusGenFieldTypes {
     outletPromoId: number | null; // Int
     paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
     promoDiscountAmt: number | null; // Float
+    scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    scPwdCustomerId: string | null; // String
+    scPwdPax: number | null; // Int
     status: NexusGenEnums['Status']; // Status!
     subtotal: number; // Float!
     syncedAt: NexusGenScalars['DateTime']; // DateTime!
     total: number; // Float!
+    totalPax: number | null; // Int
     vatAmount: number; // Float!
     vatExemptAmount: number | null; // Float
     vatExemptRefNo: string | null; // String
+    vatExemptSale: number; // Float!
     vatExemptType: NexusGenEnums['VatExemptType'] | null; // VatExemptType
   }
   UnauthorizedAttempt: { // field return type
@@ -3011,6 +3184,17 @@ export interface NexusGenFieldTypeNames {
   BatchPayload: { // field return type name
     count: 'Int'
   }
+  BirDiscountLogbookEntry: { // field return type name
+    date: 'DateTime'
+    discountAmount: 'Float'
+    discountType: 'DiscountType'
+    fullName: 'String'
+    idNumber: 'String'
+    itemsPurchased: 'String'
+    netAmountPaid: 'Float'
+    orNumber: 'String'
+    totalBeforeDiscount: 'Float'
+  }
   Branch: { // field return type name
     address: 'String'
     createdAt: 'DateTime'
@@ -3070,8 +3254,11 @@ export interface NexusGenFieldTypeNames {
     discountAmount: 'Float'
     discountQuantity: 'Float'
     discountRate: 'Float'
+    discountType: 'DiscountType'
+    finalPrice: 'Float'
     item: 'Item'
     itemId: 'Int'
+    originalPrice: 'Float'
     priceAtSale: 'Float'
     quantity: 'Float'
     transaction: 'Transaction'
@@ -3079,6 +3266,7 @@ export interface NexusGenFieldTypeNames {
     unit: 'InventoryItemUnit'
     unitId: 'Int'
     unitName: 'String'
+    vatExclusivePrice: 'Float'
   }
   Center: { // field return type name
     gisRows: 'GISRow'
@@ -3205,6 +3393,13 @@ export interface NexusGenFieldTypeNames {
     user: 'User'
     userId: 'Int'
   }
+  ExtraCharge: { // field return type name
+    amount: 'Float'
+    createdAt: 'DateTime'
+    id: 'String'
+    label: 'String'
+    salesOrderId: 'String'
+  }
   GISRow: { // field return type name
     accountTitle: 'AccountTitle'
     accountTitleId: 'Int'
@@ -3316,6 +3511,8 @@ export interface NexusGenFieldTypeNames {
     expiryStartDate: 'DateTime'
     id: 'Int'
     image: 'String'
+    isBNPC: 'Boolean'
+    isVatExempt: 'Boolean'
     itemCode: 'String'
     media: 'Media'
     minQuantity: 'Int'
@@ -3337,6 +3534,7 @@ export interface NexusGenFieldTypeNames {
     summaryRows: 'SummaryRow'
     totalCost: 'Float'
     vatExempt: 'Boolean'
+    vatRate: 'Float'
     vatType: 'VatType'
     vatTypeId: 'Int'
   }
@@ -3508,6 +3706,7 @@ export interface NexusGenFieldTypeNames {
     AddOutletStaff: 'AddedOutletStaffs'
     StaffLogout: 'Boolean'
     addDeliveryAddress: 'DeliveryAddress'
+    addExtraCharge: 'SalesOrder'
     addInventoryItemUnits: 'InventoryItemUnit'
     addItemMedia: 'Media'
     addItemToInventoryWithUnits: 'InventoryItems'
@@ -3543,6 +3742,7 @@ export interface NexusGenFieldTypeNames {
     createRestockCycle: 'RestockCycle'
     createRestockSchedule: 'RestockSchedule'
     createSalesOrder: 'SalesOrder'
+    createScPwdCustomer: 'ScPwdCustomer'
     createStaff: 'User'
     createSubCenter: 'SubCenter'
     createSubscription: 'Subscription'
@@ -3595,6 +3795,7 @@ export interface NexusGenFieldTypeNames {
     registerAdmin: 'User'
     registerKompraCustomer: 'KompraCustomer'
     registerUser: 'User'
+    removeExtraCharge: 'SalesOrder'
     reorderItemMedia: 'Media'
     resendOTP: 'String'
     restockOutlet: 'InventoryItems'
@@ -3635,6 +3836,9 @@ export interface NexusGenFieldTypeNames {
     updatePromoType: 'PromoType'
     updateRestockCycle: 'RestockCycle'
     updateRestockSchedule: 'RestockSchedule'
+    updateSalesOrder: 'SalesOrder'
+    updateSalesOrderStatus: 'SalesOrder'
+    updateScPwdCustomer: 'ScPwdCustomer'
     updateSubCenter: 'SubCenter'
     updateSubscription: 'Subscription'
     updateSubscriptionAdmin: 'Subscription'
@@ -3961,6 +4165,7 @@ export interface NexusGenFieldTypeNames {
     ME: 'User'
     accountTitle: 'AccountTitle'
     auditLogs: 'AuditLogType'
+    birDiscountLogbook: 'BirDiscountLogbookEntry'
     budgetEntries: 'Budget'
     budgetEntry: 'Budget'
     checkUserTimeInStatus: 'TimeInStatus'
@@ -4059,6 +4264,12 @@ export interface NexusGenFieldTypeNames {
     promoType: 'PromoType'
     promoTypes: 'PromoType'
     promoTypesByOrg: 'PromoType'
+    salesOrder: 'SalesOrder'
+    salesOrders: 'SalesOrder'
+    salesOrdersByMode: 'SalesOrder'
+    salesOrdersByStatus: 'SalesOrder'
+    scPwdCustomer: 'ScPwdCustomer'
+    scPwdCustomers: 'ScPwdCustomer'
     searchInventoryItems: 'InventoryItemsSearchResult'
     subCenter: 'SubCenter'
     subCenters: 'SubCenter'
@@ -4067,6 +4278,7 @@ export interface NexusGenFieldTypeNames {
     summaryRowExpenses: 'SummaryRow'
     summaryRows: 'SummaryRow'
     todayAttendanceByOrg: 'PaginatedUserAttendance'
+    transactionsByDiscountType: 'Transaction'
     userAttendanceHistory: 'PaginatedAttendance'
     userPerformanceSummary: 'PerformanceSummary'
     vatType: 'VatType'
@@ -4153,23 +4365,37 @@ export interface NexusGenFieldTypeNames {
     branch: 'Branch'
     branchId: 'Int'
     customer: 'String'
+    customerContact: 'String'
+    customerName: 'String'
+    customerType: 'CustomerType'
     date: 'DateTime'
     delivery: 'SalesOrderDelivery'
+    deliveryAddress: 'String'
+    deliveryNotes: 'String'
     discountAmount: 'Float'
     discountRate: 'Float'
+    discountType: 'DiscountType'
+    extraCharges: 'ExtraCharge'
+    extraChargesTotal: 'Float'
+    grandTotal: 'Float'
     id: 'String'
     items: 'SalesOrderItem'
+    orderMode: 'OrderModeEnum'
     orderNumber: 'String'
     orgId: 'Int'
     outlet: 'Outlet'
     outletId: 'Int'
     outletPromoId: 'Int'
+    scPwdCustomer: 'ScPwdCustomer'
+    scPwdPax: 'Int'
     status: 'SalesOrderStatusEnum'
     subtotal: 'Float'
     total: 'Float'
+    totalPax: 'Int'
     updatedAt: 'DateTime'
     userId: 'Int'
     vatAmount: 'Float'
+    vatExemptSale: 'Float'
     vatRate: 'Float'
   }
   SalesOrderDelivery: { // field return type name
@@ -4208,6 +4434,22 @@ export interface NexusGenFieldTypeNames {
     orders: 'Int'
     profit: 'Float'
     revenue: 'Float'
+  }
+  ScPwdCustomer: { // field return type name
+    address: 'String'
+    contactNumber: 'String'
+    createdAt: 'DateTime'
+    customerType: 'CustomerType'
+    dateOfBirth: 'DateTime'
+    fullName: 'String'
+    id: 'String'
+    idNumber: 'String'
+    idType: 'String'
+    isRepresentative: 'Boolean'
+    orgId: 'Int'
+    representativeIdNumber: 'String'
+    representativeName: 'String'
+    updatedAt: 'DateTime'
   }
   Shift: { // field return type name
     attendances: 'Attendance'
@@ -4314,8 +4556,10 @@ export interface NexusGenFieldTypeNames {
     change: 'Float'
     createdAt: 'DateTime'
     customerDetails: 'CustomerDetails'
+    customerType: 'CustomerType'
     discountAmount: 'Float'
-    discountType: 'String'
+    discountRate: 'Float'
+    discountType: 'DiscountType'
     id: 'Int'
     isVatExempt: 'Boolean'
     items: 'CartItem'
@@ -4325,13 +4569,18 @@ export interface NexusGenFieldTypeNames {
     outletPromoId: 'Int'
     paymentMethod: 'PaymentMethod'
     promoDiscountAmt: 'Float'
+    scPwdCustomer: 'ScPwdCustomer'
+    scPwdCustomerId: 'String'
+    scPwdPax: 'Int'
     status: 'Status'
     subtotal: 'Float'
     syncedAt: 'DateTime'
     total: 'Float'
+    totalPax: 'Int'
     vatAmount: 'Float'
     vatExemptAmount: 'Float'
     vatExemptRefNo: 'String'
+    vatExemptSale: 'Float'
     vatExemptType: 'VatExemptType'
   }
   UnauthorizedAttempt: { // field return type name
@@ -4425,6 +4674,11 @@ export interface NexusGenArgTypes {
     addDeliveryAddress: { // args
       customerId: number; // Int!
       input: NexusGenInputs['AddDeliveryAddressInput']; // AddDeliveryAddressInput!
+    }
+    addExtraCharge: { // args
+      amount: number; // Float!
+      label: string; // String!
+      salesOrderId: string; // String!
     }
     addInventoryItemUnits: { // args
       inventoryItemId: number; // Int!
@@ -4605,17 +4859,31 @@ export interface NexusGenArgTypes {
       data: NexusGenInputs['RestockScheduleInput']; // RestockScheduleInput!
     }
     createSalesOrder: { // args
-      branchId: number; // Int!
-      customer: string; // String!
-      discountAmount: number; // Float!
-      discountRate: number; // Float!
+      branchId?: number | null; // Int
+      customer?: string | null; // String
+      customerContact?: string | null; // String
+      customerName?: string | null; // String
+      customerType?: NexusGenEnums['CustomerType'] | null; // CustomerType
+      deliveryAddress?: string | null; // String
+      deliveryNotes?: string | null; // String
+      discountAmount?: number | null; // Float
+      discountRate?: number | null; // Float
+      discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+      extraCharges?: NexusGenInputs['ExtraChargeInput'][] | null; // [ExtraChargeInput!]
       items: NexusGenInputs['SalesOrderItemInput'][]; // [SalesOrderItemInput!]!
-      outletId: number; // Int!
+      orderMode: NexusGenEnums['OrderModeEnum']; // OrderModeEnum!
+      outletId?: number | null; // Int
       outletPromoId?: number | null; // Int
-      subtotal: number; // Float!
-      total: number; // Float!
-      vatAmount: number; // Float!
-      vatRate: number; // Float!
+      scPwdCustomerInput?: NexusGenInputs['ScPwdCustomerInput'] | null; // ScPwdCustomerInput
+      scPwdPax?: number | null; // Int
+      subtotal?: number | null; // Float
+      total?: number | null; // Float
+      totalPax?: number | null; // Int
+      vatAmount?: number | null; // Float
+      vatRate?: number | null; // Float
+    }
+    createScPwdCustomer: { // args
+      data: NexusGenInputs['ScPwdCustomerInput']; // ScPwdCustomerInput!
     }
     createStaff: { // args
       departmentId?: number | null; // Int
@@ -4661,8 +4929,10 @@ export interface NexusGenArgTypes {
       cashierId: number; // Int!
       change?: number | null; // Float
       createdAt: string; // String!
+      customerType?: NexusGenEnums['CustomerType'] | null; // CustomerType
       discountAmount?: number | null; // Float
-      discountType?: string | null; // String
+      discountRate?: number | null; // Float
+      discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
       isVatExempt?: boolean | null; // Boolean
       itemsSold: NexusGenInputs['CartItemInput'][]; // [CartItemInput!]!
       outletId: number; // Int!
@@ -4670,12 +4940,16 @@ export interface NexusGenArgTypes {
       paymentMethod: NexusGenEnums['PaymentMethod']; // PaymentMethod!
       paymentType?: string | null; // String
       promoDiscountAmt?: number | null; // Float
+      scPwdCustomerInput?: NexusGenInputs['ScPwdCustomerInput'] | null; // ScPwdCustomerInput
+      scPwdPax?: number | null; // Int
       status: NexusGenEnums['Status']; // Status!
       subtotal: number; // Float!
       total: number; // Float!
+      totalPax?: number | null; // Int
       vatAmount: number; // Float!
       vatExemptAmount?: number | null; // Float
       vatExemptRefNo?: string | null; // String
+      vatExemptSale?: number | null; // Float
       vatExemptType?: NexusGenEnums['VatExemptType'] | null; // VatExemptType
     }
     createVatType: { // args
@@ -4840,6 +5114,9 @@ export interface NexusGenArgTypes {
       email: string; // String!
       fullname: string; // String!
       password: string; // String!
+    }
+    removeExtraCharge: { // args
+      extraChargeId: string; // String!
     }
     reorderItemMedia: { // args
       itemId: number; // Int!
@@ -5061,6 +5338,22 @@ export interface NexusGenArgTypes {
       data: NexusGenInputs['RestockScheduleInput']; // RestockScheduleInput!
       id: number; // Int!
     }
+    updateSalesOrder: { // args
+      customerContact?: string | null; // String
+      customerName?: string | null; // String
+      deliveryAddress?: string | null; // String
+      deliveryNotes?: string | null; // String
+      id: string; // String!
+      orderMode?: NexusGenEnums['OrderModeEnum'] | null; // OrderModeEnum
+    }
+    updateSalesOrderStatus: { // args
+      salesOrderId: string; // String!
+      status: NexusGenEnums['SalesOrderStatusEnum']; // SalesOrderStatusEnum!
+    }
+    updateScPwdCustomer: { // args
+      data: NexusGenInputs['ScPwdCustomerInput']; // ScPwdCustomerInput!
+      id: string; // String!
+    }
     updateSubCenter: { // args
       id?: number | null; // Int
       label?: string | null; // String
@@ -5116,6 +5409,10 @@ export interface NexusGenArgTypes {
       filters?: NexusGenInputs['AuditLogFiltersInput'] | null; // AuditLogFiltersInput
       orgId: number; // Int!
       pagination?: NexusGenInputs['PaginationInput'] | null; // PaginationInput
+    }
+    birDiscountLogbook: { // args
+      endDate?: string | null; // String
+      startDate?: string | null; // String
     }
     budgetEntries: { // args
       year?: number | null; // Int
@@ -5243,6 +5540,7 @@ export interface NexusGenArgTypes {
       id: string; // ID!
     }
     getOutletInventoryItems: { // args
+      branchId?: number | null; // Int
       outletId?: number | null; // Int
     }
     getOutletStaff: { // args
@@ -5289,7 +5587,11 @@ export interface NexusGenArgTypes {
     }
     getSalesOrders: { // args
       branchId?: number | null; // Int
+      customerName?: string | null; // String
+      discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
       endDate?: string | null; // String
+      filter?: NexusGenInputs['SalesOrderFilterInput'] | null; // SalesOrderFilterInput
+      orderMode?: NexusGenEnums['OrderModeEnum'] | null; // OrderModeEnum
       outletId?: number | null; // Int
       startDate?: string | null; // String
       status?: NexusGenEnums['SalesOrderStatusEnum'] | null; // SalesOrderStatusEnum
@@ -5405,7 +5707,26 @@ export interface NexusGenArgTypes {
     promoType: { // args
       id: number; // Int!
     }
+    salesOrder: { // args
+      id: string; // String!
+    }
+    salesOrders: { // args
+      filter?: NexusGenInputs['SalesOrderFilterInput'] | null; // SalesOrderFilterInput
+    }
+    salesOrdersByMode: { // args
+      orderMode: NexusGenEnums['OrderModeEnum']; // OrderModeEnum!
+    }
+    salesOrdersByStatus: { // args
+      status: NexusGenEnums['SalesOrderStatusEnum']; // SalesOrderStatusEnum!
+    }
+    scPwdCustomer: { // args
+      id: string; // String!
+    }
+    scPwdCustomers: { // args
+      search?: string | null; // String
+    }
     searchInventoryItems: { // args
+      branchId?: number | null; // Int
       outletId?: number | null; // Int
       search?: string | null; // String
       skip: number; // Int!
@@ -5435,6 +5756,9 @@ export interface NexusGenArgTypes {
       limit: number | null; // Int
       page: number | null; // Int
       role?: string | null; // String
+    }
+    transactionsByDiscountType: { // args
+      discountType: NexusGenEnums['DiscountType']; // DiscountType!
     }
     userAttendanceHistory: { // args
       limit: number | null; // Int

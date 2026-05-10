@@ -12,7 +12,11 @@ export const CartItem = objectType({
     t.nonNull.float("priceAtSale");
     t.nullable.float("discountAmount");
     t.nullable.float("discountQuantity");  // ← NEW
-    t.nullable.float("discountRate");      // ← NEW
+    t.nullable.float("discountRate");
+    t.nonNull.field("discountType", { type: "DiscountType" });
+    t.nonNull.float("originalPrice");
+    t.nonNull.float("vatExclusivePrice");
+    t.nonNull.float("finalPrice");
 
     t.nonNull.field("transaction", {
       type: "Transaction",
@@ -55,3 +59,4 @@ export const CartItem = objectType({
     });
   },
 });
+

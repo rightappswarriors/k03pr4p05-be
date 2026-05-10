@@ -33,10 +33,22 @@ export const Transaction = objectType({
         t.nonNull.float("total");
         t.nonNull.float("subtotal");
         t.nonNull.float("vatAmount");
+        t.nonNull.float("vatExemptSale");
         t.nullable.float("cashReceived");
         t.nullable.float("change");
-        t.nullable.string("discountType");
-        t.nullable.float("discountAmount");
+        t.nonNull.field("customerType", { type: "CustomerType" });
+        t.nonNull.field("discountType", { type: "DiscountType" });
+        t.nonNull.float("discountRate");
+        t.nonNull.float("discountAmount");
+        t.nullable.int("totalPax");
+        t.nullable.int("scPwdPax");
+        t.nullable.string("scPwdCustomerId");
+        t.nullable.field("scPwdCustomer", {
+            type: "ScPwdCustomer",
+            resolve: (parent, _, ctx) => ctx.prisma.transaction
+                .findUnique({ where: { id: parent.id } })
+                .scPwdCustomer(),
+        });
         t.nonNull.field("paymentMethod", { type: "PaymentMethod" });
         t.nonNull.field("status", { type: "Status" });
         t.nonNull.dateTime("createdAt");

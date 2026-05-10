@@ -23,6 +23,9 @@ export const Item = objectType({
         t.nullable.string('itemCode');
         t.nullable.string('skuNumber');
         t.nullable.boolean('vatExempt');
+        t.nonNull.boolean('isVatExempt');
+        t.nonNull.boolean('isBNPC');
+        t.nonNull.float('vatRate');
         t.nonNull.int("minQuantity");
         t.nonNull.float("opExPct");
         t.float("priceB");
@@ -235,4 +238,4 @@ export const EkumpraCOrderItem = objectType({
             },
         })
     },
-}) */ 
+}) */

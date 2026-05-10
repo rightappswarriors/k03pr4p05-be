@@ -45,7 +45,11 @@ export const CartItemInput = inputObjectType({
     t.nullable.string("unitName")    // ← add
     t.nullable.float("discountAmount") // ← new — per-item discount amount
     t.nullable.float("discountQuantity") // ← new — per-item discount quantity
-    t.nullable.float("discountRate") // ← new — per-item discount rate
+    t.nullable.float("discountRate")
+    t.nullable.field("discountType", { type: "DiscountType" })
+    t.nullable.float("originalPrice")
+    t.nullable.float("vatExclusivePrice")
+    t.nullable.float("finalPrice")
   },
 });
 
@@ -77,14 +81,20 @@ export const TransactionMutation = extendType({
         total: nonNull(arg({ type: "Float" })),
         subtotal: nonNull(arg({ type: "Float" })),
         vatAmount: nonNull(arg({ type: "Float" })),
+        vatExemptSale: nullable(arg({ type: "Float" })),
         cashReceived: arg({ type: "Float" }),
         change: arg({ type: "Float" }),
         paymentMethod: nonNull(arg({ type: "PaymentMethod" })),
         paymentType: stringArg(),
         status: nonNull(arg({ type: "Status" })),
         createdAt: nonNull(stringArg()),
-        discountType: nullable(stringArg()),
+        discountType: nullable(arg({ type: "DiscountType" })),
+        customerType: nullable(arg({ type: "CustomerType" })),
+        scPwdCustomerInput: nullable(arg({ type: "ScPwdCustomerInput" })),
+        discountRate: nullable(arg({ type: "Float" })),
         discountAmount: nullable(arg({ type: "Float" })),
+        totalPax: nullable(intArg()),
+        scPwdPax: nullable(intArg()),
         // ── VAT Exemption ────────────────────────────────────────────────────
         isVatExempt: nullable(arg({ type: "Boolean" })),
         vatExemptType: nullable(arg({ type: "VatExemptType" })),
@@ -101,6 +111,15 @@ export const TransactionMutation = extendType({
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
         const { itemsSold, ...transactionData } = args;
+        if ((transactionData as any).scPwdPax && (transactionData as any).totalPax && (transactionData as any).scPwdPax > (transactionData as any).totalPax) {
+          throw new Error("SC/PWD pax must be less than or equal to total pax.");
+        }
+        if ((transactionData as any).customerType && (transactionData as any).customerType !== "REGULAR") {
+          const customerInput = (transactionData as any).scPwdCustomerInput;
+          if (!customerInput?.idNumber || !customerInput?.fullName) {
+            throw new Error("SC/PWD full name and ID number are required.");
+          }
+        }
         if (!itemsSold || itemsSold.length === 0) {
           throw new Error("Missing itemsSold array.");
         }
@@ -117,6 +136,57 @@ export const TransactionMutation = extendType({
           }
           throw new Error("Failed to process transaction.");
         }
+      },
+    });
+    t.field("createScPwdCustomer", {
+      type: "ScPwdCustomer",
+      args: {
+        data: nonNull(arg({ type: "ScPwdCustomerInput" })),
+      },
+      async resolve(_, { data }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        return ctx.prisma.scPwdCustomer.create({
+          data: {
+            orgId: ctx.user?.orgId ? Number(ctx.user.orgId) : undefined,
+            fullName: data.fullName,
+            idNumber: data.idNumber,
+            idType: data.idType,
+            customerType: data.customerType,
+            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+            contactNumber: data.contactNumber ?? null,
+            address: data.address ?? null,
+            isRepresentative: data.isRepresentative ?? false,
+            representativeName: data.representativeName ?? null,
+            representativeIdNumber: data.representativeIdNumber ?? null,
+          },
+        });
+      },
+    });
+    t.field("updateScPwdCustomer", {
+      type: "ScPwdCustomer",
+      args: {
+        id: nonNull(stringArg()),
+        data: nonNull(arg({ type: "ScPwdCustomerInput" })),
+      },
+      async resolve(_, { id, data }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        return ctx.prisma.scPwdCustomer.update({
+          where: { id },
+          data: {
+            fullName: data.fullName,
+            idNumber: data.idNumber,
+            idType: data.idType,
+            customerType: data.customerType,
+            dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+            contactNumber: data.contactNumber ?? null,
+            address: data.address ?? null,
+            isRepresentative: data.isRepresentative ?? false,
+            representativeName: data.representativeName ?? null,
+            representativeIdNumber: data.representativeIdNumber ?? null,
+          },
+        });
       },
     });
     t.field("initiatePayment", {
@@ -183,3 +253,5 @@ export const TransactionMutation = extendType({
     });
   },
 });
+
+

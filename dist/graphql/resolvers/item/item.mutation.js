@@ -36,7 +36,10 @@ export const CreateItemInput = inputObjectType({
         t.nonNull.int("stock"); // ← new required field
         t.nullable.int("brandId"); // ← missing
         t.nullable.string("skuNumber"); // ← missing
-        t.nullable.boolean("vatExempt"); // ← missing
+        t.nullable.boolean("vatExempt");
+        t.nullable.boolean("isVatExempt");
+        t.nullable.boolean("isBNPC");
+        t.nullable.float("vatRate");
         t.nullable.boolean("ServiceCharge"); // ← missing
         t.nullable.boolean("assembly"); // ← missing
         t.list.field("costLines", { type: "CostLineInput" }); // ← new field
@@ -98,6 +101,9 @@ export const UpdateItemInput = inputObjectType({
         t.nullable.float("opExPct");
         t.nullable.int("minQuantity");
         t.nullable.boolean("vatExempt");
+        t.nullable.boolean("isVatExempt");
+        t.nullable.boolean("isBNPC");
+        t.nullable.float("vatRate");
         t.nullable.boolean("ServiceCharge");
         t.nullable.boolean("assembly");
         t.nullable.string("skuNumber");

@@ -23,6 +23,9 @@ interface CreateItemInput {
   itemCode?: string | null;
   skuNumber?: string | null;
   vatExempt?: boolean | null;
+  isVatExempt?: boolean | null;
+  isBNPC?: boolean | null;
+  vatRate?: number | null;
   ServiceCharge?: boolean | null;
   assembly?: boolean | null;
   minQuantity?: number | null;
@@ -51,6 +54,9 @@ interface UpdateItemInput {
   opExPct?: number | null;
   minQuantity?: number | null;
   vatExempt?: boolean | null;
+  isVatExempt?: boolean | null;
+  isBNPC?: boolean | null;
+  vatRate?: number | null;
   ServiceCharge?: boolean | null;
   assembly?: boolean | null;
   skuNumber?: string | null;
@@ -94,6 +100,9 @@ export const bulkCreateItems = async (
     itemCode?: string | null;
     skuNumber?: string | null;
     vatExempt?: boolean | null;
+    isVatExempt?: boolean | null;
+    isBNPC?: boolean | null;
+    vatRate?: number | null;
     ServiceCharge?: boolean | null;
     assembly?: boolean | null;
     minQuantity?: number | null;
@@ -142,6 +151,9 @@ export const bulkCreateItems = async (
           itemCode: item.itemCode ?? null,
           skuNumber: item.skuNumber ?? null,
           vatExempt: item.vatExempt ?? false,
+          isVatExempt: item.isVatExempt ?? item.vatExempt ?? false,
+          isBNPC: item.isBNPC ?? false,
+          vatRate: item.vatRate ?? 0.12,
           ServiceCharge: item.ServiceCharge ?? false,
           assembly: item.assembly ?? false,
         },
@@ -328,6 +340,9 @@ export const updateItem = async (id: number, data: UpdateItemInput) => {
       opExPct: data.opExPct ?? undefined,
       minQuantity: data.minQuantity ?? undefined,
       vatExempt: data.vatExempt ?? undefined,
+      isVatExempt: data.isVatExempt ?? undefined,
+      isBNPC: data.isBNPC ?? undefined,
+      vatRate: data.vatRate ?? undefined,
       ServiceCharge: data.ServiceCharge ?? undefined,
       assembly: data.assembly ?? undefined,
       skuNumber: data.skuNumber ?? undefined,

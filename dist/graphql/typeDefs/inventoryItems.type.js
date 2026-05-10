@@ -12,6 +12,8 @@ export const InventoryItems = objectType({
         t.nonNull.field("inventory", {
             type: "Inventory",
             resolve: (parent, _, ctx) => {
+                if (parent.inventory)
+                    return parent.inventory;
                 // Correct way to resolve the inventory from the inventory item
                 return ctx.prisma.inventoryItems
                     .findUnique({ where: { id: parent.id } })
@@ -31,6 +33,8 @@ export const InventoryItems = objectType({
         t.nonNull.field("item", {
             type: "Item",
             resolve: (parent, _, ctx) => {
+                if (parent.item)
+                    return parent.item;
                 // Correct way to resolve the item from the inventory item
                 return ctx.prisma.inventoryItems
                     .findUnique({ where: { id: parent.id } })
@@ -49,6 +53,8 @@ export const InventoryItems = objectType({
         t.nonNull.list.nonNull.field("units", {
             type: "InventoryItemUnit",
             resolve: async (parent, _, ctx) => {
+                if (Array.isArray(parent.units))
+                    return parent.units;
                 return ctx.prisma.inventoryItemUnit.findMany({
                     where: { inventoryItemId: parent.id, isActive: true },
                     orderBy: [{ isDefault: "desc" }, { price: "asc" }],
@@ -58,21 +64,27 @@ export const InventoryItems = objectType({
         // ─── Units ───────────────────────────────────────────────────────────
         t.list.field("units", {
             type: "InventoryItemUnit",
-            resolve: (parent, _, ctx) => ctx.prisma.inventoryItemUnit.findMany({
-                where: { inventoryItemId: parent.id, isActive: true },
-            }),
+            resolve: (parent, _, ctx) => Array.isArray(parent.units)
+                ? parent.units
+                :
+                    ctx.prisma.inventoryItemUnit.findMany({
+                        where: { inventoryItemId: parent.id, isActive: true },
+                    }),
         });
         // ─── Inventory → Outlet tag ───────────────────────────────────────────
         // Required by the "show all org items, tag each with outlet name" feature.
         // When outletId IS selected this field is ignored by the frontend.
         t.nullable.field("inventory", {
             type: "InventoryForItem",
-            resolve: (parent, _, ctx) => ctx.prisma.inventory.findUnique({
-                where: { id: parent.inventoryId },
-                include: {
-                    outlet: { select: { id: true, name: true, code: true } },
-                },
-            }),
+            resolve: (parent, _, ctx) => parent.inventory
+                ? parent.inventory
+                :
+                    ctx.prisma.inventory.findUnique({
+                        where: { id: parent.inventoryId },
+                        include: {
+                            outlet: { select: { id: true, name: true, code: true } },
+                        },
+                    }),
         });
     },
 });

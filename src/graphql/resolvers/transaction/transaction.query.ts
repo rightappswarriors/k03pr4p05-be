@@ -31,6 +31,70 @@ export const TransactionQuery = extendType({
         }
       },
     });
+    t.nonNull.list.nonNull.field("scPwdCustomers", {
+      type: "ScPwdCustomer",
+      args: {
+        search: nullable(stringArg()),
+      },
+      async resolve(_, { search }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        return ctx.prisma.scPwdCustomer.findMany({
+          where: {
+            ...(ctx.user?.orgId ? { orgId: Number(ctx.user.orgId) } : {}),
+            ...(search
+              ? {
+                OR: [
+                  { fullName: { contains: search, mode: "insensitive" } },
+                  { idNumber: { contains: search, mode: "insensitive" } },
+                ],
+              }
+              : {}),
+          },
+          orderBy: { createdAt: "desc" },
+        });
+      },
+    });
+
+    t.nullable.field("scPwdCustomer", {
+      type: "ScPwdCustomer",
+      args: { id: nonNull(stringArg()) },
+      async resolve(_, { id }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        return ctx.prisma.scPwdCustomer.findUnique({ where: { id } });
+      },
+    });
+
+    t.nonNull.list.nonNull.field("transactionsByDiscountType", {
+      type: "Transaction",
+      args: { discountType: nonNull(arg({ type: "DiscountType" })) },
+      async resolve(_, { discountType }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        return transactionService.getTransactionsByDiscountType(
+          discountType,
+          ctx.user?.orgId ? Number(ctx.user.orgId) : undefined,
+        );
+      },
+    });
+
+    t.nonNull.list.nonNull.field("birDiscountLogbook", {
+      type: "BirDiscountLogbookEntry",
+      args: {
+        startDate: nullable(stringArg()),
+        endDate: nullable(stringArg()),
+      },
+      async resolve(_, { startDate, endDate }, ctx) {
+        requireAuth(ctx);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        return transactionService.getBirDiscountLogbook(
+          startDate ?? undefined,
+          endDate ?? undefined,
+          ctx.user?.orgId ? Number(ctx.user.orgId) : undefined,
+        );
+      },
+    });
     t.nonNull.list.nonNull.field("getOutletTransactions", {
       type: "Transaction",
       args: {

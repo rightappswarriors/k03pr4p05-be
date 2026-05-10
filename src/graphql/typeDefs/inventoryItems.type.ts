@@ -13,6 +13,7 @@ export const InventoryItems = objectType({
     t.nonNull.field("inventory", {
       type: "Inventory",
       resolve: (parent, _, ctx) => {
+        if ((parent as any).inventory) return (parent as any).inventory;
         // Correct way to resolve the inventory from the inventory item
         return ctx.prisma.inventoryItems
           .findUnique({ where: { id: parent.id } })
@@ -33,6 +34,7 @@ export const InventoryItems = objectType({
     t.nonNull.field("item", {
       type: "Item",
       resolve: (parent, _, ctx) => {
+        if ((parent as any).item) return (parent as any).item;
         // Correct way to resolve the item from the inventory item
         return ctx.prisma.inventoryItems
           .findUnique({ where: { id: parent.id } })
@@ -51,6 +53,7 @@ export const InventoryItems = objectType({
     t.nonNull.list.nonNull.field("units", {
       type: "InventoryItemUnit",
       resolve: async (parent, _, ctx) => {
+        if (Array.isArray((parent as any).units)) return (parent as any).units;
         return ctx.prisma.inventoryItemUnit.findMany({
           where: { inventoryItemId: parent.id, isActive: true },
           orderBy: [{ isDefault: "desc" }, { price: "asc" }],
@@ -62,6 +65,9 @@ export const InventoryItems = objectType({
     t.list.field("units", {
       type: "InventoryItemUnit",
       resolve: (parent: any, _, ctx) =>
+        Array.isArray(parent.units)
+          ? parent.units
+          :
         ctx.prisma.inventoryItemUnit.findMany({
           where: { inventoryItemId: parent.id, isActive: true },
         }),
@@ -73,6 +79,9 @@ export const InventoryItems = objectType({
     t.nullable.field("inventory", {
       type: "InventoryForItem",
       resolve: (parent: any, _, ctx) =>
+        parent.inventory
+          ? parent.inventory
+          :
         ctx.prisma.inventory.findUnique({
           where: { id: parent.inventoryId },
           include: {
