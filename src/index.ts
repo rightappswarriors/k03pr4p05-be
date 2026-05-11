@@ -10,7 +10,8 @@ import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-  
+import { createClient } from "redis"; // 👈 ADD THIS
+
 // Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,6 +32,12 @@ import * as TypeDefs from "./graphql/typeDefs/index.js";
 // Import BullMQ worker
 import './workers/restock.worker.js';
 
+export const redisClient = createClient({
+  url: process.env.REDIS_URL || "redis://127.0.0.1:6379"
+});
+redisClient.on("error", (err) => console.error("Redis error:", err));
+redisClient.on("connect", () => console.log("✅ Redis connected"));
+await redisClient.connect();
 
 const schema = makeSchema({
   types: [
@@ -74,28 +81,28 @@ async function startApolloServer() {
   });
 
   await server.start();
-  const allowedOrigins = [
-    "http://localhost:4000",
-    "exp+pos-vine-mman://expo-development-client/?url=https%3A%2F%2Fcb04bpw-nuelgrace-8081.exp.direct",
-    "http://192.168.254.254:8081",
-    "exp://192.168.254.254:8081",
-    
-    "http://192.168.254.125:4000",
-    "exp://192.168.254.125:8081",
-  ];
+  const allowedOrigins = process.env.NODE_ENV === "production"
+    ? [process.env.FRONTEND_URL!]
+    : [
+      "http://localhost:4000",
+      "exp+pos-vine-mman://expo-development-client/?url=https%3A%2F%2Fcb04bpw-nuelgrace-8081.exp.direct",
+      "http://192.168.254.254:8081",
+      "exp://192.168.254.254:8081",
+      "http://192.168.254.125:4000",
+      "exp://192.168.254.125:8081",
+    ];
 
   app.use(
     "/graphql",
     cors({
-      //origin: (origin, callback) => {
-      //  if (!origin || allowedOrigins.includes(origin)) {
-      //    callback(null, true);
-      //  } else {
-      //    callback(new Error("Not allowed by CORS"));
-       // }
-      //},
-      origin: true,
-      credentials: true, // allow cookies to be sent
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
+      credentials: true,
     }),
     expressMiddleware(server, {
       context: async ({ req, res }) => {
@@ -140,6 +147,7 @@ async function startApolloServer() {
         // Pass the Prisma Client to the context so it's available in your resolvers
         return {
           prisma,
+          redisClient,
           user,
           req,
           res,
