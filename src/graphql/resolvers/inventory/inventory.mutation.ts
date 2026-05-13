@@ -428,7 +428,8 @@ export const InventoryMutation = extendType({
           }
 
           const { costLines, ...updateData } = data;
-
+          if (process.env.NODE_ENV === "development") console.log("Updating item with data vatType:", { id, ...updateData, vatTypeId: data.vatTypeId });
+          console.log
           const item = await ctx.prisma.item.update({
             where: { id },
             data: {

@@ -63,10 +63,11 @@ export const ItemQuery = extendType({
       async resolve(_, { query, size, orderBy }, ctx) {
         size = size ? size : 20;
         orderBy = orderBy ? orderBy : "asc"
-        requireAuth(ctx),
-          requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"])
+        requireAuth(ctx)
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"])
+        const orgId = Number(ctx.user.orgId)
         try {
-          const items = await itemService.getItems(query, size, orderBy)
+          const items = await itemService.getItems(query, size, orderBy, orgId)
 
           if (!items) {
             throw new Error("No items found")

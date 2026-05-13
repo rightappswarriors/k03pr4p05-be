@@ -27,14 +27,12 @@ export const branchMutation = extendType({
         }
 
         const branchExists = await ctx.prisma.branch.findFirst({
-          where: { OR: [{ name }, { address }] },
+          where: { OR: [{ name }] },
         });
 
         if (branchExists) {
           if (branchExists.name === name) {
             throw new Error(`Branch with name "${name}" already exists`);
-          } else {
-            throw new Error(`Branch with address "${address}" already exists`);
           }
         }
 
@@ -60,14 +58,13 @@ export const branchMutation = extendType({
       },
       async resolve(_, { id, name, address, phone }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", 'OWNER'],);
         await requireOwnership(ctx, "branch", id);
 
         const branchExists = await ctx.prisma.branch.findFirst({
           where: {
             OR: [
-              name ? { name } : undefined,
-              address ? { address } : undefined,
+              name ? { name } : undefined
             ].filter(Boolean),
           },
         });
@@ -75,9 +72,6 @@ export const branchMutation = extendType({
         if (branchExists) {
           if (name && branchExists.name === name) {
             throw new Error(`Branch with name "${name}" already exists`);
-          }
-          if (address && branchExists.address === address) {
-            throw new Error(`Branch with address "${address}" already exists`);
           }
         }
 

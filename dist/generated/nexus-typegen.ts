@@ -1986,7 +1986,7 @@ export interface NexusGenFieldTypes {
     totalCost: number | null; // Float
     vatExempt: boolean | null; // Boolean
     vatRate: number; // Float!
-    vatType: NexusGenRootTypes['VatType']; // VatType!
+    vatType: NexusGenRootTypes['VatType'] | null; // VatType
     vatTypeId: number | null; // Int
   }
   ItemAnalyticsPayload: { // field return type

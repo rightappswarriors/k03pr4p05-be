@@ -76,6 +76,7 @@ async function startApolloServer() {
         ? [process.env.FRONTEND_URL]
         : [
             "http://localhost:4000",
+            "http://localhost:8081",
             "exp+pos-vine-mman://expo-development-client/?url=https%3A%2F%2Fcb04bpw-nuelgrace-8081.exp.direct",
             "http://192.168.254.254:8081",
             "exp://192.168.254.254:8081",

@@ -32,7 +32,7 @@ export const Item = objectType({
         t.float("priceC");
         t.float("totalCost");
         t.int("vatTypeId");
-        t.nonNull.field('vatType', {
+        t.nullable.field('vatType', {
             type: 'VatType',
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).vatType();

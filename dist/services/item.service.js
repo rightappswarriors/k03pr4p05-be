@@ -229,6 +229,7 @@ export const updateItem = async (id, data) => {
             vatExempt: data.vatExempt ?? undefined,
             isVatExempt: data.isVatExempt ?? undefined,
             isBNPC: data.isBNPC ?? undefined,
+            vatTypeId: data.vatTypeId ?? undefined,
             vatRate: data.vatRate ?? undefined,
             ServiceCharge: data.ServiceCharge ?? undefined,
             assembly: data.assembly ?? undefined,
@@ -260,9 +261,12 @@ export const deleteItem = async (id) => {
         where: { id: id }
     });
 };
-export const getItems = async (query, size, orderBy) => {
+export const getItems = async (query, size, orderBy, orgId) => {
     return prisma.item.findMany({
-        where: query ? { name: { contains: query, mode: "insensitive" } } : {},
+        where: {
+            ...(query ? { name: { contains: query, mode: "insensitive" } } : {}),
+            orgId: orgId
+        },
         take: size,
         orderBy: { name: orderBy }
     });

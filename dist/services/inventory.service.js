@@ -657,7 +657,7 @@ export const deleteInventoryItem = async (id) => {
 // omit the query and size parameters for now since the Dashboard will have its own optimized version of this that returns minimal fields for performance
 export const getAllItems = async (orgId, query, size) => {
     const take = size || 100;
-    return prisma.item.findMany({
+    const items = await prisma.item.findMany({
         where: {
             orgId,
             ...(query && {
@@ -672,12 +672,15 @@ export const getAllItems = async (orgId, query, size) => {
         include: {
             category: true,
             brandDetails: true,
+            vatType: true,
             costLines: true,
             media: { orderBy: { sortOrder: "asc" } },
         },
         take,
         orderBy: { name: "asc" },
     });
+    console.log(items);
+    return items;
 };
 /**
  * @description Dashboard-only: minimal org inventory stats

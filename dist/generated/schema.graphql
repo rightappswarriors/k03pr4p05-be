@@ -762,7 +762,7 @@ type Item {
   totalCost: Float
   vatExempt: Boolean
   vatRate: Float!
-  vatType: VatType!
+  vatType: VatType
   vatTypeId: Int
 }
 
