@@ -1,7 +1,7 @@
 // salesOrder.mutation.ts
 import { arg, extendType, floatArg, inputObjectType, intArg, list, nonNull, nullable, stringArg, } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
-import { computeScPwdBreakdown } from '../../../services/transaction.service.js';
+import { getWeeklyBnpcState } from '../../../services/transaction.service.js';
 export const SalesOrderItemInput = inputObjectType({
     name: "SalesOrderItemInput",
     definition(t) {
@@ -13,9 +13,11 @@ export const SalesOrderItemInput = inputObjectType({
         t.nullable.float("discountQuantity");
         t.nullable.float("discountRate");
         t.nullable.float("discountAmount");
+        t.nullable.field("discountType", { type: "DiscountType" });
         t.nullable.boolean("isCustomItem");
         t.nullable.string("customItemName");
         t.nullable.boolean("vatExempt");
+        t.nullable.boolean("hasSeniorDiscountVATExempt");
     },
 });
 export const DeliveryInput = inputObjectType({
@@ -77,6 +79,119 @@ function labelOrderMode(orderMode) {
     if (orderMode === "DELIVERY")
         return "Delivery";
     return "Walk-in";
+}
+const roundMoney = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, weeklyBnpcState, totalPax, scPwdPax) {
+    const isEligibleCustomer = customerType === "SENIOR_CITIZEN" || customerType === "PWD";
+    const seniorType = customerType === "PWD" ? "PWD" : "SENIOR_CITIZEN";
+    const bnpcType = customerType === "PWD" ? "BNPC_PWD" : "BNPC_SENIOR_CITIZEN";
+    const paxTotal = Number(totalPax || 0);
+    const paxEligible = Number(scPwdPax || 0);
+    const proportion = paxTotal > 0 && paxEligible > 0 ? Math.min(paxEligible / paxTotal, 1) : 1;
+    const itemIds = items
+        .map((item) => Number(item.itemId))
+        .filter((itemId) => Number.isFinite(itemId) && itemId > 0);
+    const itemRecords = await tx.item.findMany({
+        where: { id: { in: itemIds } },
+        select: {
+            id: true,
+            isBNPC: true,
+            hasSeniorDiscountVATExempt: true,
+            isVatExempt: true,
+            vatExempt: true,
+            vatRate: true,
+        },
+    });
+    const itemMeta = new Map(itemRecords.map((item) => [item.id, item]));
+    let remainingBnpcPurchase = Math.max(0, 2500 - Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
+    let remainingBnpcDiscount = Math.max(0, 125 - Number(weeklyBnpcState?.discountUsed ?? 0));
+    let discountAmount = 0;
+    let vatExemptSale = 0;
+    let vatAmount = 0;
+    let netTotal = 0;
+    const itemBreakdown = items.map((item) => {
+        const meta = itemMeta.get(Number(item.itemId));
+        const originalPrice = Number(item.unitPrice ?? item.priceAtSale ?? item.price ?? 0);
+        const quantity = Number(item.quantity ?? 0);
+        const vatRate = Number(meta?.vatRate ?? 0.12);
+        const isVatExemptItem = Boolean(meta?.isVatExempt || meta?.vatExempt || item.vatExempt || item.isVatExempt);
+        const seniorEligible = isEligibleCustomer && Boolean(meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt));
+        const bnpcEligible = isEligibleCustomer && !seniorEligible && Boolean(meta?.isBNPC || item.isBNPC);
+        const eligibleQty = (seniorEligible || bnpcEligible) ? quantity * proportion : 0;
+        const regularQty = quantity - eligibleQty;
+        const vatExclusivePrice = isVatExemptItem ? originalPrice : originalPrice / (1 + vatRate);
+        const vatPerUnit = isVatExemptItem ? 0 : originalPrice - vatExclusivePrice;
+        if (!seniorEligible && !bnpcEligible) {
+            const lineTotal = roundMoney(originalPrice * quantity);
+            vatAmount += vatPerUnit * quantity;
+            netTotal += lineTotal;
+            return {
+                ...item,
+                discountType: "NONE",
+                discountRate: 0,
+                discountAmount: 0,
+                discountQuantity: 0,
+                originalPrice,
+                vatExclusivePrice: roundMoney(vatExclusivePrice),
+                finalPrice: originalPrice,
+                lineTotal,
+                eligibleAmount: 0,
+            };
+        }
+        if (bnpcEligible) {
+            const lineGross = originalPrice * quantity;
+            const eligibleAmount = originalPrice * eligibleQty;
+            const eligibleAmountToDiscount = Math.max(0, Math.min(eligibleAmount, remainingBnpcPurchase));
+            const lineDiscount = roundMoney(Math.min(eligibleAmountToDiscount * 0.05, remainingBnpcDiscount));
+            const lineTotal = roundMoney(lineGross - lineDiscount);
+            discountAmount += lineDiscount;
+            vatAmount += vatPerUnit * quantity;
+            netTotal += lineTotal;
+            remainingBnpcPurchase = Math.max(0, remainingBnpcPurchase - eligibleAmountToDiscount);
+            remainingBnpcDiscount = Math.max(0, remainingBnpcDiscount - lineDiscount);
+            return {
+                ...item,
+                discountType: bnpcType,
+                discountRate: 0.05,
+                discountAmount: lineDiscount,
+                discountQuantity: lineDiscount > 0 ? eligibleQty : 0,
+                originalPrice,
+                vatExclusivePrice: roundMoney(vatExclusivePrice),
+                finalPrice: roundMoney(originalPrice * 0.95),
+                lineTotal,
+                eligibleAmount: roundMoney(eligibleAmountToDiscount),
+            };
+        }
+        const lineDiscount = roundMoney(vatExclusivePrice * 0.2 * eligibleQty);
+        const discountedUnit = vatExclusivePrice * 0.8;
+        const lineTotal = roundMoney(originalPrice * regularQty + discountedUnit * eligibleQty);
+        discountAmount += lineDiscount;
+        vatExemptSale += vatExclusivePrice * eligibleQty;
+        vatAmount += vatPerUnit * regularQty;
+        netTotal += lineTotal;
+        return {
+            ...item,
+            discountType: seniorType,
+            discountRate: 0.2,
+            discountAmount: lineDiscount,
+            discountQuantity: eligibleQty,
+            originalPrice,
+            vatExclusivePrice: roundMoney(vatExclusivePrice),
+            finalPrice: roundMoney(discountedUnit),
+            lineTotal,
+            eligibleAmount: roundMoney(vatExclusivePrice * eligibleQty),
+        };
+    });
+    const appliedTypes = Array.from(new Set(itemBreakdown.filter((item) => Number(item.discountAmount ?? 0) > 0).map((item) => item.discountType)));
+    return {
+        itemBreakdown,
+        discountRate: appliedTypes.length === 1 ? Number(itemBreakdown.find((item) => item.discountType === appliedTypes[0])?.discountRate ?? 0) : 0,
+        discountType: appliedTypes.length === 0 ? "NONE" : appliedTypes.length === 1 ? appliedTypes[0] : "CUSTOM",
+        discountAmount: roundMoney(discountAmount),
+        vatExemptSale: roundMoney(vatExemptSale),
+        vatAmount: roundMoney(vatAmount),
+        netTotal: roundMoney(netTotal),
+    };
 }
 async function updateStatus(ctx, id, status) {
     const orgId = Number(ctx.user.orgId);
@@ -190,7 +305,6 @@ export const SalesOrderMutation = extendType({
                 const userId = Number(ctx.user.userId);
                 const orderMode = args.orderMode;
                 const customerType = args.customerType ?? "REGULAR";
-                const discountType = args.discountType ?? "NONE";
                 if (orderMode === "DELIVERY" && !args.deliveryAddress?.trim()) {
                     throw new Error("Delivery address is required for delivery orders.");
                 }
@@ -210,24 +324,6 @@ export const SalesOrderMutation = extendType({
                 const subtotal = Number(args.items.reduce((sum, item) => sum + Number(item.unitPrice ?? 0) * Number(item.quantity ?? 0), 0).toFixed(2));
                 const orderNumber = await generateOrderNumber(ctx.prisma, orgId);
                 const salesOrder = await ctx.prisma.$transaction(async (tx) => {
-                    const breakdown = await computeScPwdBreakdown(tx, {
-                        discountType,
-                        discountRate: args.discountRate ?? 0,
-                        totalPax: args.totalPax,
-                        scPwdPax: args.scPwdPax,
-                        vatAmount: args.vatAmount ?? 0,
-                        total: subtotal,
-                    }, args.items.map((item) => ({
-                        itemId: item.itemId,
-                        quantity: item.quantity,
-                        price: item.unitPrice,
-                        priceAtSale: item.unitPrice,
-                        isCustomItem: item.isCustomItem ?? false,
-                        vatExempt: item.vatExempt ?? false,
-                    })));
-                    const extraChargesTotal = Number(extraCharges.reduce((sum, charge) => sum + charge.amount, 0).toFixed(2));
-                    const total = Number(breakdown.netTotal.toFixed(2));
-                    const grandTotal = Number((total + extraChargesTotal).toFixed(2));
                     let scPwdCustomerId = null;
                     if (args.scPwdCustomerInput && customerType !== "REGULAR") {
                         const customerData = {
@@ -250,7 +346,24 @@ export const SalesOrderMutation = extendType({
                             : await tx.scPwdCustomer.create({ data: customerData });
                         scPwdCustomerId = customer.id;
                     }
-                    return tx.salesOrder.create({
+                    const weeklyBnpcState = customerType !== "REGULAR" && scPwdCustomerId
+                        ? await getWeeklyBnpcState(tx, scPwdCustomerId)
+                        : undefined;
+                    const breakdown = await computeAutomaticSalesOrderBreakdown(tx, args.items.map((item) => ({
+                        itemId: item.itemId,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        unitId: item.unitId,
+                        unitName: item.unitName,
+                        isCustomItem: item.isCustomItem ?? false,
+                        customItemName: item.customItemName,
+                        vatExempt: item.vatExempt ?? false,
+                        hasSeniorDiscountVATExempt: item.hasSeniorDiscountVATExempt ?? item.vatExempt ?? false,
+                    })), customerType, weeklyBnpcState, args.totalPax, args.scPwdPax);
+                    const extraChargesTotal = Number(extraCharges.reduce((sum, charge) => sum + charge.amount, 0).toFixed(2));
+                    const total = Number(breakdown.netTotal.toFixed(2));
+                    const grandTotal = Number((total + extraChargesTotal).toFixed(2));
+                    const salesOrder = await tx.salesOrder.create({
                         data: {
                             orderNumber,
                             customer: args.customerName?.trim() || args.customer?.trim() || "Walk-in Customer",
@@ -263,7 +376,7 @@ export const SalesOrderMutation = extendType({
                             outletId: args.outletId ?? null,
                             branchId: args.branchId ?? null,
                             customerType,
-                            discountType,
+                            discountType: breakdown.discountType,
                             discountRate: breakdown.discountRate,
                             discountAmount: breakdown.discountAmount,
                             vatAmount: breakdown.vatAmount,
@@ -280,16 +393,17 @@ export const SalesOrderMutation = extendType({
                             grandTotal,
                             outletPromoId: args.outletPromoId ?? null,
                             items: {
-                                create: args.items.map((item) => ({
+                                create: breakdown.itemBreakdown.map((item) => ({
                                     itemId: item.isCustomItem ? null : item.itemId,
                                     quantity: item.quantity,
                                     unitPrice: item.unitPrice,
-                                    totalPrice: Number((item.quantity * item.unitPrice).toFixed(2)),
+                                    totalPrice: item.lineTotal ?? Number((item.quantity * item.unitPrice).toFixed(2)),
                                     unitId: item.unitId ?? null,
                                     unitName: item.unitName ?? null,
                                     discountQuantity: item.discountQuantity ?? 0,
                                     discountRate: item.discountRate ?? 0,
                                     discountAmount: item.discountAmount ?? 0,
+                                    discountType: item.discountType ?? "NONE",
                                     isCustomItem: item.isCustomItem ?? false,
                                     customItemName: item.isCustomItem ? item.customItemName?.trim() ?? null : null,
                                     vatExempt: item.vatExempt ?? false,
@@ -301,6 +415,34 @@ export const SalesOrderMutation = extendType({
                         },
                         include: salesOrderInclude,
                     });
+                    const discountAuditEntries = [];
+                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+                    for (const item of breakdown.itemBreakdown) {
+                        const itemDiscountAmount = Number(item.discountAmount ?? 0);
+                        if (itemDiscountAmount <= 0)
+                            continue;
+                        if (item.discountType === "BNPC_SENIOR_CITIZEN" || item.discountType === "BNPC_PWD") {
+                            cumulativeWeeklyBnpc += itemDiscountAmount;
+                        }
+                        discountAuditEntries.push({
+                            orgId,
+                            userId,
+                            customerId: scPwdCustomerId ?? undefined,
+                            itemId: Number(item.itemId) || undefined,
+                            salesOrderId: salesOrder.id,
+                            customItemName: item.isCustomItem ? item.customItemName ?? undefined : undefined,
+                            discountType: item.discountType,
+                            discountAmount: itemDiscountAmount,
+                            eligibleAmount: Number(item.eligibleAmount ?? 0),
+                            runningWeeklyBnpcTotal: item.discountType === "BNPC_SENIOR_CITIZEN" || item.discountType === "BNPC_PWD"
+                                ? cumulativeWeeklyBnpc
+                                : undefined,
+                        });
+                    }
+                    if (discountAuditEntries.length > 0) {
+                        await tx.discountAudit.createMany({ data: discountAuditEntries });
+                    }
+                    return salesOrder;
                 });
                 await ctx.prisma.auditLog.create({
                     data: {

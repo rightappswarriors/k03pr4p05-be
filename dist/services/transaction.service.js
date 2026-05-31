@@ -20,12 +20,42 @@ const getDiscountRate = (type, customRate) => {
         return Number(customRate ?? 0);
     return 0;
 };
-export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
+const getWeekStart = (date = new Date()) => {
+    const weekStart = new Date(date);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return weekStart;
+};
+export const getWeeklyBnpcState = async (tx, customerId) => {
+    if (!customerId)
+        return { discountUsed: 0, eligibleAmountUsed: 0 };
+    const weekStart = getWeekStart();
+    const totals = await tx.discountAudit.aggregate({
+        where: {
+            customerId,
+            discountType: { in: ["BNPC_SENIOR_CITIZEN", "BNPC_PWD"] },
+            createdAt: { gte: weekStart },
+        },
+        _sum: {
+            discountAmount: true,
+            eligibleAmount: true,
+        },
+    });
+    return {
+        discountUsed: Number(totals._sum.discountAmount ?? 0),
+        eligibleAmountUsed: Number(totals._sum.eligibleAmount ?? 0),
+    };
+};
+export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, weeklyBnpcState) => {
     const discountType = transactionData.discountType ?? "NONE";
     const rate = getDiscountRate(discountType, transactionData.discountRate);
     const totalPax = Number(transactionData.totalPax || 0);
     const scPwdPax = Number(transactionData.scPwdPax || 0);
     const proportion = totalPax > 0 && scPwdPax > 0 ? Math.min(scPwdPax / totalPax, 1) : 1;
+    const priorBnpcDiscount = Math.max(0, Number(weeklyBnpcState?.discountUsed ?? 0));
+    const priorBnpcEligible = Math.max(0, Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
+    let remainingBnpcPurchase = Math.max(0, 2500 - priorBnpcEligible);
+    let remainingBnpcDiscount = Math.max(0, 125 - priorBnpcDiscount);
     if (discountType === "NONE" || rate <= 0) {
         const itemBreakdown = itemsSold.map((item) => {
             const originalPrice = Number(item.priceAtSale ?? item.price ?? 0);
@@ -39,6 +69,7 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
                 vatExclusivePrice: originalPrice,
                 finalPrice: originalPrice,
                 lineTotal: roundMoney(originalPrice * quantity),
+                eligibleAmount: 0,
             };
         });
         return {
@@ -55,7 +86,7 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
         .filter((itemId) => Number.isFinite(itemId));
     const itemRecords = await tx.item.findMany({
         where: { id: { in: itemIds } },
-        select: { id: true, isBNPC: true, isVatExempt: true, vatExempt: true, vatRate: true },
+        select: { id: true, isBNPC: true, isVatExempt: true, vatExempt: true, vatRate: true, hasSeniorDiscountVATExempt: true },
     });
     const itemMeta = new Map(itemRecords.map((item) => [item.id, item]));
     let discountAmount = 0;
@@ -67,9 +98,11 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
         const quantity = Number(item.quantity ?? 0);
         const meta = itemMeta.get(Number(item.itemId));
         const vatRate = Number(meta?.vatRate ?? 0.12);
-        const itemIsVatExempt = Boolean(meta?.isVatExempt || meta?.vatExempt);
-        const eligible = isScPwdDiscount(discountType) || (isBnpcDiscount(discountType) && meta?.isBNPC);
-        const eligibleQty = quantity * proportion;
+        const itemIsVatExempt = Boolean(meta?.isVatExempt || meta?.vatExempt || item.vatExempt || item.isVatExempt);
+        const eligibleBnpc = isBnpcDiscount(discountType) && Boolean(meta?.isBNPC || item.isBNPC);
+        const eligibleSenior = isScPwdDiscount(discountType) && Boolean(meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt));
+        const eligible = eligibleBnpc || eligibleSenior;
+        const eligibleQty = eligible ? quantity * proportion : 0;
         const regularQty = quantity - eligibleQty;
         if (!eligible) {
             const lineVat = itemIsVatExempt ? 0 : originalPrice - originalPrice / (1 + vatRate);
@@ -84,24 +117,30 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
                 vatExclusivePrice: itemIsVatExempt ? originalPrice : roundMoney(originalPrice / (1 + vatRate)),
                 finalPrice: originalPrice,
                 lineTotal: roundMoney(originalPrice * quantity),
+                eligibleAmount: 0,
             };
         }
         if (isBnpcDiscount(discountType)) {
-            const lineDiscount = originalPrice * rate * eligibleQty;
-            const lineVat = itemIsVatExempt ? 0 : originalPrice - originalPrice / (1 + vatRate);
-            const lineTotal = originalPrice * regularQty + (originalPrice - originalPrice * rate) * eligibleQty;
+            const lineGross = originalPrice * quantity;
+            const eligibleAmount = originalPrice * eligibleQty;
+            const eligibleAmountToDiscount = Math.max(0, Math.min(eligibleAmount, remainingBnpcPurchase));
+            const lineDiscount = roundMoney(Math.min(eligibleAmountToDiscount * rate, remainingBnpcDiscount));
+            const lineTotal = roundMoney(lineGross - lineDiscount);
             discountAmount += lineDiscount;
-            vatAmount += lineVat * quantity;
+            vatAmount += itemIsVatExempt ? 0 : (originalPrice - originalPrice / (1 + vatRate)) * quantity;
             netTotal += lineTotal;
+            remainingBnpcPurchase = Math.max(0, remainingBnpcPurchase - eligibleAmountToDiscount);
+            remainingBnpcDiscount = Math.max(0, remainingBnpcDiscount - lineDiscount);
             return {
                 ...item,
                 discountType,
                 discountRate: rate,
-                discountAmount: roundMoney(lineDiscount),
+                discountAmount: lineDiscount,
                 originalPrice,
                 vatExclusivePrice: itemIsVatExempt ? originalPrice : roundMoney(originalPrice / (1 + vatRate)),
-                finalPrice: roundMoney(originalPrice * (1 - rate)),
-                lineTotal: roundMoney(lineTotal),
+                finalPrice: roundMoney(originalPrice - originalPrice * rate),
+                lineTotal,
+                eligibleAmount: eligibleAmountToDiscount,
             };
         }
         const vatExclusivePrice = itemIsVatExempt ? originalPrice : originalPrice / (1 + vatRate);
@@ -122,6 +161,7 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold) => {
             vatExclusivePrice: roundMoney(vatExclusivePrice),
             finalPrice: roundMoney(discountedUnit),
             lineTotal: roundMoney(lineTotal),
+            eligibleAmount: roundMoney(vatExclusivePrice * eligibleQty),
         };
     });
     return {
@@ -154,25 +194,16 @@ export const processTransaction = async (transactionData, itemsSold) => {
             discountAmount: baseTransactionData.discountAmount ?? 0,
             vatExemptSale: baseTransactionData.vatExemptSale ?? 0,
         };
-        const discountBreakdown = await computeScPwdBreakdown(tx, transactionData, itemsSold);
-        itemsSold = discountBreakdown.itemBreakdown;
-        transactionData = {
-            ...transactionData,
-            total: discountBreakdown.netTotal,
-            vatAmount: discountBreakdown.vatAmount,
-            discountRate: discountBreakdown.discountRate,
-            discountAmount: discountBreakdown.discountAmount,
-            scPwdDiscountAmt: isScPwdDiscount(transactionData.discountType)
-                ? discountBreakdown.discountAmount
-                : transactionData.scPwdDiscountAmt,
-            vatExemptAmount: discountBreakdown.vatExemptSale,
-            vatExemptSale: discountBreakdown.vatExemptSale,
-            isVatExempt: isScPwdDiscount(transactionData.discountType) || Boolean(transactionData.isVatExempt),
-        };
+        const outletContext = await tx.outlet.findUnique({
+            where: { id: Number(transactionData.outletId) },
+            select: { orgId: true, ownerId: true, branchId: true },
+        });
+        if (!outletContext) {
+            throw new Error(`Outlet not found: ${transactionData.outletId}`);
+        }
         if (scPwdCustomerInput && transactionData.customerType !== "REGULAR") {
-            const orgId = Number(transactionData.orgId || 0) || undefined;
             const customerData = {
-                orgId,
+                orgId: Number(transactionData.orgId || outletContext.orgId),
                 fullName: scPwdCustomerInput.fullName,
                 idNumber: scPwdCustomerInput.idNumber,
                 idType: scPwdCustomerInput.idType,
@@ -190,6 +221,24 @@ export const processTransaction = async (transactionData, itemsSold) => {
             transactionData.scPwdCustomerId = customer.id;
             transactionData.vatExemptRefNo = transactionData.vatExemptRefNo ?? customer.idNumber;
         }
+        const weeklyBnpcState = isBnpcDiscount(transactionData.discountType)
+            ? await getWeeklyBnpcState(tx, transactionData.scPwdCustomerId ?? undefined)
+            : undefined;
+        const discountBreakdown = await computeScPwdBreakdown(tx, transactionData, itemsSold, weeklyBnpcState);
+        itemsSold = discountBreakdown.itemBreakdown;
+        transactionData = {
+            ...transactionData,
+            total: discountBreakdown.netTotal,
+            vatAmount: discountBreakdown.vatAmount,
+            discountRate: discountBreakdown.discountRate,
+            discountAmount: discountBreakdown.discountAmount,
+            scPwdDiscountAmt: isScPwdDiscount(transactionData.discountType)
+                ? discountBreakdown.discountAmount
+                : transactionData.scPwdDiscountAmt,
+            vatExemptAmount: discountBreakdown.vatExemptSale,
+            vatExemptSale: discountBreakdown.vatExemptSale,
+            isVatExempt: isScPwdDiscount(transactionData.discountType) || Boolean(transactionData.isVatExempt),
+        };
         delete transactionData.orgId;
         // 1 — Find outlet inventory
         const inventory = await tx.inventory.findUnique({
@@ -325,6 +374,33 @@ export const processTransaction = async (transactionData, itemsSold) => {
             include: { items: true, scPwdCustomer: true },
         });
         // 9 — Update StockMovement referenceId now that we have the transaction id
+        const discountAuditEntries = [];
+        let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+        for (const item of itemsSold) {
+            const itemDiscountAmount = Number(item.discountAmount ?? 0);
+            if (itemDiscountAmount <= 0)
+                continue;
+            if (isBnpcDiscount(transactionData.discountType)) {
+                cumulativeWeeklyBnpc += itemDiscountAmount;
+            }
+            discountAuditEntries.push({
+                orgId: outletContext.orgId,
+                userId: transactionData.cashierId,
+                customerId: transactionData.scPwdCustomerId ?? undefined,
+                itemId: Number(item.itemId) || undefined,
+                transactionId: newTransaction.id,
+                customItemName: item.customItemName ?? undefined,
+                discountType: transactionData.discountType,
+                discountAmount: roundMoney(itemDiscountAmount),
+                eligibleAmount: Number(item.eligibleAmount ?? 0),
+                runningWeeklyBnpcTotal: isBnpcDiscount(transactionData.discountType)
+                    ? roundMoney(cumulativeWeeklyBnpc)
+                    : undefined,
+            });
+        }
+        if (discountAuditEntries.length > 0) {
+            await tx.discountAudit.createMany({ data: discountAuditEntries });
+        }
         await tx.stockMovement.updateMany({
             where: {
                 outletId: transactionData.outletId,

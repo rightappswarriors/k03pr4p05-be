@@ -377,6 +377,7 @@ input CreateItemInput {
   categoryId: Int
   costLines: [CostLineInput]
   description: String
+  hasSeniorDiscountVATExempt: Boolean
   image: String
   isBNPC: Boolean
   isVatExempt: Boolean
@@ -548,6 +549,35 @@ type Department {
   label: String!
   org: Organization!
   orgId: Int!
+}
+
+input DiscountAuditFiltersInput {
+  customerId: String
+  dateFrom: DateTime
+  dateTo: DateTime
+  discountType: DiscountType
+  itemId: Int
+  transactionType: String
+}
+
+type DiscountAuditType {
+  createdAt: DateTime!
+  customItemName: String
+  customerId: String
+  discountAmount: Float!
+  discountType: DiscountType!
+  eligibleAmount: Float
+  id: String!
+  item: Item
+  itemId: Int
+  kompraOrderId: Int
+  orgId: Int!
+  runningWeeklyBnpcTotal: Float
+  salesOrderId: String
+  transactionId: Int
+  transactionType: String!
+  user: User
+  userId: Int!
 }
 
 enum DiscountType {
@@ -736,6 +766,7 @@ type Item {
   exactExpiryDate: DateTime!
   expiryEndDate: DateTime
   expiryStartDate: DateTime
+  hasSeniorDiscountVATExempt: Boolean!
   id: Int!
   image: String
   isBNPC: Boolean!
@@ -1517,10 +1548,13 @@ type PlaceLocation {
 input PlaceOrderInput {
   customerNote: String
   deliveryAddressId: Int!
+  discountType: DiscountType
   items: [OrderItemInput!]!
   outletId: Int!
   paymentMethod: KompraCPaymentMethod!
+  scPwdPax: Int
   scheduledDeliveryAt: String
+  totalPax: Int
 }
 
 type Position {
@@ -1584,6 +1618,7 @@ type Query {
   contacts(branchId: Int, query: String): [Contact]
   department(id: Int): Department
   departments(orgId: Int): [Department]
+  discountAudits(filters: DiscountAuditFiltersInput, orgId: Int!, pagination: PaginationInput): [DiscountAuditType!]!
   employee(id: Int): Employee
   employees(orgId: Int): [Employee]
   getAPIKeysByUserId: PaymongoAPIKeys!
@@ -1927,6 +1962,7 @@ type SalesOrderItem {
   discountAmount: Float
   discountQuantity: Float
   discountRate: Float
+  discountType: DiscountType!
   id: Int!
   isCustomItem: Boolean!
   item: Item
@@ -1945,6 +1981,8 @@ input SalesOrderItemInput {
   discountAmount: Float
   discountQuantity: Float
   discountRate: Float
+  discountType: DiscountType
+  hasSeniorDiscountVATExempt: Boolean
   isCustomItem: Boolean
   itemId: Int
   quantity: Float!
@@ -2212,6 +2250,7 @@ input UpdateItemInput {
   categoryId: Int
   costLines: [CostLineInput]
   description: String
+  hasSeniorDiscountVATExempt: Boolean
   image: String
   isBNPC: Boolean
   isVatExempt: Boolean

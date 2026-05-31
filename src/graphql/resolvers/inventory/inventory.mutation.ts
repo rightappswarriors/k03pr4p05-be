@@ -358,6 +358,7 @@ export const InventoryMutation = extendType({
               ...(data.orgCategoryId ? { orgCategory: { connect: { id: data.orgCategoryId } } } : {}),
               skuNumber: data.skuNumber,
               vatExempt: data.vatExempt ?? false,
+              isBNPC: data.isBNPC ?? false,
               assembly: data.assembly ?? false,
               priceB: data.priceB ?? null,
               priceC: data.priceC ?? null,
@@ -428,6 +429,9 @@ export const InventoryMutation = extendType({
           }
 
           const { costLines, ...updateData } = data;
+          if (updateData.bnpcRate != null && updateData.bnpcRate > 1) {
+            updateData.bnpcRate = updateData.bnpcRate / 100;
+          }
           if (process.env.NODE_ENV === "development") console.log("Updating item with data vatType:", { id, ...updateData, vatTypeId: data.vatTypeId });
           console.log
           const item = await ctx.prisma.item.update({

@@ -25,6 +25,7 @@ interface CreateItemInput {
   vatExempt?: boolean | null;
   isVatExempt?: boolean | null;
   isBNPC?: boolean | null;
+  hasSeniorDiscountVATExempt?: boolean | null;
   vatRate?: number | null;
   ServiceCharge?: boolean | null;
   assembly?: boolean | null;
@@ -56,6 +57,7 @@ interface UpdateItemInput {
   vatExempt?: boolean | null;
   isVatExempt?: boolean | null;
   isBNPC?: boolean | null;
+  hasSeniorDiscountVATExempt?: boolean | null;
   vatRate?: number | null;
   ServiceCharge?: boolean | null;
   assembly?: boolean | null;
@@ -102,6 +104,7 @@ export const bulkCreateItems = async (
     vatExempt?: boolean | null;
     isVatExempt?: boolean | null;
     isBNPC?: boolean | null;
+    hasSeniorDiscountVATExempt?: boolean | null;
     vatRate?: number | null;
     ServiceCharge?: boolean | null;
     assembly?: boolean | null;
@@ -118,7 +121,6 @@ export const bulkCreateItems = async (
     items.map((item) => {
       const itemTotalCost =
         item.costLines?.reduce((sum, line) => sum + line.amount, 0) || 0;
-
       return prisma.item.create({
         data: {
           org: { connect: { id: item.orgId } },
@@ -153,6 +155,7 @@ export const bulkCreateItems = async (
           vatExempt: item.vatExempt ?? false,
           isVatExempt: item.isVatExempt ?? item.vatExempt ?? false,
           isBNPC: item.isBNPC ?? false,
+          hasSeniorDiscountVATExempt: item.hasSeniorDiscountVATExempt ?? false,
           vatRate: item.vatRate ?? 0.12,
           ServiceCharge: item.ServiceCharge ?? false,
           assembly: item.assembly ?? false,
@@ -316,6 +319,7 @@ export const getItemById = async (id) => {
  */
 export const updateItem = async (id: number, data: UpdateItemInput) => {
   // Only recalculate totalCost when costLines are explicitly provided
+  
   const totalCost =
     data.costLines != null
       ? data.costLines.reduce((sum, line) => sum + line.amount, 0)
@@ -342,6 +346,7 @@ export const updateItem = async (id: number, data: UpdateItemInput) => {
       vatExempt: data.vatExempt ?? undefined,
       isVatExempt: data.isVatExempt ?? undefined,
       isBNPC: data.isBNPC ?? undefined,
+      hasSeniorDiscountVATExempt: data.hasSeniorDiscountVATExempt ?? undefined,
       vatTypeId: data.vatTypeId ?? undefined,
       vatRate: data.vatRate ?? undefined,
       ServiceCharge: data.ServiceCharge ?? undefined,

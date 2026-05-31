@@ -87,6 +87,7 @@ model User {
   departmentId         Int?
   attendances          Attendance[]
   auditLogs            AuditLog[]
+  discountAudits       DiscountAudit[]          @relation("DiscountAuditUser")
   branchesOwned        Branch[]                 @relation("UserBranches")
   budgets              Budget[]
   employees            Employee[]
@@ -400,59 +401,61 @@ model VatType {
 }
 
 model Item {
-  id                   Int                     @id @default(autoincrement())
-  name                 String                  @unique
-  image                String?
-  description          String?
-  barcode              String
-  brand                String?
-  orgId                Int
-  categoryId           Int?
-  brandId              Int?
-  ServiceCharge        Boolean                 @default(false)
-  assembly             Boolean                 @default(false)
-  itemCode             String?
-  skuNumber            String?
-  vatExempt            Boolean?
-  isVatExempt          Boolean                 @default(false)
-  isBNPC               Boolean                 @default(false)
-  vatRate              Float                   @default(0.12)
-  stock                Float                   @default(0)
-  sellingPrice         Float                   @default(0)
-  minQuantity          Float                   @default(0)
-  opExPct              Float                   @default(0.1)
-  priceB               Float?
-  priceC               Float?
-  totalCost            Float                   @default(0)
-  expiryEndDate        DateTime?
-  expiryStartDate      DateTime?
-  exactExpiryDate      DateTime?
-  orgCategoryId        Int?
-  vatTypeId            Int?
-  stockDescription     String?
-  stockLabel           String?
-  cartItems            CartItem[]
-  costLines            CostLines[]
-  InventoryItems       InventoryItems[]
-  brandDetails         Brand?                  @relation(fields: [brandId], references: [id])
-  category             ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id])
-  orgCategory          OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
-  org                  Organization            @relation(fields: [orgId], references: [id])
-  vatType              VatType?                @relation(fields: [vatTypeId], references: [id])
-  categories           ItemCategoryMap[]
-  orderItems           KompraCOrderItem[]
-  media                Media[]
-  notifications        Notification[]
-  searchIndex          OutletItemSearchIndex[]
-  restockCycleItems    RestockCycleItem[]
-  restockScheduleItems RestockScheduleItem[]
-  stockBatches         StockBatch[]
-  stockMovements       StockMovement[]
-  summaryRows          SummaryRow[]
-  supplierOrderItems   SupplierOrderItem[]
-  color                Color[]                 @relation("ColorToItem")
-  purchaseUnit         ItemUnit[]              @relation("ItemToItemUnit")
-  salesOrderItems      SalesOrderItem[]
+  id                         Int                     @id @default(autoincrement())
+  name                       String                  @unique
+  image                      String?
+  description                String?
+  barcode                    String
+  brand                      String?
+  orgId                      Int
+  categoryId                 Int?
+  brandId                    Int?
+  ServiceCharge              Boolean                 @default(false)
+  assembly                   Boolean                 @default(false)
+  itemCode                   String?
+  skuNumber                  String?
+  vatExempt                  Boolean?
+  isVatExempt                Boolean                 @default(false)
+  isBNPC                     Boolean                 @default(false)
+  hasSeniorDiscountVATExempt Boolean                 @default(false)
+  vatRate                    Float                   @default(0.12)
+  stock                      Float                   @default(0)
+  sellingPrice               Float                   @default(0)
+  minQuantity                Float                   @default(0)
+  opExPct                    Float                   @default(0.1)
+  priceB                     Float?
+  priceC                     Float?
+  totalCost                  Float                   @default(0)
+  expiryEndDate              DateTime?
+  expiryStartDate            DateTime?
+  exactExpiryDate            DateTime?
+  orgCategoryId              Int?
+  vatTypeId                  Int?
+  stockDescription           String?
+  stockLabel                 String?
+  cartItems                  CartItem[]
+  costLines                  CostLines[]
+  InventoryItems             InventoryItems[]
+  brandDetails               Brand?                  @relation(fields: [brandId], references: [id])
+  category                   ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id])
+  orgCategory                OrgItemCategory?        @relation(fields: [orgCategoryId], references: [id])
+  org                        Organization            @relation(fields: [orgId], references: [id])
+  vatType                    VatType?                @relation(fields: [vatTypeId], references: [id])
+  categories                 ItemCategoryMap[]
+  orderItems                 KompraCOrderItem[]
+  media                      Media[]
+  notifications              Notification[]
+  searchIndex                OutletItemSearchIndex[]
+  restockCycleItems          RestockCycleItem[]
+  restockScheduleItems       RestockScheduleItem[]
+  stockBatches               StockBatch[]
+  stockMovements             StockMovement[]
+  summaryRows                SummaryRow[]
+  supplierOrderItems         SupplierOrderItem[]
+  discountAudits             DiscountAudit[]         @relation("DiscountAuditItem")
+  color                      Color[]                 @relation("ColorToItem")
+  purchaseUnit               ItemUnit[]              @relation("ItemToItemUnit")
+  salesOrderItems            SalesOrderItem[]
 
   @@unique([orgId, name])
 }
@@ -470,28 +473,28 @@ enum SalesOrderStatus {
   OUT_FOR_DELIVERY
   COMPLETED
   ORDERED
-  SHIPPED 
+  SHIPPED
   RECEIVED
   CANCELLED
 }
 
 model SalesOrder {
-  id          String           @id @default(cuid())
-  orderNumber String           @unique
-  customer    String
-  orderMode   OrderMode        @default(WALK_IN)
-  status      SalesOrderStatus @default(PENDING)
-  date        DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  orgId       Int
-  userId      Int?
-  outletId    Int?
-  branchId    Int?
+  id              String           @id @default(cuid())
+  orderNumber     String           @unique
+  customer        String
+  orderMode       OrderMode        @default(WALK_IN)
+  status          SalesOrderStatus @default(PENDING)
+  date            DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  orgId           Int
+  userId          Int?
+  outletId        Int?
+  branchId        Int?
   customerName    String?
   customerContact String?
-  customerType    CustomerType @default(REGULAR)
-  discountType    DiscountType @default(NONE)
-  vatExemptSale   Float        @default(0)
+  customerType    CustomerType     @default(REGULAR)
+  discountType    DiscountType     @default(NONE)
+  vatExemptSale   Float            @default(0)
   totalPax        Int?
   scPwdPax        Int?
   scPwdCustomerId String?
@@ -1666,6 +1669,25 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime    @default(now())
   user       User        @relation(fields: [userId], references: [id])
+}
+
+model DiscountAudit {
+  id                     String       @id @default(cuid())
+  orgId                  Int
+  userId                 Int
+  customerId             String?
+  itemId                 Int?
+  salesOrderId           String?
+  transactionId          Int?
+  kompraOrderId          Int?
+  discountType           DiscountType
+  discountAmount         Float
+  eligibleAmount         Float?
+  runningWeeklyBnpcTotal Float?
+  createdAt              DateTime     @default(now())
+
+  user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
+  item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
 }
 
 model OrderCourierPreference {

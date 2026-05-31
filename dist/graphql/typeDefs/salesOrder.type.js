@@ -115,6 +115,7 @@ export const SalesOrderItemType = objectType({
         t.nullable.float("discountQuantity");
         t.nullable.float("discountRate");
         t.nullable.float("discountAmount");
+        t.nonNull.field("discountType", { type: "DiscountType" });
         // ── Custom item fields ────────────────────────────────────────────────
         t.nonNull.boolean("isCustomItem");
         t.nullable.string("customItemName");

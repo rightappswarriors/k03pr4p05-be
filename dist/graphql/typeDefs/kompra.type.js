@@ -2,6 +2,7 @@
 // Nexus type definitions for all new Kompra models
 // Run after adding to your existing Nexus schema
 import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, list, arg, intArg, stringArg, floatArg } from 'nexus';
+import { computeScPwdBreakdown, getWeeklyBnpcState } from '../../services/transaction.service.js';
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 export const OrderStatusEnum = enumType({
     name: 'OrderStatus',
@@ -235,6 +236,9 @@ export const PlaceOrderInput = inputObjectType({
         t.nonNull.int('deliveryAddressId');
         t.nonNull.field('paymentMethod', { type: 'KompraCPaymentMethod' });
         t.nonNull.list.nonNull.field('items', { type: 'OrderItemInput' });
+        t.nullable.field('discountType', { type: 'DiscountType' });
+        t.nullable.int('totalPax');
+        t.nullable.int('scPwdPax');
         t.nullable.string('customerNote');
         t.nullable.string('scheduledDeliveryAt');
     },
@@ -412,6 +416,7 @@ export const KompraCMutation = extendType({
                 const inventoryItemIds = input.items.map((i) => i.inventoryItemId);
                 const liveItems = await ctx.prisma.inventoryItems.findMany({
                     where: { id: { in: inventoryItemIds } },
+                    include: { item: true },
                 });
                 const liveMap = new Map(liveItems.map((i) => [i.id, i]));
                 // 2. Validate stock
@@ -433,12 +438,35 @@ export const KompraCMutation = extendType({
                     };
                 });
                 const subtotal = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
+                const discountType = input.discountType ?? 'NONE';
+                const outlet = await ctx.prisma.outlet.findUnique({
+                    where: { id: input.outletId },
+                    select: { orgId: true, ownerId: true },
+                });
+                if (!outlet)
+                    throw new Error(`Outlet not found: ${input.outletId}`);
+                const weeklyBnpcState = discountType === 'BNPC_SENIOR_CITIZEN' || discountType === 'BNPC_PWD'
+                    ? await getWeeklyBnpcState(ctx.prisma, String(customerId))
+                    : undefined;
+                const breakdown = await computeScPwdBreakdown(ctx.prisma, {
+                    discountType,
+                    discountRate: 0,
+                    totalPax: input.totalPax,
+                    scPwdPax: input.scPwdPax,
+                    total: subtotal,
+                    vatAmount: 0,
+                }, orderItems.map((item) => ({
+                    itemId: item.itemId,
+                    quantity: item.quantity,
+                    price: item.priceSnapshot,
+                    priceAtSale: item.priceSnapshot,
+                })), weeklyBnpcState);
                 // 4. Calculate delivery fee
                 const deliveryConfig = await ctx.prisma.outletDeliveryConfig.findUnique({
                     where: { outletId: input.outletId },
                 });
                 const deliveryFee = deliveryConfig?.baseDeliveryFee ?? 50;
-                const total = subtotal + deliveryFee;
+                const total = breakdown.netTotal + deliveryFee;
                 // 5. Generate transaction number
                 const count = await ctx.prisma.kompraCOrder.count();
                 const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -457,11 +485,44 @@ export const KompraCMutation = extendType({
                             subtotal,
                             total,
                             items: { create: orderItems },
-                            fees: { create: [{ type: 'delivery', label: 'Delivery fee', amount: deliveryFee }] },
+                            fees: {
+                                create: [
+                                    { type: 'delivery', label: 'Delivery fee', amount: deliveryFee },
+                                    ...(breakdown.discountAmount > 0
+                                        ? [{ type: 'voucher_discount', label: `Discount (${discountType})`, amount: -breakdown.discountAmount }]
+                                        : []),
+                                ],
+                            },
                             tracking: { create: { event: 'order_placed', actorType: 'customer', actorId: customerId } },
                         },
                         include: { items: true, fees: true, tracking: true },
                     });
+                    const discountAuditEntries = [];
+                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+                    for (const item of breakdown.itemBreakdown) {
+                        const itemDiscountAmount = Number(item.discountAmount ?? 0);
+                        if (itemDiscountAmount <= 0)
+                            continue;
+                        if (discountType === 'BNPC_SENIOR_CITIZEN' || discountType === 'BNPC_PWD') {
+                            cumulativeWeeklyBnpc += itemDiscountAmount;
+                        }
+                        discountAuditEntries.push({
+                            orgId: outlet.orgId,
+                            userId: outlet.ownerId,
+                            customerId: String(customerId),
+                            itemId: Number(item.itemId) || undefined,
+                            kompraOrderId: order.id,
+                            discountType,
+                            discountAmount: itemDiscountAmount,
+                            eligibleAmount: Number(item.eligibleAmount ?? 0),
+                            runningWeeklyBnpcTotal: discountType === 'BNPC_SENIOR_CITIZEN' || discountType === 'BNPC_PWD'
+                                ? cumulativeWeeklyBnpc
+                                : undefined,
+                        });
+                    }
+                    if (discountAuditEntries.length > 0) {
+                        await tx.discountAudit.createMany({ data: discountAuditEntries });
+                    }
                     // 7. Deduct stock from InventoryItems
                     for (const item of input.items) {
                         await tx.inventoryItems.update({

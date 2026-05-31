@@ -36,7 +36,6 @@ export const CreateItemInput = inputObjectType({
     t.nonNull.string("stockLabel")
     t.nullable.string("stockDescription")
     t.nonNull.float("sellingPrice")
-    t.nullable.int("categoryId")        // global category
     t.nullable.int("orgCategoryId")     // ✅ org category
     t.nonNull.int("stock")          // ← new required field
     t.nullable.int("brandId")       // ← missing
@@ -44,6 +43,7 @@ export const CreateItemInput = inputObjectType({
     t.nullable.boolean("vatExempt")
     t.nullable.boolean("isVatExempt")
     t.nullable.boolean("isBNPC")
+    t.nullable.boolean("hasSeniorDiscountVATExempt")
     t.nullable.float("vatRate")
     t.nullable.boolean("ServiceCharge") // ← missing
     t.nullable.boolean("assembly")      // ← missing
@@ -99,11 +99,9 @@ export const UpdateItemInput = inputObjectType({
     t.nonNull.float("sellingPrice")
     t.list.field("costLines", { type: "CostLineInput" })
     t.nullable.int("brandId");
-    t.nullable.string("itemCode");
     t.nullable.int("categoryId");
     t.nullable.int("stock");
     t.nullable.float("priceB")
-    t.nullable.int("categoryId")        // global
     t.nullable.int("orgCategoryId")     // ✅ org
     t.nullable.float("priceC")
     t.nullable.float("opExPct")
@@ -111,6 +109,7 @@ export const UpdateItemInput = inputObjectType({
     t.nullable.boolean("vatExempt")
     t.nullable.boolean("isVatExempt")
     t.nullable.boolean("isBNPC")
+    t.nullable.boolean("hasSeniorDiscountVATExempt")
     t.nullable.float("vatRate")
     t.nullable.boolean("ServiceCharge");
     t.nullable.boolean("assembly");

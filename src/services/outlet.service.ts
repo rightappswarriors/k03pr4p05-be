@@ -414,13 +414,20 @@ export const getOutletItemsByAssignedStaff = async (
                 where: { isActive: true },
                 select: {
                   id: true,
+                  inventoryItemId: true,
                   unitName: true,
                   unitLabel: true,
                   price: true,
+                  quantity: true,
                   conversionFactor: true,
                   baseUnit: true,
                   isDefault: true,
                   barcode: true,
+                  allowDecimal: true,
+                  isActive: true,
+                  minOrderQty: true,
+                  maxOrderQty: true,
+                  reorderPoint: true,
                 }
               },
               item: {

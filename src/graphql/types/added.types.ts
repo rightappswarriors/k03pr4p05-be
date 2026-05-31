@@ -118,6 +118,63 @@ export const AuditLogType = objectType({
   }
 })
 
+export const DiscountAuditType = objectType({
+  name: 'DiscountAuditType',
+  definition(t) {
+    t.nonNull.string('id')
+    t.nonNull.int('orgId')
+    t.nonNull.int('userId')
+    t.nullable.string('customerId')
+    t.nullable.int('itemId')
+    t.nullable.int('transactionId')
+    t.nullable.string('salesOrderId')
+    t.nullable.int('kompraOrderId')
+    t.nullable.string('customItemName')
+    t.nonNull.field('discountType', { type: 'DiscountType' })
+    t.nonNull.float('discountAmount')
+    t.nullable.float('eligibleAmount')
+    t.nullable.float('runningWeeklyBnpcTotal')
+    t.nonNull.dateTime('createdAt')
+    t.nonNull.string('transactionType', {
+      resolve: (parent: any) => {
+        if (parent.transactionId) return 'Transaction'
+        if (parent.salesOrderId) return 'SalesOrder'
+        if (parent.kompraOrderId) return 'KompraOrder'
+        return 'Unknown'
+      }
+    })
+    t.field('user', {
+      type: 'User',
+      resolve: (parent, _, ctx) => {
+        return ctx.prisma.user.findUnique({
+          where: { id: parent.userId }
+        })
+      }
+    })
+    t.field('item', {
+      type: 'Item',
+      resolve: (parent: any, _, ctx) => {
+        if (!parent.itemId) return null
+        return ctx.prisma.item.findUnique({
+          where: { id: parent.itemId }
+        })
+      }
+    })
+  }
+})
+
+export const DiscountAuditFiltersInput = inputObjectType({
+  name: 'DiscountAuditFiltersInput',
+  definition(t) {
+    t.nullable.string('customerId')
+    t.nullable.int('itemId')
+    t.nullable.field('discountType', { type: 'DiscountType' })
+    t.nullable.string('transactionType')
+    t.nullable.dateTime('dateFrom')
+    t.nullable.dateTime('dateTo')
+  }
+})
+
 export const PermissionInput = inputObjectType({
   name: 'PermissionInput',
   definition(t) {

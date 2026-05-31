@@ -26,6 +26,7 @@ export const Item = objectType({
         t.nullable.boolean('vatExempt')
         t.nonNull.boolean('isVatExempt')
         t.nonNull.boolean('isBNPC')
+        t.nonNull.boolean('hasSeniorDiscountVATExempt')
         t.nonNull.float('vatRate')
         t.nonNull.int("minQuantity")
         t.nonNull.float("opExPct")

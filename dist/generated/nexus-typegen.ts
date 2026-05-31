@@ -115,6 +115,7 @@ export interface NexusGenInputs {
     categoryId?: number | null; // Int
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
+    hasSeniorDiscountVATExempt?: boolean | null; // Boolean
     image?: string | null; // String
     isBNPC?: boolean | null; // Boolean
     isVatExempt?: boolean | null; // Boolean
@@ -170,6 +171,14 @@ export interface NexusGenInputs {
     estimatedDate?: string | null; // String
     notes?: string | null; // String
     trackingNumber?: string | null; // String
+  }
+  DiscountAuditFiltersInput: { // input type
+    customerId?: string | null; // String
+    dateFrom?: NexusGenScalars['DateTime'] | null; // DateTime
+    dateTo?: NexusGenScalars['DateTime'] | null; // DateTime
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+    itemId?: number | null; // Int
+    transactionType?: string | null; // String
   }
   ExtraChargeInput: { // input type
     amount: number; // Float!
@@ -230,10 +239,13 @@ export interface NexusGenInputs {
   PlaceOrderInput: { // input type
     customerNote?: string | null; // String
     deliveryAddressId: number; // Int!
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
     items: NexusGenInputs['OrderItemInput'][]; // [OrderItemInput!]!
     outletId: number; // Int!
     paymentMethod: NexusGenEnums['KompraCPaymentMethod']; // KompraCPaymentMethod!
+    scPwdPax?: number | null; // Int
     scheduledDeliveryAt?: string | null; // String
+    totalPax?: number | null; // Int
   }
   PositionInput: { // input type
     description?: string | null; // String
@@ -311,6 +323,8 @@ export interface NexusGenInputs {
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+    hasSeniorDiscountVATExempt?: boolean | null; // Boolean
     isCustomItem?: boolean | null; // Boolean
     itemId?: number | null; // Int
     quantity: number; // Float!
@@ -366,6 +380,7 @@ export interface NexusGenInputs {
     categoryId?: number | null; // Int
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
     description?: string | null; // String
+    hasSeniorDiscountVATExempt?: boolean | null; // Boolean
     image?: string | null; // String
     isBNPC?: boolean | null; // Boolean
     isVatExempt?: boolean | null; // Boolean
@@ -686,6 +701,22 @@ export interface NexusGenObjects {
     label: string; // String!
     orgId: number; // Int!
   }
+  DiscountAuditType: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    customItemName?: string | null; // String
+    customerId?: string | null; // String
+    discountAmount: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    eligibleAmount?: number | null; // Float
+    id: string; // String!
+    itemId?: number | null; // Int
+    kompraOrderId?: number | null; // Int
+    orgId: number; // Int!
+    runningWeeklyBnpcTotal?: number | null; // Float
+    salesOrderId?: string | null; // String
+    transactionId?: number | null; // Int
+    userId: number; // Int!
+  }
   Employee: { // root type
     department: string; // String!
     email: string; // String!
@@ -792,6 +823,7 @@ export interface NexusGenObjects {
     exactExpiryDate: NexusGenScalars['DateTime']; // DateTime!
     expiryEndDate?: NexusGenScalars['DateTime'] | null; // DateTime
     expiryStartDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    hasSeniorDiscountVATExempt: boolean; // Boolean!
     id: number; // Int!
     image?: string | null; // String
     isBNPC: boolean; // Boolean!
@@ -1347,6 +1379,7 @@ export interface NexusGenObjects {
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
     id: number; // Int!
     isCustomItem: boolean; // Boolean!
     itemId?: number | null; // Int
@@ -1830,6 +1863,25 @@ export interface NexusGenFieldTypes {
     org: NexusGenRootTypes['Organization']; // Organization!
     orgId: number; // Int!
   }
+  DiscountAuditType: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    customItemName: string | null; // String
+    customerId: string | null; // String
+    discountAmount: number; // Float!
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
+    eligibleAmount: number | null; // Float
+    id: string; // String!
+    item: NexusGenRootTypes['Item'] | null; // Item
+    itemId: number | null; // Int
+    kompraOrderId: number | null; // Int
+    orgId: number; // Int!
+    runningWeeklyBnpcTotal: number | null; // Float
+    salesOrderId: string | null; // String
+    transactionId: number | null; // Int
+    transactionType: string; // String!
+    user: NexusGenRootTypes['User'] | null; // User
+    userId: number; // Int!
+  }
   Employee: { // field return type
     department: string; // String!
     email: string; // String!
@@ -1960,6 +2012,7 @@ export interface NexusGenFieldTypes {
     exactExpiryDate: NexusGenScalars['DateTime']; // DateTime!
     expiryEndDate: NexusGenScalars['DateTime'] | null; // DateTime
     expiryStartDate: NexusGenScalars['DateTime'] | null; // DateTime
+    hasSeniorDiscountVATExempt: boolean; // Boolean!
     id: number; // Int!
     image: string | null; // String
     isBNPC: boolean; // Boolean!
@@ -2624,6 +2677,7 @@ export interface NexusGenFieldTypes {
     contacts: Array<NexusGenRootTypes['Contact'] | null> | null; // [Contact]
     department: NexusGenRootTypes['Department'] | null; // Department
     departments: Array<NexusGenRootTypes['Department'] | null> | null; // [Department]
+    discountAudits: NexusGenRootTypes['DiscountAuditType'][]; // [DiscountAuditType!]!
     employee: NexusGenRootTypes['Employee'] | null; // Employee
     employees: Array<NexusGenRootTypes['Employee'] | null> | null; // [Employee]
     getAPIKeysByUserId: NexusGenRootTypes['PaymongoAPIKeys']; // PaymongoAPIKeys!
@@ -2867,6 +2921,7 @@ export interface NexusGenFieldTypes {
     discountAmount: number | null; // Float
     discountQuantity: number | null; // Float
     discountRate: number | null; // Float
+    discountType: NexusGenEnums['DiscountType']; // DiscountType!
     id: number; // Int!
     isCustomItem: boolean; // Boolean!
     item: NexusGenRootTypes['Item'] | null; // Item
@@ -3379,6 +3434,25 @@ export interface NexusGenFieldTypeNames {
     org: 'Organization'
     orgId: 'Int'
   }
+  DiscountAuditType: { // field return type name
+    createdAt: 'DateTime'
+    customItemName: 'String'
+    customerId: 'String'
+    discountAmount: 'Float'
+    discountType: 'DiscountType'
+    eligibleAmount: 'Float'
+    id: 'String'
+    item: 'Item'
+    itemId: 'Int'
+    kompraOrderId: 'Int'
+    orgId: 'Int'
+    runningWeeklyBnpcTotal: 'Float'
+    salesOrderId: 'String'
+    transactionId: 'Int'
+    transactionType: 'String'
+    user: 'User'
+    userId: 'Int'
+  }
   Employee: { // field return type name
     department: 'String'
     email: 'String'
@@ -3509,6 +3583,7 @@ export interface NexusGenFieldTypeNames {
     exactExpiryDate: 'DateTime'
     expiryEndDate: 'DateTime'
     expiryStartDate: 'DateTime'
+    hasSeniorDiscountVATExempt: 'Boolean'
     id: 'Int'
     image: 'String'
     isBNPC: 'Boolean'
@@ -4173,6 +4248,7 @@ export interface NexusGenFieldTypeNames {
     contacts: 'Contact'
     department: 'Department'
     departments: 'Department'
+    discountAudits: 'DiscountAuditType'
     employee: 'Employee'
     employees: 'Employee'
     getAPIKeysByUserId: 'PaymongoAPIKeys'
@@ -4416,6 +4492,7 @@ export interface NexusGenFieldTypeNames {
     discountAmount: 'Float'
     discountQuantity: 'Float'
     discountRate: 'Float'
+    discountType: 'DiscountType'
     id: 'Int'
     isCustomItem: 'Boolean'
     item: 'Item'
@@ -5435,6 +5512,11 @@ export interface NexusGenArgTypes {
     }
     departments: { // args
       orgId?: number | null; // Int
+    }
+    discountAudits: { // args
+      filters?: NexusGenInputs['DiscountAuditFiltersInput'] | null; // DiscountAuditFiltersInput
+      orgId: number; // Int!
+      pagination?: NexusGenInputs['PaginationInput'] | null; // PaginationInput
     }
     employee: { // args
       id?: number | null; // Int
