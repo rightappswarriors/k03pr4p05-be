@@ -100,6 +100,7 @@ export const TransactionMutation = extendType({
                     if (!customerInput?.idNumber || !customerInput?.fullName) {
                         throw new Error("SC/PWD full name and ID number are required.");
                     }
+                    transactionService.validateGovernmentId(customerInput.idNumber);
                 }
                 if (!itemsSold || itemsSold.length === 0) {
                     throw new Error("Missing itemsSold array.");
@@ -125,21 +126,8 @@ export const TransactionMutation = extendType({
             async resolve(_, { data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
-                return ctx.prisma.scPwdCustomer.create({
-                    data: {
-                        orgId: ctx.user?.orgId ? Number(ctx.user.orgId) : undefined,
-                        fullName: data.fullName,
-                        idNumber: data.idNumber,
-                        idType: data.idType,
-                        customerType: data.customerType,
-                        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-                        contactNumber: data.contactNumber ?? null,
-                        address: data.address ?? null,
-                        isRepresentative: data.isRepresentative ?? false,
-                        representativeName: data.representativeName ?? null,
-                        representativeIdNumber: data.representativeIdNumber ?? null,
-                    },
-                });
+                const { customer } = await transactionService.findOrCreateScPwdCustomer(ctx.prisma, ctx.user?.orgId ? Number(ctx.user.orgId) : 0, data.customerType, data);
+                return customer;
             },
         });
         t.field("updateScPwdCustomer", {
@@ -151,21 +139,8 @@ export const TransactionMutation = extendType({
             async resolve(_, { id, data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
-                return ctx.prisma.scPwdCustomer.update({
-                    where: { id },
-                    data: {
-                        fullName: data.fullName,
-                        idNumber: data.idNumber,
-                        idType: data.idType,
-                        customerType: data.customerType,
-                        dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-                        contactNumber: data.contactNumber ?? null,
-                        address: data.address ?? null,
-                        isRepresentative: data.isRepresentative ?? false,
-                        representativeName: data.representativeName ?? null,
-                        representativeIdNumber: data.representativeIdNumber ?? null,
-                    },
-                });
+                const { customer } = await transactionService.findOrCreateScPwdCustomer(ctx.prisma, ctx.user?.orgId ? Number(ctx.user.orgId) : 0, data.customerType, { ...data, id });
+                return customer;
             },
         });
         t.field("initiatePayment", {

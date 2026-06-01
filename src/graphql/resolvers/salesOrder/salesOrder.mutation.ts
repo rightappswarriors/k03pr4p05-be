@@ -11,7 +11,10 @@ import {
   stringArg,
 } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
-import { getWeeklyBnpcState } from '../../../services/transaction.service.js';
+import {
+  findOrCreateScPwdCustomer,
+  getWeeklyBnpcState,
+} from '../../../services/transaction.service.js';
 
 export const SalesOrderItemInput = inputObjectType({
   name: "SalesOrderItemInput",
@@ -102,7 +105,7 @@ async function computeAutomaticSalesOrderBreakdown(
   tx: any,
   items: any[],
   customerType: string,
-  weeklyBnpcState?: { discountUsed?: number; eligibleAmountUsed?: number },
+  weeklyBnpcState?: { discountUsed?: number; eligibleAmountUsed?: number; capManuallyReached?: boolean },
   totalPax?: number | null,
   scPwdPax?: number | null,
 ) {
@@ -131,6 +134,9 @@ async function computeAutomaticSalesOrderBreakdown(
 
   let remainingBnpcPurchase = Math.max(0, 2500 - Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
   let remainingBnpcDiscount = Math.max(0, 125 - Number(weeklyBnpcState?.discountUsed ?? 0));
+  const bnpcCapReached = Boolean(weeklyBnpcState?.capManuallyReached) ||
+    remainingBnpcPurchase <= 0 ||
+    remainingBnpcDiscount <= 0;
   let discountAmount = 0;
   let vatExemptSale = 0;
   let vatAmount = 0;
@@ -145,13 +151,16 @@ async function computeAutomaticSalesOrderBreakdown(
     const seniorEligible = isEligibleCustomer && Boolean(
       meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt),
     );
-    const bnpcEligible = isEligibleCustomer && !seniorEligible && Boolean(meta?.isBNPC || item.isBNPC);
-    const eligibleQty = (seniorEligible || bnpcEligible) ? quantity * proportion : 0;
+    const bnpcEligible = isEligibleCustomer && !bnpcCapReached && !seniorEligible && Boolean(meta?.isBNPC || item.isBNPC);
+    const seniorFallbackEligible = isEligibleCustomer && bnpcCapReached && Boolean(
+      meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt),
+    );
+    const eligibleQty = (seniorEligible || bnpcEligible || seniorFallbackEligible) ? quantity * proportion : 0;
     const regularQty = quantity - eligibleQty;
     const vatExclusivePrice = isVatExemptItem ? originalPrice : originalPrice / (1 + vatRate);
     const vatPerUnit = isVatExemptItem ? 0 : originalPrice - vatExclusivePrice;
 
-    if (!seniorEligible && !bnpcEligible) {
+    if (!seniorEligible && !bnpcEligible && !seniorFallbackEligible) {
       const lineTotal = roundMoney(originalPrice * quantity);
       vatAmount += vatPerUnit * quantity;
       netTotal += lineTotal;
@@ -196,6 +205,7 @@ async function computeAutomaticSalesOrderBreakdown(
       };
     }
 
+    const effectiveSeniorType = seniorFallbackEligible ? seniorType : seniorType;
     const lineDiscount = roundMoney(vatExclusivePrice * 0.2 * eligibleQty);
     const discountedUnit = vatExclusivePrice * 0.8;
     const lineTotal = roundMoney(originalPrice * regularQty + discountedUnit * eligibleQty);
@@ -207,7 +217,7 @@ async function computeAutomaticSalesOrderBreakdown(
 
     return {
       ...item,
-      discountType: seniorType,
+      discountType: effectiveSeniorType,
       discountRate: 0.2,
       discountAmount: lineDiscount,
       discountQuantity: eligibleQty,
@@ -251,10 +261,21 @@ async function updateStatus(ctx: any, id: string, status: string) {
   }
 
   if (status === "CANCELLED") {
-    const updated = await ctx.prisma.salesOrder.update({
-      where: { id },
-      data: { status },
-      include: salesOrderInclude,
+    const updated = await ctx.prisma.$transaction(async (tx: any) => {
+      const cancelled = await tx.salesOrder.update({
+        where: { id },
+        data: { status },
+        include: salesOrderInclude,
+      });
+      await tx.discountAudit.updateMany({
+        where: { salesOrderId: id, isVoided: false },
+        data: {
+          isVoided: true,
+          voidedAt: new Date(),
+          voidReason: "Sales order cancelled",
+        },
+      });
+      return cancelled;
     });
     await ctx.prisma.auditLog.create({
       data: {
@@ -265,7 +286,7 @@ async function updateStatus(ctx: any, id: string, status: string) {
         recordId: id,
         recordType: "SalesOrder",
         oldValue: { status: existing.status },
-        newValue: { status },
+        newValue: { status, discountAuditsVoided: true },
       },
     });
     return updated;
@@ -380,30 +401,20 @@ export const SalesOrderMutation = extendType({
 
         const salesOrder = await ctx.prisma.$transaction(async (tx: any) => {
           let scPwdCustomerId: string | null = null;
+          let scPwdOscaGovId: string | undefined;
           if (args.scPwdCustomerInput && customerType !== "REGULAR") {
-            const customerData = {
+            const { customer, oscaGovId } = await findOrCreateScPwdCustomer(
+              tx,
               orgId,
-              fullName: args.scPwdCustomerInput.fullName,
-              idNumber: args.scPwdCustomerInput.idNumber,
-              idType: args.scPwdCustomerInput.idType ?? (customerType === "PWD" ? "PWD-PDAO" : "OSCA"),
               customerType,
-              dateOfBirth: args.scPwdCustomerInput.dateOfBirth
-                ? new Date(args.scPwdCustomerInput.dateOfBirth)
-                : null,
-              contactNumber: args.scPwdCustomerInput.contactNumber ?? null,
-              address: args.scPwdCustomerInput.address ?? null,
-              isRepresentative: args.scPwdCustomerInput.isRepresentative ?? false,
-              representativeName: args.scPwdCustomerInput.representativeName ?? null,
-              representativeIdNumber: args.scPwdCustomerInput.representativeIdNumber ?? null,
-            };
-            const customer = args.scPwdCustomerInput.id
-              ? await tx.scPwdCustomer.update({ where: { id: args.scPwdCustomerInput.id }, data: customerData })
-              : await tx.scPwdCustomer.create({ data: customerData });
+              args.scPwdCustomerInput,
+            );
             scPwdCustomerId = customer.id;
+            scPwdOscaGovId = oscaGovId;
           }
 
           const weeklyBnpcState = customerType !== "REGULAR" && scPwdCustomerId
-            ? await getWeeklyBnpcState(tx, scPwdCustomerId)
+            ? await getWeeklyBnpcState(tx, scPwdCustomerId, scPwdOscaGovId)
             : undefined;
 
           const breakdown = await computeAutomaticSalesOrderBreakdown(
@@ -496,6 +507,7 @@ export const SalesOrderMutation = extendType({
               orgId,
               userId,
               customerId: scPwdCustomerId ?? undefined,
+              oscaGovId: scPwdOscaGovId,
               itemId: Number(item.itemId) || undefined,
               salesOrderId: salesOrder.id,
               customItemName: item.isCustomItem ? item.customItemName ?? undefined : undefined,

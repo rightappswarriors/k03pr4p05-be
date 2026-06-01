@@ -552,6 +552,7 @@ model SalesOrderItem {
   discountQuantity Float?  @default(0)
   discountRate     Float?  @default(0)
   discountAmount   Float?  @default(0)
+  discountType     DiscountType @default(NONE)
   unitId           Int?
   unitName         String?
 
@@ -1032,11 +1033,15 @@ model ScPwdCustomer {
   orgId                  Int?
   fullName               String
   idNumber               String
+  oscaId                 String?       @unique
+  govId                  String?       @unique
   idType                 String
   customerType           CustomerType
   dateOfBirth            DateTime?
   contactNumber          String?
   address                String?
+  bnpcCapManuallyReached Boolean       @default(false)
+  bnpcCapManualReason    String?
   isRepresentative       Boolean       @default(false)
   representativeName     String?
   representativeIdNumber String?
@@ -1048,7 +1053,11 @@ model ScPwdCustomer {
 
   @@index([orgId])
   @@index([idNumber])
+  @@index([oscaId])
+  @@index([govId])
   @@index([fullName])
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])
 }
 
 model CustomerDeviceToken {
@@ -1676,18 +1685,29 @@ model DiscountAudit {
   orgId                  Int
   userId                 Int
   customerId             String?
+  oscaGovId              String?
   itemId                 Int?
   salesOrderId           String?
   transactionId          Int?
   kompraOrderId          Int?
+  customItemName         String?
   discountType           DiscountType
   discountAmount         Float
   eligibleAmount         Float?
   runningWeeklyBnpcTotal Float?
+  isVoided               Boolean      @default(false)
+  voidedAt               DateTime?
+  voidReason             String?
   createdAt              DateTime     @default(now())
 
   user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
   item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
+
+  @@index([customerId, createdAt])
+  @@index([oscaGovId, createdAt])
+  @@index([salesOrderId])
+  @@index([transactionId])
+  @@index([kompraOrderId])
 }
 
 model OrderCourierPreference {

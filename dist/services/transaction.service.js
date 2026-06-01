@@ -8,9 +8,83 @@ import { sendToUser } from "../lib/ws.js";
 import * as notificationService from "./notification.service.js";
 const SC_PWD_RATE = 0.2;
 const BNPC_RATE = 0.05;
+const BNPC_WEEKLY_PURCHASE_LIMIT = 2500;
+const BNPC_WEEKLY_DISCOUNT_CAP = 125;
+const GOVERNMENT_ID_PATTERN = /^[a-z0-9]{4,32}$/i;
 const roundMoney = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 const isScPwdDiscount = (type) => type === "SENIOR_CITIZEN" || type === "PWD";
 const isBnpcDiscount = (type) => type === "BNPC_SENIOR_CITIZEN" || type === "BNPC_PWD";
+export const isSeniorVatExemptDiscount = isScPwdDiscount;
+export const isBnpcDiscountType = isBnpcDiscount;
+export const normalizeGovernmentId = (value) => value ? value.trim().toUpperCase() : "";
+export const validateGovernmentId = (value, label = "OSCA/government ID") => {
+    const normalized = normalizeGovernmentId(value);
+    if (!normalized)
+        throw new Error(`${label} is required.`);
+    if (!GOVERNMENT_ID_PATTERN.test(normalized)) {
+        throw new Error(`${label} must be 4-32 alphanumeric characters.`);
+    }
+    return normalized;
+};
+export const resolveScPwdIdFields = (input, customerType) => {
+    const idType = input?.idType ?? (customerType === "PWD" ? "PWD-PDAO" : "OSCA");
+    const normalizedId = validateGovernmentId(input?.idNumber, idType === "OSCA" ? "OSCA ID" : "Government ID");
+    const explicitOsca = input?.oscaId ? validateGovernmentId(input.oscaId, "OSCA ID") : undefined;
+    const explicitGov = input?.govId ? validateGovernmentId(input.govId, "Government ID") : undefined;
+    const isOsca = idType === "OSCA" || customerType === "SENIOR_CITIZEN";
+    return {
+        idNumber: normalizedId,
+        idType,
+        oscaId: explicitOsca ?? (isOsca ? normalizedId : undefined),
+        govId: explicitGov ?? (!isOsca ? normalizedId : undefined),
+        oscaGovId: explicitOsca ?? explicitGov ?? normalizedId,
+    };
+};
+export const findOrCreateScPwdCustomer = async (tx, orgId, customerType, input) => {
+    const idFields = resolveScPwdIdFields(input, customerType);
+    const customerData = {
+        orgId,
+        fullName: String(input.fullName ?? "").trim(),
+        idNumber: idFields.idNumber,
+        oscaId: idFields.oscaId ?? null,
+        govId: idFields.govId ?? null,
+        idType: idFields.idType,
+        customerType,
+        dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+        contactNumber: input.contactNumber?.trim() ?? null,
+        address: input.address ?? null,
+        bnpcCapManuallyReached: input.bnpcCapManuallyReached ?? false,
+        bnpcCapManualReason: input.bnpcCapManualReason ?? null,
+        isRepresentative: input.isRepresentative ?? false,
+        representativeName: input.representativeName ?? null,
+        representativeIdNumber: input.representativeIdNumber ?? null,
+    };
+    const existing = input.id
+        ? await tx.scPwdCustomer.findUnique({ where: { id: input.id } })
+        : await tx.scPwdCustomer.findFirst({
+            where: {
+                orgId,
+                OR: [
+                    ...(idFields.oscaId ? [{ oscaId: idFields.oscaId }] : []),
+                    ...(idFields.govId ? [{ govId: idFields.govId }] : []),
+                    { idNumber: idFields.idNumber },
+                    {
+                        fullName: customerData.fullName,
+                        contactNumber: customerData.contactNumber,
+                        dateOfBirth: customerData.dateOfBirth,
+                        OR: [
+                            ...(idFields.oscaId ? [{ oscaId: idFields.oscaId }] : []),
+                            ...(idFields.govId ? [{ govId: idFields.govId }] : []),
+                        ],
+                    },
+                ],
+            },
+        });
+    const customer = existing
+        ? await tx.scPwdCustomer.update({ where: { id: existing.id }, data: customerData })
+        : await tx.scPwdCustomer.create({ data: customerData });
+    return { customer, oscaGovId: idFields.oscaGovId };
+};
 const getDiscountRate = (type, customRate) => {
     if (isScPwdDiscount(type))
         return SC_PWD_RATE;
@@ -26,14 +100,24 @@ const getWeekStart = (date = new Date()) => {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     return weekStart;
 };
-export const getWeeklyBnpcState = async (tx, customerId) => {
-    if (!customerId)
-        return { discountUsed: 0, eligibleAmountUsed: 0 };
+export const getWeeklyBnpcState = async (tx, customerId, oscaGovId) => {
+    if (!customerId && !oscaGovId)
+        return { discountUsed: 0, eligibleAmountUsed: 0, capManuallyReached: false };
     const weekStart = getWeekStart();
+    const customer = customerId
+        ? await tx.scPwdCustomer.findUnique({
+            where: { id: customerId },
+            select: { bnpcCapManuallyReached: true },
+        })
+        : null;
     const totals = await tx.discountAudit.aggregate({
         where: {
-            customerId,
+            OR: [
+                ...(customerId ? [{ customerId }] : []),
+                ...(oscaGovId ? [{ oscaGovId }] : []),
+            ],
             discountType: { in: ["BNPC_SENIOR_CITIZEN", "BNPC_PWD"] },
+            isVoided: false,
             createdAt: { gte: weekStart },
         },
         _sum: {
@@ -44,6 +128,7 @@ export const getWeeklyBnpcState = async (tx, customerId) => {
     return {
         discountUsed: Number(totals._sum.discountAmount ?? 0),
         eligibleAmountUsed: Number(totals._sum.eligibleAmount ?? 0),
+        capManuallyReached: Boolean(customer?.bnpcCapManuallyReached),
     };
 };
 export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, weeklyBnpcState) => {
@@ -54,8 +139,11 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
     const proportion = totalPax > 0 && scPwdPax > 0 ? Math.min(scPwdPax / totalPax, 1) : 1;
     const priorBnpcDiscount = Math.max(0, Number(weeklyBnpcState?.discountUsed ?? 0));
     const priorBnpcEligible = Math.max(0, Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
-    let remainingBnpcPurchase = Math.max(0, 2500 - priorBnpcEligible);
-    let remainingBnpcDiscount = Math.max(0, 125 - priorBnpcDiscount);
+    let remainingBnpcPurchase = Math.max(0, BNPC_WEEKLY_PURCHASE_LIMIT - priorBnpcEligible);
+    let remainingBnpcDiscount = Math.max(0, BNPC_WEEKLY_DISCOUNT_CAP - priorBnpcDiscount);
+    const bnpcCapReached = Boolean(weeklyBnpcState?.capManuallyReached) ||
+        remainingBnpcPurchase <= 0 ||
+        remainingBnpcDiscount <= 0;
     if (discountType === "NONE" || rate <= 0) {
         const itemBreakdown = itemsSold.map((item) => {
             const originalPrice = Number(item.priceAtSale ?? item.price ?? 0);
@@ -99,8 +187,9 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
         const meta = itemMeta.get(Number(item.itemId));
         const vatRate = Number(meta?.vatRate ?? 0.12);
         const itemIsVatExempt = Boolean(meta?.isVatExempt || meta?.vatExempt || item.vatExempt || item.isVatExempt);
-        const eligibleBnpc = isBnpcDiscount(discountType) && Boolean(meta?.isBNPC || item.isBNPC);
-        const eligibleSenior = isScPwdDiscount(discountType) && Boolean(meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt));
+        const canApplySeniorFallback = isBnpcDiscount(discountType) && bnpcCapReached;
+        const eligibleBnpc = isBnpcDiscount(discountType) && !bnpcCapReached && Boolean(meta?.isBNPC || item.isBNPC);
+        const eligibleSenior = (isScPwdDiscount(discountType) || canApplySeniorFallback) && Boolean(meta?.hasSeniorDiscountVATExempt || item.hasSeniorDiscountVATExempt || (item.isCustomItem && item.vatExempt));
         const eligible = eligibleBnpc || eligibleSenior;
         const eligibleQty = eligible ? quantity * proportion : 0;
         const regularQty = quantity - eligibleQty;
@@ -120,7 +209,7 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
                 eligibleAmount: 0,
             };
         }
-        if (isBnpcDiscount(discountType)) {
+        if (eligibleBnpc) {
             const lineGross = originalPrice * quantity;
             const eligibleAmount = originalPrice * eligibleQty;
             const eligibleAmountToDiscount = Math.max(0, Math.min(eligibleAmount, remainingBnpcPurchase));
@@ -145,8 +234,12 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
         }
         const vatExclusivePrice = itemIsVatExempt ? originalPrice : originalPrice / (1 + vatRate);
         const vatRemoved = itemIsVatExempt ? 0 : originalPrice - vatExclusivePrice;
-        const lineDiscount = vatExclusivePrice * rate * eligibleQty;
-        const discountedUnit = vatExclusivePrice * (1 - rate);
+        const effectiveSeniorRate = canApplySeniorFallback ? SC_PWD_RATE : rate;
+        const effectiveDiscountType = canApplySeniorFallback
+            ? (discountType === "BNPC_PWD" ? "PWD" : "SENIOR_CITIZEN")
+            : discountType;
+        const lineDiscount = vatExclusivePrice * effectiveSeniorRate * eligibleQty;
+        const discountedUnit = vatExclusivePrice * (1 - effectiveSeniorRate);
         const lineTotal = originalPrice * regularQty + discountedUnit * eligibleQty;
         discountAmount += lineDiscount;
         vatExemptSale += vatExclusivePrice * eligibleQty;
@@ -154,8 +247,8 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
         netTotal += lineTotal;
         return {
             ...item,
-            discountType,
-            discountRate: rate,
+            discountType: effectiveDiscountType,
+            discountRate: effectiveSeniorRate,
             discountAmount: roundMoney(lineDiscount),
             originalPrice,
             vatExclusivePrice: roundMoney(vatExclusivePrice),
@@ -201,43 +294,32 @@ export const processTransaction = async (transactionData, itemsSold) => {
         if (!outletContext) {
             throw new Error(`Outlet not found: ${transactionData.outletId}`);
         }
+        let scPwdOscaGovId;
         if (scPwdCustomerInput && transactionData.customerType !== "REGULAR") {
-            const customerData = {
-                orgId: Number(transactionData.orgId || outletContext.orgId),
-                fullName: scPwdCustomerInput.fullName,
-                idNumber: scPwdCustomerInput.idNumber,
-                idType: scPwdCustomerInput.idType,
-                customerType: scPwdCustomerInput.customerType ?? transactionData.customerType,
-                dateOfBirth: scPwdCustomerInput.dateOfBirth ? new Date(scPwdCustomerInput.dateOfBirth) : null,
-                contactNumber: scPwdCustomerInput.contactNumber ?? null,
-                address: scPwdCustomerInput.address ?? null,
-                isRepresentative: scPwdCustomerInput.isRepresentative ?? false,
-                representativeName: scPwdCustomerInput.representativeName ?? null,
-                representativeIdNumber: scPwdCustomerInput.representativeIdNumber ?? null,
-            };
-            const customer = scPwdCustomerInput.id
-                ? await tx.scPwdCustomer.update({ where: { id: scPwdCustomerInput.id }, data: customerData })
-                : await tx.scPwdCustomer.create({ data: customerData });
+            const { customer, oscaGovId } = await findOrCreateScPwdCustomer(tx, Number(transactionData.orgId || outletContext.orgId), transactionData.customerType, scPwdCustomerInput);
             transactionData.scPwdCustomerId = customer.id;
             transactionData.vatExemptRefNo = transactionData.vatExemptRefNo ?? customer.idNumber;
+            scPwdOscaGovId = oscaGovId;
         }
         const weeklyBnpcState = isBnpcDiscount(transactionData.discountType)
-            ? await getWeeklyBnpcState(tx, transactionData.scPwdCustomerId ?? undefined)
+            ? await getWeeklyBnpcState(tx, transactionData.scPwdCustomerId ?? undefined, scPwdOscaGovId)
             : undefined;
         const discountBreakdown = await computeScPwdBreakdown(tx, transactionData, itemsSold, weeklyBnpcState);
         itemsSold = discountBreakdown.itemBreakdown;
+        const appliedTypes = Array.from(new Set(itemsSold.filter((item) => Number(item.discountAmount ?? 0) > 0).map((item) => item.discountType)));
         transactionData = {
             ...transactionData,
+            discountType: appliedTypes.length === 0 ? "NONE" : appliedTypes.length === 1 ? appliedTypes[0] : "CUSTOM",
             total: discountBreakdown.netTotal,
             vatAmount: discountBreakdown.vatAmount,
-            discountRate: discountBreakdown.discountRate,
+            discountRate: appliedTypes.length === 1 ? Number(itemsSold.find((item) => item.discountType === appliedTypes[0])?.discountRate ?? 0) : 0,
             discountAmount: discountBreakdown.discountAmount,
-            scPwdDiscountAmt: isScPwdDiscount(transactionData.discountType)
+            scPwdDiscountAmt: appliedTypes.some((type) => isScPwdDiscount(type))
                 ? discountBreakdown.discountAmount
                 : transactionData.scPwdDiscountAmt,
             vatExemptAmount: discountBreakdown.vatExemptSale,
             vatExemptSale: discountBreakdown.vatExemptSale,
-            isVatExempt: isScPwdDiscount(transactionData.discountType) || Boolean(transactionData.isVatExempt),
+            isVatExempt: appliedTypes.some((type) => isScPwdDiscount(type)) || Boolean(transactionData.isVatExempt),
         };
         delete transactionData.orgId;
         // 1 — Find outlet inventory
@@ -380,20 +462,21 @@ export const processTransaction = async (transactionData, itemsSold) => {
             const itemDiscountAmount = Number(item.discountAmount ?? 0);
             if (itemDiscountAmount <= 0)
                 continue;
-            if (isBnpcDiscount(transactionData.discountType)) {
+            if (isBnpcDiscount(item.discountType)) {
                 cumulativeWeeklyBnpc += itemDiscountAmount;
             }
             discountAuditEntries.push({
                 orgId: outletContext.orgId,
                 userId: transactionData.cashierId,
                 customerId: transactionData.scPwdCustomerId ?? undefined,
+                oscaGovId: scPwdOscaGovId,
                 itemId: Number(item.itemId) || undefined,
                 transactionId: newTransaction.id,
                 customItemName: item.customItemName ?? undefined,
-                discountType: transactionData.discountType,
+                discountType: item.discountType,
                 discountAmount: roundMoney(itemDiscountAmount),
                 eligibleAmount: Number(item.eligibleAmount ?? 0),
-                runningWeeklyBnpcTotal: isBnpcDiscount(transactionData.discountType)
+                runningWeeklyBnpcTotal: isBnpcDiscount(item.discountType)
                     ? roundMoney(cumulativeWeeklyBnpc)
                     : undefined,
             });

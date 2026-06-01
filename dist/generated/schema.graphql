@@ -556,7 +556,9 @@ input DiscountAuditFiltersInput {
   dateFrom: DateTime
   dateTo: DateTime
   discountType: DiscountType
+  isVoided: Boolean
   itemId: Int
+  oscaGovId: String
   transactionType: String
 }
 
@@ -568,16 +570,20 @@ type DiscountAuditType {
   discountType: DiscountType!
   eligibleAmount: Float
   id: String!
+  isVoided: Boolean!
   item: Item
   itemId: Int
   kompraOrderId: Int
   orgId: Int!
+  oscaGovId: String
   runningWeeklyBnpcTotal: Float
   salesOrderId: String
   transactionId: Int
   transactionType: String!
   user: User
   userId: Int!
+  voidReason: String
+  voidedAt: DateTime
 }
 
 enum DiscountType {
@@ -2014,16 +2020,20 @@ type SalesTrendPoint {
 
 type ScPwdCustomer {
   address: String
+  bnpcCapManualReason: String
+  bnpcCapManuallyReached: Boolean!
   contactNumber: String
   createdAt: DateTime!
   customerType: CustomerType!
   dateOfBirth: DateTime
   fullName: String!
+  govId: String
   id: String!
   idNumber: String!
   idType: String!
   isRepresentative: Boolean!
   orgId: Int
+  oscaId: String
   representativeIdNumber: String
   representativeName: String
   updatedAt: DateTime!
@@ -2031,14 +2041,18 @@ type ScPwdCustomer {
 
 input ScPwdCustomerInput {
   address: String
+  bnpcCapManualReason: String
+  bnpcCapManuallyReached: Boolean
   contactNumber: String
   customerType: CustomerType!
   dateOfBirth: String
   fullName: String!
+  govId: String
   id: String
   idNumber: String!
   idType: String!
   isRepresentative: Boolean
+  oscaId: String
   representativeIdNumber: String
   representativeName: String
 }

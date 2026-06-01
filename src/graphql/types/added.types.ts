@@ -125,6 +125,7 @@ export const DiscountAuditType = objectType({
     t.nonNull.int('orgId')
     t.nonNull.int('userId')
     t.nullable.string('customerId')
+    t.nullable.string('oscaGovId')
     t.nullable.int('itemId')
     t.nullable.int('transactionId')
     t.nullable.string('salesOrderId')
@@ -134,6 +135,9 @@ export const DiscountAuditType = objectType({
     t.nonNull.float('discountAmount')
     t.nullable.float('eligibleAmount')
     t.nullable.float('runningWeeklyBnpcTotal')
+    t.nonNull.boolean('isVoided')
+    t.nullable.dateTime('voidedAt')
+    t.nullable.string('voidReason')
     t.nonNull.dateTime('createdAt')
     t.nonNull.string('transactionType', {
       resolve: (parent: any) => {
@@ -167,9 +171,11 @@ export const DiscountAuditFiltersInput = inputObjectType({
   name: 'DiscountAuditFiltersInput',
   definition(t) {
     t.nullable.string('customerId')
+    t.nullable.string('oscaGovId')
     t.nullable.int('itemId')
     t.nullable.field('discountType', { type: 'DiscountType' })
     t.nullable.string('transactionType')
+    t.nullable.boolean('isVoided')
     t.nullable.dateTime('dateFrom')
     t.nullable.dateTime('dateTo')
   }

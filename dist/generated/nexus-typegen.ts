@@ -177,7 +177,9 @@ export interface NexusGenInputs {
     dateFrom?: NexusGenScalars['DateTime'] | null; // DateTime
     dateTo?: NexusGenScalars['DateTime'] | null; // DateTime
     discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
+    isVoided?: boolean | null; // Boolean
     itemId?: number | null; // Int
+    oscaGovId?: string | null; // String
     transactionType?: string | null; // String
   }
   ExtraChargeInput: { // input type
@@ -335,14 +337,18 @@ export interface NexusGenInputs {
   }
   ScPwdCustomerInput: { // input type
     address?: string | null; // String
+    bnpcCapManualReason?: string | null; // String
+    bnpcCapManuallyReached?: boolean | null; // Boolean
     contactNumber?: string | null; // String
     customerType: NexusGenEnums['CustomerType']; // CustomerType!
     dateOfBirth?: string | null; // String
     fullName: string; // String!
+    govId?: string | null; // String
     id?: string | null; // String
     idNumber: string; // String!
     idType: string; // String!
     isRepresentative?: boolean | null; // Boolean
+    oscaId?: string | null; // String
     representativeIdNumber?: string | null; // String
     representativeName?: string | null; // String
   }
@@ -709,13 +715,17 @@ export interface NexusGenObjects {
     discountType: NexusGenEnums['DiscountType']; // DiscountType!
     eligibleAmount?: number | null; // Float
     id: string; // String!
+    isVoided: boolean; // Boolean!
     itemId?: number | null; // Int
     kompraOrderId?: number | null; // Int
     orgId: number; // Int!
+    oscaGovId?: string | null; // String
     runningWeeklyBnpcTotal?: number | null; // Float
     salesOrderId?: string | null; // String
     transactionId?: number | null; // Int
     userId: number; // Int!
+    voidReason?: string | null; // String
+    voidedAt?: NexusGenScalars['DateTime'] | null; // DateTime
   }
   Employee: { // root type
     department: string; // String!
@@ -1400,16 +1410,20 @@ export interface NexusGenObjects {
   }
   ScPwdCustomer: { // root type
     address?: string | null; // String
+    bnpcCapManualReason?: string | null; // String
+    bnpcCapManuallyReached: boolean; // Boolean!
     contactNumber?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     customerType: NexusGenEnums['CustomerType']; // CustomerType!
     dateOfBirth?: NexusGenScalars['DateTime'] | null; // DateTime
     fullName: string; // String!
+    govId?: string | null; // String
     id: string; // String!
     idNumber: string; // String!
     idType: string; // String!
     isRepresentative: boolean; // Boolean!
     orgId?: number | null; // Int
+    oscaId?: string | null; // String
     representativeIdNumber?: string | null; // String
     representativeName?: string | null; // String
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -1871,16 +1885,20 @@ export interface NexusGenFieldTypes {
     discountType: NexusGenEnums['DiscountType']; // DiscountType!
     eligibleAmount: number | null; // Float
     id: string; // String!
+    isVoided: boolean; // Boolean!
     item: NexusGenRootTypes['Item'] | null; // Item
     itemId: number | null; // Int
     kompraOrderId: number | null; // Int
     orgId: number; // Int!
+    oscaGovId: string | null; // String
     runningWeeklyBnpcTotal: number | null; // Float
     salesOrderId: string | null; // String
     transactionId: number | null; // Int
     transactionType: string; // String!
     user: NexusGenRootTypes['User'] | null; // User
     userId: number; // Int!
+    voidReason: string | null; // String
+    voidedAt: NexusGenScalars['DateTime'] | null; // DateTime
   }
   Employee: { // field return type
     department: string; // String!
@@ -2943,16 +2961,20 @@ export interface NexusGenFieldTypes {
   }
   ScPwdCustomer: { // field return type
     address: string | null; // String
+    bnpcCapManualReason: string | null; // String
+    bnpcCapManuallyReached: boolean; // Boolean!
     contactNumber: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     customerType: NexusGenEnums['CustomerType']; // CustomerType!
     dateOfBirth: NexusGenScalars['DateTime'] | null; // DateTime
     fullName: string; // String!
+    govId: string | null; // String
     id: string; // String!
     idNumber: string; // String!
     idType: string; // String!
     isRepresentative: boolean; // Boolean!
     orgId: number | null; // Int
+    oscaId: string | null; // String
     representativeIdNumber: string | null; // String
     representativeName: string | null; // String
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -3442,16 +3464,20 @@ export interface NexusGenFieldTypeNames {
     discountType: 'DiscountType'
     eligibleAmount: 'Float'
     id: 'String'
+    isVoided: 'Boolean'
     item: 'Item'
     itemId: 'Int'
     kompraOrderId: 'Int'
     orgId: 'Int'
+    oscaGovId: 'String'
     runningWeeklyBnpcTotal: 'Float'
     salesOrderId: 'String'
     transactionId: 'Int'
     transactionType: 'String'
     user: 'User'
     userId: 'Int'
+    voidReason: 'String'
+    voidedAt: 'DateTime'
   }
   Employee: { // field return type name
     department: 'String'
@@ -4514,16 +4540,20 @@ export interface NexusGenFieldTypeNames {
   }
   ScPwdCustomer: { // field return type name
     address: 'String'
+    bnpcCapManualReason: 'String'
+    bnpcCapManuallyReached: 'Boolean'
     contactNumber: 'String'
     createdAt: 'DateTime'
     customerType: 'CustomerType'
     dateOfBirth: 'DateTime'
     fullName: 'String'
+    govId: 'String'
     id: 'String'
     idNumber: 'String'
     idType: 'String'
     isRepresentative: 'Boolean'
     orgId: 'Int'
+    oscaId: 'String'
     representativeIdNumber: 'String'
     representativeName: 'String'
     updatedAt: 'DateTime'

@@ -53,8 +53,10 @@ export const auditQuery = extendType({
                 const where = {
                     orgId,
                     ...(filters?.customerId && { customerId: filters.customerId }),
+                    ...(filters?.oscaGovId && { oscaGovId: filters.oscaGovId }),
                     ...(filters?.itemId && { itemId: filters.itemId }),
                     ...(filters?.discountType && { discountType: filters.discountType }),
+                    ...(typeof filters?.isVoided === "boolean" && { isVoided: filters.isVoided }),
                     ...(filters?.transactionType === "Transaction" && { transactionId: { not: null } }),
                     ...(filters?.transactionType === "SalesOrder" && { salesOrderId: { not: null } }),
                     ...(filters?.transactionType === "KompraOrder" && { kompraOrderId: { not: null } }),
