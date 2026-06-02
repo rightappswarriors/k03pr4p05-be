@@ -35,6 +35,11 @@ export interface RestockCycleSchedulable {
 
 /** Register a single BullMQ job for one cycle. */
 export async function registerCycleJob(cycle: RestockCycleSchedulable): Promise<void> {
+  if (!restockQueue) {
+    console.warn(`Skipping restock job registration for cycle ${cycle.id} because Redis is disabled`);
+    return;
+  }
+
   const jobId = `restock-cycle-${cycle.id}`;
   const now = new Date();
   const delay = cycle.scheduledAt.getTime() - now.getTime();
@@ -71,6 +76,10 @@ export async function registerCycleJob(cycle: RestockCycleSchedulable): Promise<
 
 /** Remove a cycle's BullMQ job (e.g. when cycle is deleted or deactivated). */
 export async function removeCycleJob(cycleId: number): Promise<void> {
+  if (!restockQueue) {
+    return;
+  }
+
   const jobId = `restock-cycle-${cycleId}`;
   try {
     const existing = await restockQueue.getJob(jobId);
@@ -85,6 +94,10 @@ export async function removeCycleJob(cycleId: number): Promise<void> {
 
 /** Remove all cycle jobs for a schedule (e.g. when schedule is deleted). */
 export async function removeScheduleCycleJobs(scheduleId: number): Promise<void> {
+  if (!restockQueue) {
+    return;
+  }
+
   try {
     const jobs = await restockQueue.getJobs([
       'waiting', 'delayed', 'active', 'paused', 'completed', 'failed',
