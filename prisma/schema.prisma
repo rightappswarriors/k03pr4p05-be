@@ -62,11 +62,6 @@ model Subscription {
   org       Organization     @relation(fields: [orgId], references: [id])
 }
 
-enum SubscriptionPlan {
-  BASIC
-  GOLD
-}
-
 model User {
   id                   Int                      @id @default(autoincrement())
   fullname             String
@@ -87,9 +82,9 @@ model User {
   departmentId         Int?
   attendances          Attendance[]
   auditLogs            AuditLog[]
-  discountAudits       DiscountAudit[]          @relation("DiscountAuditUser")
   branchesOwned        Branch[]                 @relation("UserBranches")
   budgets              Budget[]
+  discountAudits       DiscountAudit[]          @relation("DiscountAuditUser")
   employees            Employee[]
   gisRows              GISRow[]
   inventoryItems       InventoryItem[]
@@ -216,8 +211,8 @@ model Outlet {
   staff                 OutletStaff[]
   restockCycles         RestockCycle[]
   restockSchedules      RestockSchedule[]
-  Transaction           Transaction[]
   salesOrders           SalesOrder[]
+  Transaction           Transaction[]
 
   @@unique([orgId, code])
 }
@@ -415,10 +410,6 @@ model Item {
   itemCode                   String?
   skuNumber                  String?
   vatExempt                  Boolean?
-  isVatExempt                Boolean                 @default(false)
-  isBNPC                     Boolean                 @default(false)
-  hasSeniorDiscountVATExempt Boolean                 @default(false)
-  vatRate                    Float                   @default(0.12)
   stock                      Float                   @default(0)
   sellingPrice               Float                   @default(0)
   minQuantity                Float                   @default(0)
@@ -433,8 +424,13 @@ model Item {
   vatTypeId                  Int?
   stockDescription           String?
   stockLabel                 String?
+  isBNPC                     Boolean                 @default(false)
+  isVatExempt                Boolean                 @default(false)
+  vatRate                    Float                   @default(0.12)
+  hasSeniorDiscountVATExempt Boolean                 @default(false)
   cartItems                  CartItem[]
   costLines                  CostLines[]
+  discountAudits             DiscountAudit[]         @relation("DiscountAuditItem")
   InventoryItems             InventoryItems[]
   brandDetails               Brand?                  @relation(fields: [brandId], references: [id])
   category                   ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id])
@@ -448,81 +444,56 @@ model Item {
   searchIndex                OutletItemSearchIndex[]
   restockCycleItems          RestockCycleItem[]
   restockScheduleItems       RestockScheduleItem[]
+  salesOrderItems            SalesOrderItem[]
   stockBatches               StockBatch[]
   stockMovements             StockMovement[]
   summaryRows                SummaryRow[]
   supplierOrderItems         SupplierOrderItem[]
-  discountAudits             DiscountAudit[]         @relation("DiscountAuditItem")
   color                      Color[]                 @relation("ColorToItem")
   purchaseUnit               ItemUnit[]              @relation("ItemToItemUnit")
-  salesOrderItems            SalesOrderItem[]
 
   @@unique([orgId, name])
 }
 
-enum OrderMode {
-  WALK_IN
-  PICK_UP
-  DELIVERY
-}
-
-enum SalesOrderStatus {
-  PENDING
-  PROCESSING
-  READY_FOR_PICKUP
-  OUT_FOR_DELIVERY
-  COMPLETED
-  ORDERED
-  SHIPPED
-  RECEIVED
-  CANCELLED
-}
-
 model SalesOrder {
-  id              String           @id @default(cuid())
-  orderNumber     String           @unique
-  customer        String
-  orderMode       OrderMode        @default(WALK_IN)
-  status          SalesOrderStatus @default(PENDING)
-  date            DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  orgId           Int
-  userId          Int?
-  outletId        Int?
-  branchId        Int?
-  customerName    String?
-  customerContact String?
-  customerType    CustomerType     @default(REGULAR)
-  discountType    DiscountType     @default(NONE)
-  vatExemptSale   Float            @default(0)
-  totalPax        Int?
-  scPwdPax        Int?
-  scPwdCustomerId String?
-  deliveryAddress String?
-  deliveryNotes   String?
-
-  // Pricing
-  subtotal          Float @default(0)
-  discountAmount    Float @default(0)
-  vatAmount         Float @default(0)
-  total             Float @default(0)
-  vatRate           Float @default(0)
-  discountRate      Float @default(0)
-  extraChargesTotal Float @default(0)
-  grandTotal        Float @default(0)
+  id                String              @id @default(cuid())
+  customer          String
+  total             Float               @default(0)
+  date              DateTime            @default(now())
+  orgId             Int
+  userId            Int?
+  branchId          Int?
+  discountAmount    Float               @default(0)
+  discountRate      Float               @default(0)
+  orderNumber       String              @unique
+  outletId          Int?
   outletPromoId     Int?
-
-  // Delivery details (filled when moving Processing → Shipped)
-  delivery SalesOrderDelivery?
-
-  // Relations
-  items         SalesOrderItem[]
-  extraCharges  ExtraCharge[]
-  org           Organization     @relation(fields: [orgId], references: [id])
-  user          User?            @relation(fields: [userId], references: [id])
-  outlet        Outlet?          @relation(fields: [outletId], references: [id])
-  branch        Branch?          @relation(fields: [branchId], references: [id])
-  scPwdCustomer ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
+  subtotal          Float               @default(0)
+  updatedAt         DateTime            @updatedAt
+  vatAmount         Float               @default(0)
+  vatRate           Float               @default(0)
+  status            SalesOrderStatus    @default(PENDING)
+  customerContact   String?
+  customerName      String?
+  customerType      CustomerType        @default(REGULAR)
+  deliveryAddress   String?
+  deliveryNotes     String?
+  discountType      DiscountType        @default(NONE)
+  extraChargesTotal Float               @default(0)
+  grandTotal        Float               @default(0)
+  orderMode         OrderMode           @default(WALK_IN)
+  scPwdCustomerId   String?
+  scPwdPax          Int?
+  totalPax          Int?
+  vatExemptSale     Float               @default(0)
+  extraCharges      ExtraCharge[]
+  branch            Branch?             @relation(fields: [branchId], references: [id])
+  org               Organization        @relation(fields: [orgId], references: [id])
+  outlet            Outlet?             @relation(fields: [outletId], references: [id])
+  scPwdCustomer     ScPwdCustomer?      @relation(fields: [scPwdCustomerId], references: [id])
+  user              User?               @relation(fields: [userId], references: [id])
+  delivery          SalesOrderDelivery?
+  items             SalesOrderItem[]
 
   @@index([orgId])
   @@index([orgId, status])
@@ -543,25 +514,23 @@ model ExtraCharge {
 }
 
 model SalesOrderItem {
-  id               Int     @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   salesOrderId     String
   itemId           Int?
   quantity         Float
   unitPrice        Float
   totalPrice       Float
-  discountQuantity Float?  @default(0)
-  discountRate     Float?  @default(0)
-  discountAmount   Float?  @default(0)
   unitId           Int?
   unitName         String?
-
-  // ── Custom / manual item fields ──────────────────────────────────────────
-  isCustomItem   Boolean @default(false) // true = manually entered, not from inventory
-  customItemName String? // display name for custom items
-  vatExempt      Boolean @default(false) // VAT override; used when isCustomItem = true
-
-  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  item       Item?      @relation(fields: [itemId], references: [id]) // ← nullable relation
+  discountAmount   Float?       @default(0)
+  discountQuantity Float?       @default(0)
+  discountRate     Float?       @default(0)
+  customItemName   String?
+  isCustomItem     Boolean      @default(false)
+  vatExempt        Boolean      @default(false)
+  discountType     DiscountType @default(NONE)
+  item             Item?        @relation(fields: [itemId], references: [id])
+  salesOrder       SalesOrder   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 
   @@index([salesOrderId])
 }
@@ -657,16 +626,6 @@ model KompraCOrder {
   fees                   KompraCOrderFee[]
   items                  KompraCOrderItem[]
   OrderCourierPreference OrderCourierPreference[]
-}
-
-enum OrderStatus {
-  pending
-  confirmed
-  preparing
-  in_delivery
-  received
-  cancelled
-  returned
 }
 
 model Courier {
@@ -968,7 +927,6 @@ model Brand {
   @@unique([orgId, name])
 }
 
-// used in pos terminal to track items in a transaction, separate from inventory which tracks stock levels. this allows us to record the price and quantity of each item at the time of sale, even if the inventory levels change later. it also allows us to track the unit of measurement used for each item in the transaction, which may be different from the base unit used in inventory.
 model CartItem {
   transactionId     Int
   itemId            Int
@@ -977,12 +935,12 @@ model CartItem {
   unitId            Int?
   unitName          String?
   discountAmount    Float?             @default(0)
-  discountQuantity  Float?             @default(0) // ← NEW: quantity that gets the discount
-  discountRate      Float?             @default(0) // ← NEW: discount percentage (0.0 - 1.0)
+  discountQuantity  Float?             @default(0)
+  discountRate      Float?             @default(0)
   discountType      DiscountType       @default(NONE)
+  finalPrice        Float              @default(0)
   originalPrice     Float              @default(0)
   vatExclusivePrice Float              @default(0)
-  finalPrice        Float              @default(0)
   item              Item               @relation(fields: [itemId], references: [id])
   transaction       Transaction        @relation(fields: [transactionId], references: [id])
   unit              InventoryItemUnit? @relation(fields: [unitId], references: [id])
@@ -1004,27 +962,27 @@ model Transaction {
   createdAt         DateTime
   syncedAt          DateTime         @default(now())
   customerDetailsId Int?
-  customerType      CustomerType     @default(REGULAR)
-  scPwdCustomerId   String?
   isVatExempt       Boolean          @default(false)
   scPwdDiscountAmt  Float?
   vatExemptAmount   Float?
-  vatExemptSale     Float            @default(0)
   vatExemptRefNo    String?
   vatExemptType     VatExemptType?
-  items             CartItem[]
-  customerDetails   CustomerDetails?
-  scPwdCustomer     ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
-  cashier           User?            @relation(fields: [cashierId], references: [id])
-  discountType      DiscountType     @default(NONE)
-  discountRate      Float            @default(0)
   discountAmount    Float            @default(0)
-  totalPax          Int?
-  scPwdPax          Int?
   outletPromoId     Int?
   promoDiscountAmt  Float?
-  outletPromo       OutletPromo?     @relation(fields: [outletPromoId], references: [id])
+  customerType      CustomerType     @default(REGULAR)
+  discountRate      Float            @default(0)
+  scPwdCustomerId   String?
+  scPwdPax          Int?
+  totalPax          Int?
+  vatExemptSale     Float            @default(0)
+  discountType      DiscountType     @default(NONE)
+  items             CartItem[]
+  customerDetails   CustomerDetails?
+  cashier           User?            @relation(fields: [cashierId], references: [id])
   outlet            Outlet           @relation(fields: [outletId], references: [id])
+  outletPromo       OutletPromo?     @relation(fields: [outletPromoId], references: [id])
+  scPwdCustomer     ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
 }
 
 model ScPwdCustomer {
@@ -1042,13 +1000,21 @@ model ScPwdCustomer {
   representativeIdNumber String?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
+  bnpcCapManualReason    String?
+  bnpcCapManuallyReached Boolean       @default(false)
+  govId                  String?       @unique
+  oscaId                 String?       @unique
+  salesOrders            SalesOrder[]
   org                    Organization? @relation(fields: [orgId], references: [id])
   transactions           Transaction[]
-  salesOrders            SalesOrder[]
 
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
   @@index([orgId])
   @@index([idNumber])
   @@index([fullName])
+  @@index([govId])
+  @@index([oscaId])
 }
 
 model CustomerDeviceToken {
@@ -1677,17 +1643,27 @@ model DiscountAudit {
   userId                 Int
   customerId             String?
   itemId                 Int?
-  salesOrderId           String?
   transactionId          Int?
+  salesOrderId           String?
   kompraOrderId          Int?
+  customItemName         String?
   discountType           DiscountType
   discountAmount         Float
   eligibleAmount         Float?
   runningWeeklyBnpcTotal Float?
   createdAt              DateTime     @default(now())
+  isVoided               Boolean      @default(false)
+  oscaGovId              String?
+  voidReason             String?
+  voidedAt               DateTime?
+  item                   Item?        @relation("DiscountAuditItem", fields: [itemId], references: [id])
+  user                   User         @relation("DiscountAuditUser", fields: [userId], references: [id])
 
-  user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
-  item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
+  @@index([customerId, createdAt])
+  @@index([kompraOrderId])
+  @@index([oscaGovId, createdAt])
+  @@index([salesOrderId])
+  @@index([transactionId])
 }
 
 model OrderCourierPreference {
@@ -1696,6 +1672,39 @@ model OrderCourierPreference {
   courier_id   Int
   Courier      Courier      @relation(fields: [courier_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier")
   KompraCOrder KompraCOrder @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order")
+}
+
+enum SubscriptionPlan {
+  BASIC
+  GOLD
+}
+
+enum OrderMode {
+  WALK_IN
+  PICK_UP
+  DELIVERY
+}
+
+enum SalesOrderStatus {
+  ORDERED
+  PROCESSING
+  SHIPPED
+  RECEIVED
+  CANCELLED
+  PENDING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  in_delivery
+  received
+  cancelled
+  returned
 }
 
 enum StockMovementType {
@@ -1804,11 +1813,11 @@ enum CustomerType {
 
 enum Status {
   PENDING
-  COMPLETED
   PAID
   SYNCED
   FAILED
   CANCELED
+  COMPLETED
 }
 
 enum PaymentType {

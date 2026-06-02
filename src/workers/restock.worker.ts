@@ -3,15 +3,18 @@
 // Each cycle has its own items, supplier, and exact fire time.
 
 import { Worker } from 'bullmq';
-import { restockQueue } from '../queue/restock.queue.js';
+import { isRedisEnabled, restockQueue } from '../queue/restock.queue.js';
 import { prisma } from '../lib/prisma.js';
 import { sendEmail } from '../services/email/email.service.js';
 import { generateSupplierEmail } from '../services/email/supplier.email.js';
 import crypto from 'crypto';
 
-const worker = new Worker(
-  'restock',
-  async (job) => {
+let worker: Worker | null = null;
+
+if (isRedisEnabled && restockQueue) {
+  worker = new Worker(
+    'restock',
+    async (job) => {
     const { cycleId } = job.data as { cycleId: number };
 
     if (!cycleId) {
@@ -136,18 +139,21 @@ const worker = new Worker(
     console.log(
       `Cycle ${cycleId} complete → SupplierOrder ${order.id} (${order.items.length} items) → ${cycle.emailRecipient}`,
     );
-  },
-  {
-    connection: restockQueue.opts.connection,
-  },
-);
+    },
+    {
+      connection: restockQueue.opts.connection,
+    },
+  );
 
-worker.on('completed', (job) => {
-  console.log(`Restock cycle job ${job.id} completed`);
-});
+  worker.on('completed', (job) => {
+    console.log(`Restock cycle job ${job.id} completed`);
+  });
 
-worker.on('failed', (job, err) => {
-  console.error(`Restock cycle job ${job?.id} failed:`, err);
-});
+  worker.on('failed', (job, err) => {
+    console.error(`Restock cycle job ${job?.id} failed:`, err);
+  });
+} else {
+  console.warn('Restock worker disabled because Redis is not enabled');
+}
 
 export default worker;
