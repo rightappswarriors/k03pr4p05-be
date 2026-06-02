@@ -104,7 +104,7 @@ async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, week
     });
     const itemMeta = new Map(itemRecords.map((item) => [item.id, item]));
     let remainingBnpcPurchase = Math.max(0, 2500 - Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
-    let remainingBnpcDiscount = Math.max(0, 125 - Number(weeklyBnpcState?.discountUsed ?? 0));
+    let remainingBnpcDiscount = Math.max(0, 125 - Number(weeklyBnpcState?.weeklyCapUsed ?? 0));
     const bnpcCapReached = Boolean(weeklyBnpcState?.capManuallyReached) ||
         remainingBnpcPurchase <= 0 ||
         remainingBnpcDiscount <= 0;
@@ -417,7 +417,7 @@ export const SalesOrderMutation = extendType({
                         include: salesOrderInclude,
                     });
                     const discountAuditEntries = [];
-                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.weeklyCapUsed ?? 0);
                     for (const item of breakdown.itemBreakdown) {
                         const itemDiscountAmount = Number(item.discountAmount ?? 0);
                         if (itemDiscountAmount <= 0)
@@ -438,6 +438,30 @@ export const SalesOrderMutation = extendType({
                             eligibleAmount: Number(item.eligibleAmount ?? 0),
                             runningWeeklyBnpcTotal: item.discountType === "BNPC_SENIOR_CITIZEN" || item.discountType === "BNPC_PWD"
                                 ? cumulativeWeeklyBnpc
+                                : undefined,
+                        });
+                    }
+                    if (discountAuditEntries.length === 0 && breakdown.discountAmount > 0) {
+                        const fallbackDiscountType = breakdown.discountType === 'CUSTOM'
+                            ? customerType === 'PWD'
+                                ? 'PWD'
+                                : 'SENIOR_CITIZEN'
+                            : breakdown.discountType;
+                        let fallbackCumulativeWeeklyBnpc = Number(weeklyBnpcState?.weeklyCapUsed ?? 0);
+                        if (fallbackDiscountType === 'BNPC_PWD' || fallbackDiscountType === 'BNPC_SENIOR_CITIZEN') {
+                            fallbackCumulativeWeeklyBnpc += breakdown.discountAmount;
+                        }
+                        discountAuditEntries.push({
+                            orgId,
+                            userId,
+                            customerId: scPwdCustomerId ?? undefined,
+                            oscaGovId: scPwdOscaGovId,
+                            salesOrderId: salesOrder.id,
+                            discountType: fallbackDiscountType,
+                            discountAmount: Number(breakdown.discountAmount ?? 0),
+                            eligibleAmount: Number(breakdown.itemBreakdown.reduce((sum, item) => sum + Number(item.eligibleAmount ?? 0), 0)),
+                            runningWeeklyBnpcTotal: fallbackDiscountType === 'BNPC_SENIOR_CITIZEN' || fallbackDiscountType === 'BNPC_PWD'
+                                ? fallbackCumulativeWeeklyBnpc
                                 : undefined,
                         });
                     }

@@ -70,6 +70,31 @@ export const TransactionQuery = extendType({
                 return transactionService.getTransactionsByDiscountType(discountType, ctx.user?.orgId ? Number(ctx.user.orgId) : undefined);
             },
         });
+        t.nullable.field("bnpcDiscountStatus", {
+            type: "DiscountStatus",
+            args: {
+                customerId: nullable(stringArg()),
+                oscaGovId: nullable(stringArg()),
+            },
+            async resolve(_, { customerId, oscaGovId }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+                if (!customerId && !oscaGovId)
+                    return null;
+                const status = await transactionService.getWeeklyBnpcState(ctx.prisma, customerId ?? undefined, oscaGovId ?? undefined);
+                return {
+                    customerId: customerId ?? undefined,
+                    oscaGovId: oscaGovId ?? undefined,
+                    weeklyCapUsed: status.weeklyCapUsed,
+                    eligibleAmountUsed: status.eligibleAmountUsed,
+                    capRemaining: Math.max(0, 125 - (status.weeklyCapUsed ?? 0)),
+                    purchaseRemaining: Math.max(0, 2500 - (status.eligibleAmountUsed ?? 0)),
+                    bnpcDiscountApplied: status.bnpcDiscountApplied,
+                    capManuallyReached: status.capManuallyReached,
+                    lastResetDate: status.lastResetDate,
+                };
+            },
+        });
         t.nonNull.list.nonNull.field("birDiscountLogbook", {
             type: "BirDiscountLogbookEntry",
             args: {

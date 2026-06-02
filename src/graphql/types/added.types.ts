@@ -167,6 +167,21 @@ export const DiscountAuditType = objectType({
   }
 })
 
+export const DiscountStatusType = objectType({
+  name: 'DiscountStatus',
+  definition(t) {
+    t.nullable.string('customerId')
+    t.nullable.string('oscaGovId')
+    t.nonNull.float('weeklyCapUsed')
+    t.nonNull.float('eligibleAmountUsed')
+    t.nonNull.float('capRemaining')
+    t.nonNull.float('purchaseRemaining')
+    t.nonNull.boolean('bnpcDiscountApplied')
+    t.nonNull.boolean('capManuallyReached')
+    t.nonNull.dateTime('lastResetDate')
+  }
+})
+
 export const DiscountAuditFiltersInput = inputObjectType({
   name: 'DiscountAuditFiltersInput',
   definition(t) {

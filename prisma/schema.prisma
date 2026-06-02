@@ -500,7 +500,6 @@ model SalesOrder {
   scPwdCustomerId String?
   deliveryAddress String?
   deliveryNotes   String?
-
   // Pricing
   subtotal          Float @default(0)
   discountAmount    Float @default(0)
@@ -1700,6 +1699,10 @@ model DiscountAudit {
   voidReason             String?
   createdAt              DateTime     @default(now())
 
+  @@index([oscaGovId])
+  @@index([customerId])
+  @@index([createdAt])
+
   user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
   item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
 
@@ -1709,6 +1712,8 @@ model DiscountAudit {
   @@index([transactionId])
   @@index([kompraOrderId])
 }
+
+
 
 model OrderCourierPreference {
   id           Int          @id @default(autoincrement())

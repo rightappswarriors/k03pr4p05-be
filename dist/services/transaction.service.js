@@ -59,27 +59,53 @@ export const findOrCreateScPwdCustomer = async (tx, orgId, customerType, input) 
         representativeName: input.representativeName ?? null,
         representativeIdNumber: input.representativeIdNumber ?? null,
     };
+    const idSearchConditions = [
+        { idNumber: idFields.idNumber },
+        ...(idFields.oscaId ? [{ oscaId: idFields.oscaId }] : []),
+        ...(idFields.govId ? [{ govId: idFields.govId }] : []),
+    ];
+    // Prefer an upsert by unique OSCA ID or Gov ID when available to avoid
+    // unique constraint violations across orgs/outlets.
+    try {
+        if (idFields.oscaId) {
+            const customer = await tx.scPwdCustomer.upsert({
+                where: { oscaId: idFields.oscaId },
+                update: customerData,
+                create: { ...customerData, oscaId: idFields.oscaId },
+            });
+            return { customer, oscaGovId: idFields.oscaGovId };
+        }
+        if (idFields.govId) {
+            const customer = await tx.scPwdCustomer.upsert({
+                where: { govId: idFields.govId },
+                update: customerData,
+                create: { ...customerData, govId: idFields.govId },
+            });
+            return { customer, oscaGovId: idFields.oscaGovId };
+        }
+    }
+    catch (err) {
+        // Fallthrough to safe find/update/create if upsert fails for any reason.
+        // We'll attempt an existing lookup and avoid blind updates to records
+        // that would violate unique constraints.
+        if (process.env.NODE_ENV === 'development')
+            console.warn('Upsert by osca/gov id failed, falling back to find/create', err);
+    }
     const existing = input.id
         ? await tx.scPwdCustomer.findUnique({ where: { id: input.id } })
         : await tx.scPwdCustomer.findFirst({
             where: {
-                orgId,
                 OR: [
-                    ...(idFields.oscaId ? [{ oscaId: idFields.oscaId }] : []),
-                    ...(idFields.govId ? [{ govId: idFields.govId }] : []),
-                    { idNumber: idFields.idNumber },
+                    ...idSearchConditions,
                     {
                         fullName: customerData.fullName,
                         contactNumber: customerData.contactNumber,
                         dateOfBirth: customerData.dateOfBirth,
-                        OR: [
-                            ...(idFields.oscaId ? [{ oscaId: idFields.oscaId }] : []),
-                            ...(idFields.govId ? [{ govId: idFields.govId }] : []),
-                        ],
                     },
                 ],
             },
         });
+    // If an existing record is found, update it. Otherwise create a new record.
     const customer = existing
         ? await tx.scPwdCustomer.update({ where: { id: existing.id }, data: customerData })
         : await tx.scPwdCustomer.create({ data: customerData });
@@ -100,35 +126,74 @@ const getWeekStart = (date = new Date()) => {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     return weekStart;
 };
-export const getWeeklyBnpcState = async (tx, customerId, oscaGovId) => {
-    if (!customerId && !oscaGovId)
-        return { discountUsed: 0, eligibleAmountUsed: 0, capManuallyReached: false };
+export const getWeeklyBnpcState = async (txOrPrisma, customerId, oscaGovId) => {
+    if (!customerId && !oscaGovId) {
+        return {
+            weeklyCapUsed: 0,
+            eligibleAmountUsed: 0,
+            capManuallyReached: false,
+            bnpcDiscountApplied: false,
+            lastResetDate: null,
+        };
+    }
     const weekStart = getWeekStart();
-    const customer = customerId
-        ? await tx.scPwdCustomer.findUnique({
-            where: { id: customerId },
-            select: { bnpcCapManuallyReached: true },
-        })
-        : null;
-    const totals = await tx.discountAudit.aggregate({
-        where: {
-            OR: [
-                ...(customerId ? [{ customerId }] : []),
-                ...(oscaGovId ? [{ oscaGovId }] : []),
-            ],
-            discountType: { in: ["BNPC_SENIOR_CITIZEN", "BNPC_PWD"] },
-            isVoided: false,
-            createdAt: { gte: weekStart },
-        },
+    const normalizedId = oscaGovId ? normalizeGovernmentId(oscaGovId) : undefined;
+    let customerIds = [];
+    if (customerId)
+        customerIds.push(customerId);
+    if (normalizedId) {
+        const customers = await txOrPrisma.scPwdCustomer.findMany({
+            where: {
+                OR: [
+                    { idNumber: normalizedId },
+                    { oscaId: normalizedId },
+                    { govId: normalizedId },
+                ],
+            },
+            select: { id: true },
+        });
+        customerIds.push(...customers.map((customer) => customer.id));
+    }
+    customerIds = Array.from(new Set(customerIds.filter(Boolean)));
+    if (!normalizedId && customerIds.length === 0) {
+        return {
+            weeklyCapUsed: 0,
+            eligibleAmountUsed: 0,
+            capManuallyReached: false,
+            bnpcDiscountApplied: false,
+            lastResetDate: null,
+        };
+    }
+    const auditWhere = {
+        discountType: { in: ["BNPC_SENIOR_CITIZEN", "BNPC_PWD"] },
+        isVoided: false,
+        createdAt: { gte: weekStart },
+    };
+    if (normalizedId && customerIds.length > 0) {
+        auditWhere.OR = [
+            { customerId: { in: customerIds } },
+            { oscaGovId: normalizedId },
+        ];
+    }
+    else if (customerIds.length > 0) {
+        auditWhere.customerId = { in: customerIds };
+    }
+    else {
+        auditWhere.oscaGovId = normalizedId;
+    }
+    const totals = await txOrPrisma.discountAudit.aggregate({
+        where: auditWhere,
         _sum: {
             discountAmount: true,
             eligibleAmount: true,
         },
     });
     return {
-        discountUsed: Number(totals._sum.discountAmount ?? 0),
+        weeklyCapUsed: Number(totals._sum.discountAmount ?? 0),
         eligibleAmountUsed: Number(totals._sum.eligibleAmount ?? 0),
-        capManuallyReached: Boolean(customer?.bnpcCapManuallyReached),
+        capManuallyReached: false,
+        bnpcDiscountApplied: (totals._sum.discountAmount ?? 0) > 0,
+        lastResetDate: weekStart,
     };
 };
 export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, weeklyBnpcState) => {
@@ -137,13 +202,11 @@ export const computeScPwdBreakdown = async (tx, transactionData, itemsSold, week
     const totalPax = Number(transactionData.totalPax || 0);
     const scPwdPax = Number(transactionData.scPwdPax || 0);
     const proportion = totalPax > 0 && scPwdPax > 0 ? Math.min(scPwdPax / totalPax, 1) : 1;
-    const priorBnpcDiscount = Math.max(0, Number(weeklyBnpcState?.discountUsed ?? 0));
+    const priorBnpcDiscount = Math.max(0, Number(weeklyBnpcState?.weeklyCapUsed ?? 0));
     const priorBnpcEligible = Math.max(0, Number(weeklyBnpcState?.eligibleAmountUsed ?? 0));
     let remainingBnpcPurchase = Math.max(0, BNPC_WEEKLY_PURCHASE_LIMIT - priorBnpcEligible);
     let remainingBnpcDiscount = Math.max(0, BNPC_WEEKLY_DISCOUNT_CAP - priorBnpcDiscount);
-    const bnpcCapReached = Boolean(weeklyBnpcState?.capManuallyReached) ||
-        remainingBnpcPurchase <= 0 ||
-        remainingBnpcDiscount <= 0;
+    const bnpcCapReached = remainingBnpcPurchase <= 0 || remainingBnpcDiscount <= 0;
     if (discountType === "NONE" || rate <= 0) {
         const itemBreakdown = itemsSold.map((item) => {
             const originalPrice = Number(item.priceAtSale ?? item.price ?? 0);
@@ -457,7 +520,7 @@ export const processTransaction = async (transactionData, itemsSold) => {
         });
         // 9 — Update StockMovement referenceId now that we have the transaction id
         const discountAuditEntries = [];
-        let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+        let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.weeklyCapUsed ?? 0);
         for (const item of itemsSold) {
             const itemDiscountAmount = Number(item.discountAmount ?? 0);
             if (itemDiscountAmount <= 0)

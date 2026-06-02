@@ -586,6 +586,18 @@ type DiscountAuditType {
   voidedAt: DateTime
 }
 
+type DiscountStatus {
+  bnpcDiscountApplied: Boolean!
+  capManuallyReached: Boolean!
+  capRemaining: Float!
+  customerId: String
+  eligibleAmountUsed: Float!
+  lastResetDate: DateTime!
+  oscaGovId: String
+  purchaseRemaining: Float!
+  weeklyCapUsed: Float!
+}
+
 enum DiscountType {
   BNPC_PWD
   BNPC_SENIOR_CITIZEN
@@ -1617,6 +1629,7 @@ type Query {
   accountTitle(id: Int): AccountTitle
   auditLogs(filters: AuditLogFiltersInput, orgId: Int!, pagination: PaginationInput): [AuditLogType!]!
   birDiscountLogbook(endDate: String, startDate: String): [BirDiscountLogbookEntry!]!
+  bnpcDiscountStatus(customerId: String, oscaGovId: String): DiscountStatus
   budgetEntries(year: Int): [Budget]
   budgetEntry(id: Int): Budget
   checkUserTimeInStatus(userId: ID!): TimeInStatus

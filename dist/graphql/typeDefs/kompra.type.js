@@ -498,7 +498,7 @@ export const KompraCMutation = extendType({
                         include: { items: true, fees: true, tracking: true },
                     });
                     const discountAuditEntries = [];
-                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.discountUsed ?? 0);
+                    let cumulativeWeeklyBnpc = Number(weeklyBnpcState?.weeklyCapUsed ?? 0);
                     for (const item of breakdown.itemBreakdown) {
                         const itemDiscountAmount = Number(item.discountAmount ?? 0);
                         if (itemDiscountAmount <= 0)

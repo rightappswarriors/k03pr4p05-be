@@ -727,6 +727,17 @@ export interface NexusGenObjects {
     voidReason?: string | null; // String
     voidedAt?: NexusGenScalars['DateTime'] | null; // DateTime
   }
+  DiscountStatus: { // root type
+    bnpcDiscountApplied: boolean; // Boolean!
+    capManuallyReached: boolean; // Boolean!
+    capRemaining: number; // Float!
+    customerId?: string | null; // String
+    eligibleAmountUsed: number; // Float!
+    lastResetDate: NexusGenScalars['DateTime']; // DateTime!
+    oscaGovId?: string | null; // String
+    purchaseRemaining: number; // Float!
+    weeklyCapUsed: number; // Float!
+  }
   Employee: { // root type
     department: string; // String!
     email: string; // String!
@@ -1900,6 +1911,17 @@ export interface NexusGenFieldTypes {
     voidReason: string | null; // String
     voidedAt: NexusGenScalars['DateTime'] | null; // DateTime
   }
+  DiscountStatus: { // field return type
+    bnpcDiscountApplied: boolean; // Boolean!
+    capManuallyReached: boolean; // Boolean!
+    capRemaining: number; // Float!
+    customerId: string | null; // String
+    eligibleAmountUsed: number; // Float!
+    lastResetDate: NexusGenScalars['DateTime']; // DateTime!
+    oscaGovId: string | null; // String
+    purchaseRemaining: number; // Float!
+    weeklyCapUsed: number; // Float!
+  }
   Employee: { // field return type
     department: string; // String!
     email: string; // String!
@@ -2688,6 +2710,7 @@ export interface NexusGenFieldTypes {
     accountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     auditLogs: NexusGenRootTypes['AuditLogType'][]; // [AuditLogType!]!
     birDiscountLogbook: NexusGenRootTypes['BirDiscountLogbookEntry'][]; // [BirDiscountLogbookEntry!]!
+    bnpcDiscountStatus: NexusGenRootTypes['DiscountStatus'] | null; // DiscountStatus
     budgetEntries: Array<NexusGenRootTypes['Budget'] | null> | null; // [Budget]
     budgetEntry: NexusGenRootTypes['Budget'] | null; // Budget
     checkUserTimeInStatus: NexusGenRootTypes['TimeInStatus'] | null; // TimeInStatus
@@ -3479,6 +3502,17 @@ export interface NexusGenFieldTypeNames {
     voidReason: 'String'
     voidedAt: 'DateTime'
   }
+  DiscountStatus: { // field return type name
+    bnpcDiscountApplied: 'Boolean'
+    capManuallyReached: 'Boolean'
+    capRemaining: 'Float'
+    customerId: 'String'
+    eligibleAmountUsed: 'Float'
+    lastResetDate: 'DateTime'
+    oscaGovId: 'String'
+    purchaseRemaining: 'Float'
+    weeklyCapUsed: 'Float'
+  }
   Employee: { // field return type name
     department: 'String'
     email: 'String'
@@ -4267,6 +4301,7 @@ export interface NexusGenFieldTypeNames {
     accountTitle: 'AccountTitle'
     auditLogs: 'AuditLogType'
     birDiscountLogbook: 'BirDiscountLogbookEntry'
+    bnpcDiscountStatus: 'DiscountStatus'
     budgetEntries: 'Budget'
     budgetEntry: 'Budget'
     checkUserTimeInStatus: 'TimeInStatus'
@@ -5520,6 +5555,10 @@ export interface NexusGenArgTypes {
     birDiscountLogbook: { // args
       endDate?: string | null; // String
       startDate?: string | null; // String
+    }
+    bnpcDiscountStatus: { // args
+      customerId?: string | null; // String
+      oscaGovId?: string | null; // String
     }
     budgetEntries: { // args
       year?: number | null; // Int
