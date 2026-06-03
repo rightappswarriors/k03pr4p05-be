@@ -3,6 +3,7 @@
 // Run after adding to your existing Nexus schema
 import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, list, arg, intArg, stringArg, floatArg } from 'nexus';
 import { computeScPwdBreakdown, getWeeklyBnpcState } from '../../services/transaction.service.js';
+import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 export const OrderStatusEnum = enumType({
     name: 'OrderStatus',
@@ -49,7 +50,7 @@ export const KompraCustomerType = objectType({
         t.nonNull.int('id');
         t.nonNull.string('fullname');
         t.nullable.string('email');
-        t.nonNull.string('phone');
+        t.nullable.string('phone');
         t.nullable.string('profilePhoto');
         t.nonNull.boolean('isVerified');
         t.nonNull.boolean('isActive');
@@ -83,6 +84,15 @@ export const DeliveryAddressType = objectType({
         t.nonNull.field('customer', { type: 'KompraCustomer' });
     },
 });
+export const CourierType = objectType({
+    name: 'Courier',
+    definition(t) {
+        t.nonNull.int('id');
+        t.nonNull.string('name');
+        t.nonNull.string('phone');
+        t.nonNull.string('createdAt');
+    },
+});
 // ─── ORDER ────────────────────────────────────────────────────────────────────
 export const KompraCOrderType = objectType({
     name: 'KompraCOrder',
@@ -107,9 +117,11 @@ export const KompraCOrderType = objectType({
         t.nullable.string('outletNote');
         t.nonNull.string('createdAt');
         t.nonNull.string('updatedAt');
+        t.nullable.int('courierId');
         t.nonNull.field('customer', { type: 'KompraCustomer' });
         t.nonNull.field('outlet', { type: 'Outlet' });
         t.nonNull.field('deliveryAddress', { type: 'DeliveryAddress' });
+        t.nullable.field('courier', { type: 'Courier' });
         t.nonNull.list.nonNull.field('items', { type: 'KompraCOrderItem' });
         t.nonNull.list.nonNull.field('fees', { type: 'KompraCOrderFee' });
         t.nonNull.list.nonNull.field('tracking', { type: 'KompraCDeliveryTracking' });
@@ -133,6 +145,7 @@ export const KompraCOrderItemType = objectType({
         t.nonNull.int('quantity');
         t.nonNull.float('priceSnapshot');
         t.nonNull.float('subtotal');
+        t.nullable.field('unit', { type: 'InventoryItemUnit' });
         t.nonNull.field('item', { type: 'Item' });
         t.nonNull.field('inventoryItem', { type: 'InventoryItems' });
     },
@@ -262,6 +275,26 @@ export const AddDeliveryAddressInput = inputObjectType({
         t.nonNull.boolean('isDefault');
     },
 });
+const kompraOrderManagementInclude = {
+    customer: true,
+    outlet: true,
+    deliveryAddress: true,
+    courier: true,
+    items: {
+        include: {
+            item: true,
+            inventoryItem: true,
+            unit: true,
+        },
+    },
+    fees: true,
+    tracking: { orderBy: { statusAt: 'asc' } },
+};
+function requireKompraManagementAccess(ctx) {
+    requireAuth(ctx);
+    requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER', 'STAFF']);
+    return Number(ctx.user.orgId);
+}
 // ─── QUERIES ──────────────────────────────────────────────────────────────────
 export const KompraCQuery = extendType({
     type: 'Query',
@@ -307,7 +340,7 @@ export const KompraCQuery = extendType({
             args: { id: nonNull(intArg()) },
             resolve: (_root, { id }, ctx) => ctx.prisma.kompraCOrder.findUnique({
                 where: { id },
-                include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
+                include: kompraOrderManagementInclude,
             }),
         });
         // Customer's order history
@@ -317,7 +350,7 @@ export const KompraCQuery = extendType({
             resolve: (_root, { customerId }, ctx) => ctx.prisma.kompraCOrder.findMany({
                 where: { customerId },
                 orderBy: { createdAt: 'desc' },
-                include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
+                include: kompraOrderManagementInclude,
             }),
         });
         // Outlet's incoming order queue (for outlet dashboard)
@@ -330,7 +363,7 @@ export const KompraCQuery = extendType({
                     status: { in: ['pending', 'confirmed', 'preparing'] },
                 },
                 orderBy: { createdAt: 'asc' },
-                include: { items: { include: { item: true } }, fees: true, customer: true },
+                include: kompraOrderManagementInclude,
             }),
         });
         // Get KompraC orders for dashboard/analytics (filtered by organization)
@@ -365,6 +398,33 @@ export const KompraCQuery = extendType({
                         status: true,
                         createdAt: true,
                     },
+                });
+            },
+        });
+        t.nonNull.list.nonNull.field('getKompraCOrdersForManagement', {
+            type: 'KompraCOrder',
+            args: {
+                status: nullable(stringArg()),
+                outletId: nullable(intArg()),
+                take: nullable(intArg()),
+                skip: nullable(intArg()),
+            },
+            resolve: async (_root, args, ctx) => {
+                const orgId = requireKompraManagementAccess(ctx);
+                const statusList = args.status
+                    ?.split(',')
+                    .map((status) => status.trim())
+                    .filter(Boolean);
+                return ctx.prisma.kompraCOrder.findMany({
+                    where: {
+                        outlet: { orgId },
+                        ...(args.outletId ? { outletId: args.outletId } : {}),
+                        ...(statusList?.length ? { status: { in: statusList } } : {}),
+                    },
+                    take: args.take ?? 100,
+                    skip: args.skip ?? undefined,
+                    orderBy: { createdAt: 'desc' },
+                    include: kompraOrderManagementInclude,
                 });
             },
         });
@@ -546,6 +606,7 @@ export const KompraCMutation = extendType({
                 outletNote: nullable(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
+                requireKompraManagementAccess(ctx);
                 return ctx.prisma.$transaction(async (tx) => {
                     await tx.kompraCDeliveryTracking.create({
                         data: { orderId: args.orderId, event: 'outlet_confirmed', actorType: 'outlet' },
@@ -557,7 +618,32 @@ export const KompraCMutation = extendType({
                             estimatedDeliveryAt: args.estimatedDeliveryAt ? new Date(args.estimatedDeliveryAt) : null,
                             outletNote: args.outletNote,
                         },
-                        include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
+                        include: kompraOrderManagementInclude,
+                    });
+                });
+            },
+        });
+        t.nonNull.field('markKompraOrderPacked', {
+            type: 'KompraCOrder',
+            args: {
+                orderId: nonNull(intArg()),
+                outletNote: nullable(stringArg()),
+            },
+            resolve: async (_root, args, ctx) => {
+                requireKompraManagementAccess(ctx);
+                return ctx.prisma.$transaction(async (tx) => {
+                    await tx.kompraCDeliveryTracking.create({
+                        data: {
+                            orderId: args.orderId,
+                            event: 'outlet_preparing',
+                            actorType: 'outlet',
+                            note: args.outletNote ?? 'Packed and ready for rider assignment',
+                        },
+                    });
+                    return tx.kompraCOrder.update({
+                        where: { id: args.orderId },
+                        data: { status: 'preparing', outletNote: args.outletNote ?? undefined },
+                        include: kompraOrderManagementInclude,
                     });
                 });
             },
@@ -571,14 +657,70 @@ export const KompraCMutation = extendType({
                 riderPhone: nonNull(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
+                requireKompraManagementAccess(ctx);
                 return ctx.prisma.$transaction(async (tx) => {
+                    const courier = await tx.courier.findFirst({
+                        where: { phone: args.riderPhone },
+                    }) ?? await tx.courier.create({
+                        data: { name: args.riderName, phone: args.riderPhone },
+                    });
                     await tx.kompraCDeliveryTracking.create({
-                        data: { orderId: args.orderId, event: 'rider_picked_up', actorType: 'rider' },
+                        data: { orderId: args.orderId, event: 'rider_picked_up', actorType: 'rider', actorId: courier.id },
                     });
                     return tx.kompraCOrder.update({
                         where: { id: args.orderId },
-                        data: { status: 'in_delivery', riderName: args.riderName, riderPhone: args.riderPhone },
-                        include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
+                        data: {
+                            status: 'in_delivery',
+                            riderName: args.riderName,
+                            riderPhone: args.riderPhone,
+                            courierId: courier.id,
+                        },
+                        include: kompraOrderManagementInclude,
+                    });
+                });
+            },
+        });
+        t.nonNull.field('assignKompraOrderRider', {
+            type: 'KompraCOrder',
+            args: {
+                orderId: nonNull(intArg()),
+                riderName: nonNull(stringArg()),
+                riderPhone: nullable(stringArg()),
+            },
+            resolve: async (_root, args, ctx) => {
+                requireKompraManagementAccess(ctx);
+                const phone = args.riderPhone?.trim() || 'N/A';
+                return ctx.prisma.$transaction(async (tx) => {
+                    const courier = await tx.courier.findFirst({
+                        where: phone === 'N/A' ? { name: args.riderName } : { phone },
+                    }) ?? await tx.courier.create({
+                        data: { name: args.riderName, phone },
+                    });
+                    await tx.kompraCDeliveryTracking.create({
+                        data: {
+                            orderId: args.orderId,
+                            event: 'rider_assigned',
+                            actorType: 'outlet',
+                            actorId: courier.id,
+                        },
+                    });
+                    await tx.kompraCDeliveryTracking.create({
+                        data: {
+                            orderId: args.orderId,
+                            event: 'rider_picked_up',
+                            actorType: 'rider',
+                            actorId: courier.id,
+                        },
+                    });
+                    return tx.kompraCOrder.update({
+                        where: { id: args.orderId },
+                        data: {
+                            status: 'in_delivery',
+                            riderName: args.riderName,
+                            riderPhone: phone,
+                            courierId: courier.id,
+                        },
+                        include: kompraOrderManagementInclude,
                     });
                 });
             },
@@ -595,7 +737,28 @@ export const KompraCMutation = extendType({
                     return tx.kompraCOrder.update({
                         where: { id: orderId },
                         data: { status: 'received', deliveredAt: new Date() },
-                        include: { items: true, fees: true, tracking: { orderBy: { statusAt: 'asc' } } },
+                        include: kompraOrderManagementInclude,
+                    });
+                });
+            },
+        });
+        t.nonNull.field('markKompraOrderDelivered', {
+            type: 'KompraCOrder',
+            args: { orderId: nonNull(intArg()) },
+            resolve: async (_root, { orderId }, ctx) => {
+                requireKompraManagementAccess(ctx);
+                return ctx.prisma.$transaction(async (tx) => {
+                    await tx.kompraCDeliveryTracking.create({
+                        data: { orderId, event: 'delivered', actorType: 'outlet' },
+                    });
+                    return tx.kompraCOrder.update({
+                        where: { id: orderId },
+                        data: {
+                            status: 'received',
+                            deliveredAt: new Date(),
+                            paymentStatus: 'paid',
+                        },
+                        include: kompraOrderManagementInclude,
                     });
                 });
             },

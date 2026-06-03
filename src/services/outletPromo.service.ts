@@ -17,7 +17,7 @@ export const getOutletPromosByOutletId = async (outletId: number) => {
   return await prisma.outletPromo.findMany({
     where: { outletId },
     include: {
-      promoType: true,   // ← add this
+      promoType: true,   
     },
     orderBy: { createdAt: 'desc' },
   });

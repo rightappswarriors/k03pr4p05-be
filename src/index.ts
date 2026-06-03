@@ -10,7 +10,7 @@ import cookieParser from "cookie-parser";
 // Import Node.js built-in modules for path resolution in ES modules
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { createClient } from "redis"; // 👈 ADD THIS
+import { createClient } from "redis";
 
 // Get the directory name for ES modules
 const __filename = fileURLToPath(import.meta.url);

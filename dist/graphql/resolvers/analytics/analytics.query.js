@@ -1,6 +1,7 @@
 // src/graphql/resolvers/analytics/analytics.query.ts
 // Nexus-based GraphQL queries for Sales Analytics
 // Follows the same pattern as item.query.ts
+// Put comments
 import { extendType, nonNull, intArg, nullable, stringArg, enumType, objectType, } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 // ─── Enums ────────────────────────────────────────────────────────────────────
@@ -30,6 +31,17 @@ export const AnalyticsSummaryType = objectType({
         t.nonNull.float('profitChange');
         t.nonNull.int('profitableBranches');
         t.nonNull.int('totalBranches');
+    },
+});
+export const SourceBreakdownType = objectType({
+    name: 'SourceBreakdown',
+    definition(t) {
+        t.nonNull.string('source');
+        t.nonNull.float('totalRevenue');
+        t.nonNull.float('totalCost');
+        t.nonNull.float('grossProfit');
+        t.nonNull.int('totalOrders');
+        t.nonNull.float('unitsSold');
     },
 });
 export const PaginatedItemAnalyticsPayloadType = objectType({
@@ -71,6 +83,12 @@ export const ItemPerformanceType = objectType({
         t.nonNull.float('profitMargin');
         t.nonNull.float('unitsSold');
         t.nonNull.float('revenuePerUnit');
+        t.nonNull.int('posSalesCount');
+        t.nonNull.float('posUnitsSold');
+        t.nonNull.int('salesOrderWalkInSalesCount');
+        t.nonNull.float('salesOrderWalkInUnitsSold');
+        t.nonNull.int('kompraOrderCount');
+        t.nonNull.float('kompraUnitsSold');
         t.nonNull.field('trend', { type: 'ItemTrend' });
         t.nonNull.float('trendPct');
         t.nonNull.field('status', { type: 'ItemStatus' });
@@ -94,6 +112,7 @@ export const SalesAnalyticsPayloadType = objectType({
         t.nonNull.list.nonNull.field('topItems', { type: 'ItemPerformance' });
         t.nonNull.list.nonNull.field('bottomItems', { type: 'ItemPerformance' });
         t.nonNull.list.nonNull.field('trend', { type: 'SalesTrendPoint' });
+        t.nonNull.list.nonNull.field('sourceBreakdown', { type: 'SourceBreakdown' });
     },
 });
 export const BranchAnalyticsPayloadType = objectType({
@@ -220,6 +239,143 @@ function classifyItem(profitMargin, trendPct, rank, totalItems) {
         return 'slow_mover';
     return 'stable';
 }
+const SALES_ORDER_REVENUE_STATUSES = ['RECEIVED', 'COMPLETED'];
+const KOMPRA_ORDER_REVENUE_STATUS = 'received';
+const TRANSACTION_REVENUE_STATUSES = ['PAID', 'SYNCED', 'COMPLETED'];
+function normalizeOrder(order, createdAt, source) {
+    return {
+        ...order,
+        total: Number(order.total ?? order.grandTotal ?? 0),
+        createdAt,
+        source,
+        branchId: order.branchId ?? order.outlet?.branchId ?? null,
+        outletId: order.outletId ?? null,
+        items: order.items ?? [],
+    };
+}
+function salesOrderSource(order) {
+    return order.orderMode === 'WALK_IN' ? 'sales_order_walk_in' : 'sales_order_other';
+}
+function lineQuantity(line) {
+    return Number(line.quantity ?? 0);
+}
+function lineRevenue(line) {
+    const qty = lineQuantity(line);
+    const lineTotal = line.totalPrice ?? line.subtotal ?? line.lineTotal;
+    if (lineTotal !== undefined && lineTotal !== null) {
+        return Number(lineTotal);
+    }
+    const unitPrice = line.finalPrice ??
+        line.priceAtSale ??
+        line.unitPrice ??
+        line.priceSnapshot ??
+        line.originalPrice ??
+        line.item?.sellingPrice ??
+        line.inventoryItem?.price ??
+        0;
+    return qty * Number(unitPrice ?? 0);
+}
+function lineCost(line) {
+    return lineQuantity(line) * Number(line.item?.totalCost ?? line.inventoryItem?.item?.totalCost ?? 0);
+}
+function orderCost(order) {
+    return (order.items ?? []).reduce((sum, line) => sum + lineCost(line), 0);
+}
+function orderBelongsToBranch(order, branchId, outletIds) {
+    if (order.branchId === branchId || order.outlet?.branchId === branchId)
+        return true;
+    return !!order.outletId && outletIds.has(order.outletId);
+}
+function addItemsToMap(itemMap, orders) {
+    for (const order of orders) {
+        for (const line of order.items ?? []) {
+            const isCustom = !line.itemId && line.customItemName;
+            const id = Number(line.itemId ?? (isCustom ? -Number(line.id ?? 0) : 0));
+            if (!id)
+                continue;
+            if (!itemMap[id]) {
+                itemMap[id] = {
+                    itemId: id,
+                    itemName: line.item?.name ??
+                        line.inventoryItem?.item?.name ??
+                        line.inventoryItem?.name ??
+                        line.customItemName ??
+                        `Item #${Math.abs(id)}`,
+                    itemImage: line.item?.image ?? line.inventoryItem?.item?.image ?? undefined,
+                    categoryName: line.item?.orgCategory?.name ??
+                        line.inventoryItem?.item?.orgCategory?.name ??
+                        undefined,
+                    revenue: 0,
+                    cost: 0,
+                    units: 0,
+                    posSalesCount: 0,
+                    posUnitsSold: 0,
+                    salesOrderWalkInSalesCount: 0,
+                    salesOrderWalkInUnitsSold: 0,
+                    kompraOrderCount: 0,
+                    kompraUnitsSold: 0,
+                    sellingPrice: Number(line.item?.sellingPrice ?? line.inventoryItem?.price ?? 0),
+                    totalCost: Number(line.item?.totalCost ?? line.inventoryItem?.item?.totalCost ?? 0),
+                };
+            }
+            itemMap[id].revenue += lineRevenue(line);
+            itemMap[id].cost += lineCost(line);
+            itemMap[id].units += lineQuantity(line);
+            if (order.source === 'pos') {
+                itemMap[id].posSalesCount += 1;
+                itemMap[id].posUnitsSold += lineQuantity(line);
+            }
+            else if (order.source === 'sales_order_walk_in') {
+                itemMap[id].salesOrderWalkInSalesCount += 1;
+                itemMap[id].salesOrderWalkInUnitsSold += lineQuantity(line);
+            }
+            else if (order.source === 'kompra') {
+                itemMap[id].kompraOrderCount += 1;
+                itemMap[id].kompraUnitsSold += lineQuantity(line);
+            }
+        }
+    }
+}
+function addPrevUnits(prevUnits, orders) {
+    for (const order of orders) {
+        for (const line of order.items ?? []) {
+            const id = Number(line.itemId ?? 0);
+            if (!id)
+                continue;
+            prevUnits[id] = (prevUnits[id] ?? 0) + lineQuantity(line);
+        }
+    }
+}
+function buildSourceBreakdown(orders) {
+    const sourceOrder = [
+        'pos',
+        'sales_order_walk_in',
+        'sales_order_other',
+        'kompra',
+    ];
+    const buckets = sourceOrder.reduce((map, source) => {
+        map[source] = {
+            source,
+            totalRevenue: 0,
+            totalCost: 0,
+            grossProfit: 0,
+            totalOrders: 0,
+            unitsSold: 0,
+        };
+        return map;
+    }, {});
+    for (const order of orders) {
+        const bucket = buckets[order.source];
+        const revenue = Number(order.total ?? 0);
+        const cost = orderCost(order);
+        bucket.totalRevenue += revenue;
+        bucket.totalCost += cost;
+        bucket.grossProfit += revenue - cost;
+        bucket.totalOrders += 1;
+        bucket.unitsSold += (order.items ?? []).reduce((sum, line) => sum + lineQuantity(line), 0);
+    }
+    return sourceOrder.map((source) => buckets[source]);
+}
 // ─── Query Resolvers ──────────────────────────────────────────────────────────
 export const AnalyticsQuery = extendType({
     type: 'Query',
@@ -237,70 +393,122 @@ export const AnalyticsQuery = extendType({
                 requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
                 const orgId = Number(ctx.user.orgId);
                 const { currentStart, currentEnd, prevStart, prevEnd } = resolveDateWindow(preset, startDate, endDate);
-                // Fetch all transactions in both windows for this org's outlets
-                const [currentTx, prevTx, branches] = await Promise.all([
+                const [currentTx, prevTx, currentSalesOrders, prevSalesOrders, currentKompraOrders, prevKompraOrders, branches] = await Promise.all([
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
-                            outlet: { include: { branch: true } },
+                            outlet: { select: { branchId: true } },
                         },
                     }),
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
-                        select: { total: true, outletId: true, outlet: { select: { branchId: true } } },
+                        select: { total: true, createdAt: true, outletId: true, outlet: { select: { branchId: true } }, items: { select: { itemId: true, quantity: true } } },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: currentStart, lte: currentEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        include: {
+                            items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: prevStart, lte: prevEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            branchId: true,
+                            orderMode: true,
+                            date: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: currentStart, lte: currentEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        include: {
+                            items: {
+                                include: {
+                                    item: { include: { orgCategory: true } },
+                                    inventoryItem: { select: { price: true, item: { include: { orgCategory: true } } } },
+                                },
+                            },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: prevStart, lte: prevEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            createdAt: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
                     }),
                     ctx.prisma.branch.findMany({
                         where: { orgId, isActive: true },
                         include: { outlets: true },
                     }),
                 ]);
-                // ── Summary ────────────────────────────────────────────────────────────
-                const totalRevenue = currentTx.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                const prevRevenue = prevTx.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                // Cost = sum of (CartItem.quantity * Item.totalCost)
-                let totalCost = 0;
-                let totalItemsSold = 0;
-                for (const tx of currentTx) {
-                    for (const ci of tx.items) {
-                        const qty = Number(ci.quantity ?? 0);
-                        const cost = Number(ci.item?.totalCost ?? 0);
-                        totalCost += qty * cost;
-                        totalItemsSold += qty;
-                    }
-                }
+                const normalizedCurrentTx = currentTx.map((order) => normalizeOrder(order, order.createdAt, 'pos'));
+                const normalizedPrevTx = prevTx.map((order) => normalizeOrder(order, order.createdAt, 'pos'));
+                const normalizedCurrentSalesOrders = currentSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order)));
+                const normalizedPrevSalesOrders = prevSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order)));
+                const normalizedCurrentKompraOrders = currentKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra'));
+                const normalizedPrevKompraOrders = prevKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra'));
+                const allCurrentOrders = [
+                    ...normalizedCurrentTx,
+                    ...normalizedCurrentSalesOrders,
+                    ...normalizedCurrentKompraOrders,
+                ];
+                const allPrevOrders = [
+                    ...normalizedPrevTx,
+                    ...normalizedPrevSalesOrders,
+                    ...normalizedPrevKompraOrders,
+                ];
+                const totalRevenue = allCurrentOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+                const prevRevenue = allPrevOrders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+                const totalCost = allCurrentOrders.reduce((sum, order) => sum + orderCost(order), 0);
+                const totalItemsSold = allCurrentOrders.reduce((sum, order) => sum +
+                    (order.items ?? []).reduce((itemSum, line) => itemSum + lineQuantity(line), 0), 0);
                 const grossProfit = totalRevenue - totalCost;
                 const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-                // Previous period cost for delta
-                let prevCost = 0;
-                for (const tx of prevTx) {
-                    // Simplified: use same cost ratio estimate (full join too expensive)
-                    prevCost += Number(tx.total ?? 0) * (totalRevenue > 0 ? totalCost / totalRevenue : 0);
-                }
+                const prevCost = prevRevenue * (totalRevenue > 0 ? totalCost / totalRevenue : 0);
                 const prevGrossProfit = prevRevenue - prevCost;
-                // ── Branch performance ─────────────────────────────────────────────────
                 const branchPerformance = [];
                 let profitableBranches = 0;
                 for (const branch of branches) {
-                    const branchOutletIds = new Set(branch.outlets.map((o) => o.id));
-                    const bCurrent = currentTx.filter((t) => branchOutletIds.has(t.outletId));
-                    const bPrev = prevTx.filter((t) => branchOutletIds.has(t.outletId));
-                    const bRevenue = bCurrent.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                    const bPrevRevenue = bPrev.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                    let bCost = 0;
-                    for (const tx of bCurrent) {
-                        for (const ci of tx.items) {
-                            bCost += Number(ci.quantity ?? 0) * Number(ci.item?.totalCost ?? 0);
-                        }
-                    }
+                    const branchOutletIds = new Set(branch.outlets.map((o) => Number(o.id)));
+                    const bCurrent = allCurrentOrders.filter((order) => orderBelongsToBranch(order, branch.id, branchOutletIds));
+                    const bPrev = allPrevOrders.filter((order) => orderBelongsToBranch(order, branch.id, branchOutletIds));
+                    const bRevenue = bCurrent.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+                    const bPrevRevenue = bPrev.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+                    const bCost = bCurrent.reduce((sum, order) => sum + orderCost(order), 0);
                     const bProfit = bRevenue - bCost;
                     const bMargin = bRevenue > 0 ? (bProfit / bRevenue) * 100 : 0;
                     const bPrevCost = bPrevRevenue * (bRevenue > 0 ? bCost / bRevenue : 0);
@@ -321,39 +529,10 @@ export const AnalyticsQuery = extendType({
                         trend: buildSparkline(bCurrent, currentStart, currentEnd),
                     });
                 }
-                // ── Item performance ──────────────────────────────────────────────────
                 const itemMap = {};
-                for (const tx of currentTx) {
-                    for (const ci of tx.items) {
-                        const id = ci.itemId;
-                        const qty = Number(ci.quantity ?? 0);
-                        // Use InventoryItems price if available, fall back to item.sellingPrice
-                        const price = Number(ci.priceAtSale ?? ci.item?.sellingPrice ?? 0);
-                        const cost = Number(ci.item?.totalCost ?? 0);
-                        if (!itemMap[id]) {
-                            itemMap[id] = {
-                                itemId: id,
-                                itemName: ci.item?.name ?? `Item #${id}`,
-                                itemImage: ci.item?.image ?? undefined,
-                                categoryName: ci.item?.orgCategory?.name ?? undefined,
-                                revenue: 0,
-                                cost: 0,
-                                units: 0,
-                            };
-                        }
-                        itemMap[id].revenue += qty * price;
-                        itemMap[id].cost += qty * cost;
-                        itemMap[id].units += qty;
-                    }
-                }
-                // Previous period units for trend %
+                addItemsToMap(itemMap, allCurrentOrders);
                 const prevItemUnits = {};
-                for (const tx of prevTx) {
-                    for (const ci of tx.items ?? []) {
-                        const id = ci.itemId;
-                        prevItemUnits[id] = (prevItemUnits[id] ?? 0) + Number(ci.quantity ?? 0);
-                    }
-                }
+                addPrevUnits(prevItemUnits, allPrevOrders);
                 const allItems = Object.values(itemMap);
                 allItems.sort((a, b) => b.revenue - a.revenue);
                 const total = allItems.length;
@@ -374,6 +553,12 @@ export const AnalyticsQuery = extendType({
                         profitMargin: margin,
                         unitsSold: item.units,
                         revenuePerUnit: item.units > 0 ? item.revenue / item.units : 0,
+                        posSalesCount: item.posSalesCount ?? 0,
+                        posUnitsSold: item.posUnitsSold ?? 0,
+                        salesOrderWalkInSalesCount: item.salesOrderWalkInSalesCount ?? 0,
+                        salesOrderWalkInUnitsSold: item.salesOrderWalkInUnitsSold ?? 0,
+                        kompraOrderCount: item.kompraOrderCount ?? 0,
+                        kompraUnitsSold: item.kompraUnitsSold ?? 0,
                         trend: trendDir,
                         trendPct,
                         status: classifyItem(margin, trendPct, rank, total),
@@ -386,14 +571,15 @@ export const AnalyticsQuery = extendType({
                     .slice(0, 10)
                     .map((item, i) => toItemPerf(item, total - i));
                 // ── Trend (time series) ────────────────────────────────────────────────
-                const trend = buildTrendSeries(currentTx, currentStart, currentEnd, preset);
+                const trend = buildTrendSeries(allCurrentOrders, currentStart, currentEnd, preset);
+                const sourceBreakdown = buildSourceBreakdown(allCurrentOrders);
                 return {
                     summary: {
                         totalRevenue,
                         totalCost,
                         grossProfit,
                         profitMargin,
-                        totalOrders: currentTx.length,
+                        totalOrders: allCurrentOrders.length,
                         totalItemsSold,
                         revenueChange: delta(totalRevenue, prevRevenue),
                         profitChange: delta(grossProfit, prevGrossProfit),
@@ -404,6 +590,7 @@ export const AnalyticsQuery = extendType({
                     topItems,
                     bottomItems,
                     trend,
+                    sourceBreakdown,
                 };
             },
         });
@@ -427,32 +614,82 @@ export const AnalyticsQuery = extendType({
                 if (!branch)
                     throw new Error('Branch not found');
                 const outletIds = branch.outlets.map((o) => o.id);
-                const [currentTx, prevTx] = await Promise.all([
+                const [currentTx, prevTx, currentSalesOrders, prevSalesOrders, currentKompraOrders, prevKompraOrders] = await Promise.all([
                     ctx.prisma.transaction.findMany({
                         where: {
                             outletId: { in: outletIds },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
-                        include: { items: { include: { item: true } } },
+                        include: { items: { include: { item: true } }, outlet: { select: { branchId: true } } },
                     }),
                     ctx.prisma.transaction.findMany({
                         where: {
                             outletId: { in: outletIds },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
-                        select: { total: true },
+                        select: { total: true, createdAt: true, outletId: true, outlet: { select: { branchId: true } } },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId: branch.orgId,
+                            OR: [{ branchId }, { outletId: { in: outletIds } }],
+                            date: { gte: currentStart, lte: currentEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        include: {
+                            items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId: branch.orgId,
+                            OR: [{ branchId }, { outletId: { in: outletIds } }],
+                            date: { gte: prevStart, lte: prevEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        select: { total: true, date: true, outletId: true, branchId: true, orderMode: true, outlet: { select: { branchId: true } } },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outletId: { in: outletIds },
+                            createdAt: { gte: currentStart, lte: currentEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        include: {
+                            items: {
+                                include: {
+                                    item: { include: { orgCategory: true } },
+                                    inventoryItem: { select: { price: true, item: { include: { orgCategory: true } } } },
+                                },
+                            },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outletId: { in: outletIds },
+                            createdAt: { gte: prevStart, lte: prevEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        select: { total: true, createdAt: true, outletId: true, outlet: { select: { branchId: true } } },
                     }),
                 ]);
-                const revenue = currentTx.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                const prevRevenue = prevTx.reduce((s, t) => s + Number(t.total ?? 0), 0);
-                let cost = 0;
-                for (const tx of currentTx) {
-                    for (const ci of tx.items) {
-                        cost += Number(ci.quantity ?? 0) * Number(ci.item?.totalCost ?? 0);
-                    }
-                }
+                const currentOrders = [
+                    ...currentTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...currentSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...currentKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                const prevOrders = [
+                    ...prevTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...prevSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...prevKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                const revenue = currentOrders.reduce((s, t) => s + Number(t.total ?? 0), 0);
+                const prevRevenue = prevOrders.reduce((s, t) => s + Number(t.total ?? 0), 0);
+                const cost = currentOrders.reduce((s, order) => s + orderCost(order), 0);
                 const profit = revenue - cost;
                 const prevCost = prevRevenue * (revenue > 0 ? cost / revenue : 0);
                 const prevProfit = prevRevenue - prevCost;
@@ -463,15 +700,15 @@ export const AnalyticsQuery = extendType({
                     totalCost: cost,
                     grossProfit: profit,
                     profitMargin: revenue > 0 ? (profit / revenue) * 100 : 0,
-                    totalOrders: currentTx.length,
+                    totalOrders: currentOrders.length,
                     deltaRevenue: delta(revenue, prevRevenue),
                     deltaProfit: delta(profit, prevProfit),
                     isProfitable: profit > 0,
-                    trend: buildSparkline(currentTx, currentStart, currentEnd),
+                    trend: buildSparkline(currentOrders, currentStart, currentEnd),
                 };
                 return {
                     branch: branchResult,
-                    trend: buildTrendSeries(currentTx, currentStart, currentEnd, preset),
+                    trend: buildTrendSeries(currentOrders, currentStart, currentEnd, preset),
                 };
             },
         });
@@ -492,24 +729,82 @@ export const AnalyticsQuery = extendType({
                 requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
                 const orgId = Number(ctx.user.orgId);
                 const { currentStart, currentEnd, prevStart, prevEnd } = resolveDateWindow(preset, startDate, endDate);
-                const [currentTx, prevTx, orgItems] = await Promise.all([
+                const [currentTx, prevTx, currentSalesOrders, prevSalesOrders, currentKompraOrders, prevKompraOrders, orgItems] = await Promise.all([
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ['PAID', 'SYNCED', 'COMPLETED'] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
                         },
                     }),
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ['PAID', 'SYNCED', 'COMPLETED'] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
-                        include: { items: { select: { itemId: true, quantity: true } } },
+                        include: { items: { select: { itemId: true, quantity: true } }, outlet: { select: { branchId: true } } },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: currentStart, lte: currentEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        include: {
+                            items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: prevStart, lte: prevEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            branchId: true,
+                            orderMode: true,
+                            date: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: currentStart, lte: currentEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        include: {
+                            items: {
+                                include: {
+                                    item: { include: { orgCategory: true } },
+                                    inventoryItem: { select: { price: true, item: { include: { orgCategory: true } } } },
+                                },
+                            },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: prevStart, lte: prevEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            createdAt: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
                     }),
                     ctx.prisma.item.findMany({
                         where: { orgId },
@@ -534,44 +829,30 @@ export const AnalyticsQuery = extendType({
                         revenue: 0,
                         cost: 0,
                         units: 0,
+                        posSalesCount: 0,
+                        posUnitsSold: 0,
+                        salesOrderWalkInSalesCount: 0,
+                        salesOrderWalkInUnitsSold: 0,
+                        kompraOrderCount: 0,
+                        kompraUnitsSold: 0,
                         sellingPrice: Number(item.sellingPrice ?? 0),
                         totalCost: Number(item.totalCost ?? 0),
                     };
                 }
-                for (const tx of currentTx) {
-                    for (const ci of tx.items) {
-                        const id = ci.itemId;
-                        const qty = Number(ci.quantity ?? 0);
-                        const price = Number(ci.priceAtSale ??
-                            ci.item?.sellingPrice ??
-                            itemMap[id]?.sellingPrice ??
-                            0);
-                        const cost = Number(ci.item?.totalCost ?? itemMap[id]?.totalCost ?? 0);
-                        if (!itemMap[id]) {
-                            itemMap[id] = {
-                                itemId: id,
-                                itemName: ci.item?.name ?? `Item #${id}`,
-                                itemImage: ci.item?.image ?? undefined,
-                                categoryName: ci.item?.orgCategory?.name ?? undefined,
-                                revenue: 0,
-                                cost: 0,
-                                units: 0,
-                                sellingPrice: price,
-                                totalCost: cost,
-                            };
-                        }
-                        itemMap[id].revenue += qty * price;
-                        itemMap[id].cost += qty * cost;
-                        itemMap[id].units += qty;
-                    }
-                }
+                const currentOrders = [
+                    ...currentTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...currentSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...currentKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                const prevOrders = [
+                    ...prevTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...prevSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...prevKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                addItemsToMap(itemMap, currentOrders);
                 // ── Previous period units for trend ────────────────────────────────
                 const prevUnits = {};
-                for (const tx of prevTx) {
-                    for (const ci of tx.items) {
-                        prevUnits[ci.itemId] = (prevUnits[ci.itemId] ?? 0) + Number(ci.quantity ?? 0);
-                    }
-                }
+                addPrevUnits(prevUnits, prevOrders);
                 // ── Sort by section ────────────────────────────────────────────────
                 let all = Object.values(itemMap);
                 if (section === 'bottom') {
@@ -609,6 +890,12 @@ export const AnalyticsQuery = extendType({
                         profitMargin: margin,
                         unitsSold: item.units,
                         revenuePerUnit: item.units > 0 ? item.revenue / item.units : 0,
+                        posSalesCount: item.posSalesCount ?? 0,
+                        posUnitsSold: item.posUnitsSold ?? 0,
+                        salesOrderWalkInSalesCount: item.salesOrderWalkInSalesCount ?? 0,
+                        salesOrderWalkInUnitsSold: item.salesOrderWalkInUnitsSold ?? 0,
+                        kompraOrderCount: item.kompraOrderCount ?? 0,
+                        kompraUnitsSold: item.kompraUnitsSold ?? 0,
                         trend: trendPct > 5 ? 'up' : trendPct < -5 ? 'down' : 'stable',
                         trendPct,
                         status: classifyItem(margin, trendPct, rank, totalAll),
@@ -638,24 +925,82 @@ export const AnalyticsQuery = extendType({
                 requireAuth(ctx);
                 requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
                 const { currentStart, currentEnd, prevStart, prevEnd } = resolveDateWindow(preset, startDate, endDate);
-                const [currentTx, prevTx, orgItems] = await Promise.all([
+                const [currentTx, prevTx, currentSalesOrders, prevSalesOrders, currentKompraOrders, prevKompraOrders, orgItems] = await Promise.all([
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: currentStart, lte: currentEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
                         include: {
                             items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
                         },
                     }),
                     ctx.prisma.transaction.findMany({
                         where: {
                             outlet: { orgId },
                             createdAt: { gte: prevStart, lte: prevEnd },
-                            status: { in: ["PAID", "SYNCED", "COMPLETED"] },
+                            status: { in: TRANSACTION_REVENUE_STATUSES },
                         },
-                        include: { items: { select: { itemId: true, quantity: true } } },
+                        include: { items: { select: { itemId: true, quantity: true } }, outlet: { select: { branchId: true } } },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: currentStart, lte: currentEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        include: {
+                            items: { include: { item: { include: { orgCategory: true } } } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.salesOrder.findMany({
+                        where: {
+                            orgId,
+                            date: { gte: prevStart, lte: prevEnd },
+                            status: { in: SALES_ORDER_REVENUE_STATUSES },
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            branchId: true,
+                            orderMode: true,
+                            date: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: currentStart, lte: currentEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        include: {
+                            items: {
+                                include: {
+                                    item: { include: { orgCategory: true } },
+                                    inventoryItem: { select: { price: true, item: { include: { orgCategory: true } } } },
+                                },
+                            },
+                            outlet: { select: { branchId: true } },
+                        },
+                    }),
+                    ctx.prisma.kompraCOrder.findMany({
+                        where: {
+                            outlet: { orgId },
+                            createdAt: { gte: prevStart, lte: prevEnd },
+                            status: KOMPRA_ORDER_REVENUE_STATUS,
+                        },
+                        select: {
+                            total: true,
+                            outletId: true,
+                            createdAt: true,
+                            items: { select: { itemId: true, quantity: true } },
+                            outlet: { select: { branchId: true } },
+                        },
                     }),
                     ctx.prisma.item.findMany({
                         where: { orgId },
@@ -679,40 +1024,29 @@ export const AnalyticsQuery = extendType({
                         revenue: 0,
                         cost: 0,
                         units: 0,
+                        posSalesCount: 0,
+                        posUnitsSold: 0,
+                        salesOrderWalkInSalesCount: 0,
+                        salesOrderWalkInUnitsSold: 0,
+                        kompraOrderCount: 0,
+                        kompraUnitsSold: 0,
                         sellingPrice: Number(item.sellingPrice ?? 0),
                         totalCost: Number(item.totalCost ?? 0),
                     };
                 }
-                for (const tx of currentTx) {
-                    for (const ci of tx.items) {
-                        const id = ci.itemId;
-                        const qty = Number(ci.quantity ?? 0);
-                        const price = Number(ci.item?.sellingPrice ??
-                            itemMap[id]?.sellingPrice ??
-                            0);
-                        const cost = Number(ci.item?.totalCost ?? itemMap[id]?.totalCost ?? 0);
-                        if (!itemMap[id]) {
-                            itemMap[id] = {
-                                itemId: id,
-                                itemName: ci.item?.name ?? `Item #${id}`,
-                                itemImage: ci.item?.image,
-                                categoryName: ci.item?.orgCategory?.name,
-                                revenue: 0,
-                                cost: 0,
-                                units: 0,
-                            };
-                        }
-                        itemMap[id].revenue += qty * price;
-                        itemMap[id].cost += qty * cost;
-                        itemMap[id].units += qty;
-                    }
-                }
+                const currentOrders = [
+                    ...currentTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...currentSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...currentKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                const prevOrders = [
+                    ...prevTx.map((order) => normalizeOrder(order, order.createdAt, 'pos')),
+                    ...prevSalesOrders.map((order) => normalizeOrder(order, order.date, salesOrderSource(order))),
+                    ...prevKompraOrders.map((order) => normalizeOrder(order, order.createdAt, 'kompra')),
+                ];
+                addItemsToMap(itemMap, currentOrders);
                 const prevUnits = {};
-                for (const tx of prevTx) {
-                    for (const ci of tx.items) {
-                        prevUnits[ci.itemId] = (prevUnits[ci.itemId] ?? 0) + Number(ci.quantity ?? 0);
-                    }
-                }
+                addPrevUnits(prevUnits, prevOrders);
                 const all = Object.values(itemMap);
                 all.sort((a, b) => b.revenue - a.revenue);
                 const total = all.length;
@@ -731,6 +1065,12 @@ export const AnalyticsQuery = extendType({
                         profitMargin: margin,
                         unitsSold: item.units,
                         revenuePerUnit: item.units > 0 ? item.revenue / item.units : 0,
+                        posSalesCount: item.posSalesCount ?? 0,
+                        posUnitsSold: item.posUnitsSold ?? 0,
+                        salesOrderWalkInSalesCount: item.salesOrderWalkInSalesCount ?? 0,
+                        salesOrderWalkInUnitsSold: item.salesOrderWalkInUnitsSold ?? 0,
+                        kompraOrderCount: item.kompraOrderCount ?? 0,
+                        kompraUnitsSold: item.kompraUnitsSold ?? 0,
                         trend: trendPct > 5 ? 'up' : trendPct < -5 ? 'down' : 'stable',
                         trendPct,
                         status: classifyItem(margin, trendPct, rank, total),
@@ -817,11 +1157,11 @@ export const AnalyticsQuery = extendType({
                         salesOrderReceivableTotal += t;
                         salesOrderReceivableCount += 1;
                     }
-                    if (s === "PROCESSING")
+                    if (s === "PROCESSING" || s === "SHIPPED" || s === "OUT_FOR_DELIVERY" || s === "READY_FOR_PICKUP")
                         processingOrders += 1;
                     if (s === "ORDERED")
                         pendingOrders += 1;
-                    if (s === "RECEIVED") {
+                    if (s === "RECEIVED" || s === "COMPLETED") {
                         receivedOrders += 1;
                         totalSalesAmount += t;
                         totalSalesOrderCount += 1;
@@ -919,11 +1259,7 @@ function buildTrendSeries(transactions, start, end, preset) {
             const h = new Date(tx.createdAt).getHours();
             const label = `${String(h).padStart(2, '0')}:00`;
             buckets[label].revenue += Number(tx.total ?? 0);
-            let txCost = 0;
-            for (const ci of tx.items ?? []) {
-                txCost += Number(ci.quantity ?? 0) * Number(ci.item?.totalCost ?? 0);
-            }
-            buckets[label].cost += txCost;
+            buckets[label].cost += orderCost(tx);
             buckets[label].orders += 1;
         }
         return Object.entries(buckets).map(([label, v]) => ({
@@ -941,11 +1277,7 @@ function buildTrendSeries(transactions, start, end, preset) {
         for (const tx of transactions) {
             const d = days[new Date(tx.createdAt).getDay()];
             buckets[d].revenue += Number(tx.total ?? 0);
-            let txCost = 0;
-            for (const ci of tx.items ?? []) {
-                txCost += Number(ci.quantity ?? 0) * Number(ci.item?.totalCost ?? 0);
-            }
-            buckets[d].cost += txCost;
+            buckets[d].cost += orderCost(tx);
             buckets[d].orders += 1;
         }
         return days.map((d) => ({
@@ -971,11 +1303,7 @@ function buildTrendSeries(transactions, start, end, preset) {
         });
         if (buckets[label]) {
             buckets[label].revenue += Number(tx.total ?? 0);
-            let txCost = 0;
-            for (const ci of tx.items ?? []) {
-                txCost += Number(ci.quantity ?? 0) * Number(ci.item?.totalCost ?? 0);
-            }
-            buckets[label].cost += txCost;
+            buckets[label].cost += orderCost(tx);
             buckets[label].orders += 1;
         }
     }

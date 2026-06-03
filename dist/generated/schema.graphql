@@ -353,6 +353,13 @@ type CostLines {
   label: String!
 }
 
+type Courier {
+  createdAt: String!
+  id: Int!
+  name: String!
+  phone: String!
+}
+
 input CreateInventoryItemUnitInput {
   allowDecimal: Boolean
   barcode: String
@@ -859,8 +866,14 @@ type ItemPerformance {
   itemId: Int!
   itemImage: String
   itemName: String!
+  kompraOrderCount: Int!
+  kompraUnitsSold: Float!
+  posSalesCount: Int!
+  posUnitsSold: Float!
   profitMargin: Float!
   revenuePerUnit: Float!
+  salesOrderWalkInSalesCount: Int!
+  salesOrderWalkInUnitsSold: Float!
   status: ItemStatus!
   totalCost: Float!
   totalRevenue: Float!
@@ -922,6 +935,8 @@ type KompraCDeliveryTracking {
 }
 
 type KompraCOrder {
+  courier: Courier
+  courierId: Int
   createdAt: String!
   customer: KompraCustomer!
   customerId: Int!
@@ -968,6 +983,7 @@ type KompraCOrderItem {
   priceSnapshot: Float!
   quantity: Int!
   subtotal: Float!
+  unit: InventoryItemUnit
 }
 
 type KompraCOrderSummary {
@@ -993,7 +1009,7 @@ type KompraCustomer {
   isActive: Boolean!
   isVerified: Boolean!
   orders: [KompraCOrder!]!
-  phone: String!
+  phone: String
   profilePhoto: String
   updatedAt: String!
 }
@@ -1049,6 +1065,7 @@ type Mutation {
   addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
   addItemToInventoryWithUnits(data: AddItemToInventoryWithUnitsInput!, outletId: ID!): InventoryItems
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
+  assignKompraOrderRider(orderId: Int!, riderName: String!, riderPhone: String): KompraCOrder!
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelKompraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): KompraCOrder!
   cancelSalesOrder(id: String!, reason: String): SalesOrder
@@ -1122,6 +1139,8 @@ type Mutation {
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
+  markKompraOrderDelivered(orderId: Int!): KompraCOrder!
+  markKompraOrderPacked(orderId: Int!, outletNote: String): KompraCOrder!
   markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): KompraCOrder!
   me: User!
   placeKompraOrder(customerId: Int!, input: PlaceOrderInput!): KompraCOrder!
@@ -1664,6 +1683,7 @@ type Query {
   getItemStockDistribution(itemId: Int!): ItemStockDistribution
   getItems(orderBy: orderBy, query: String, size: Int): [Item!]!
   getItemsByOutlet(outletId: ID!): [InventoryItems]
+  getKompraCOrdersForManagement(outletId: Int, skip: Int, status: String, take: Int): [KompraCOrder!]!
   getKompraCOrdersSummary(endDate: String, organizationId: Int, skip: Int, startDate: String, take: Int): [KompraCOrderSummary!]!
   getMySubscription: Subscription
   getOrgBranches: [Branch!]!
@@ -1910,6 +1930,7 @@ enum Role {
 type SalesAnalyticsPayload {
   bottomItems: [ItemPerformance!]!
   branches: [BranchPerformance!]!
+  sourceBreakdown: [SourceBreakdown!]!
   summary: AnalyticsSummary!
   topItems: [ItemPerformance!]!
   trend: [SalesTrendPoint!]!
@@ -2086,6 +2107,15 @@ type Shift {
   orgId: Int!
   startTime: DateTime!
   userShifts: [UserShift!]!
+}
+
+type SourceBreakdown {
+  grossProfit: Float!
+  source: String!
+  totalCost: Float!
+  totalOrders: Int!
+  totalRevenue: Float!
+  unitsSold: Float!
 }
 
 enum Status {

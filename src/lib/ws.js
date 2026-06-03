@@ -17,10 +17,12 @@ export function initWebSocket(server) {
             if (data.type === "AUTH") {
                 ws.userId = data.userId
                 ws.type = data.role
+                ws.orgId = data.orgId
 
                 clients.set(String(data.userId), {
                     ws,
-                    type: data.role
+                    type: data.role,
+                    orgId: data.orgId
                 })
                 if (process.env.NODE_ENV === "development") {
                     console.log(`User ${data.userId} connected as ${data.role}`)
@@ -79,5 +81,17 @@ export function sendToUser(userId, payload) {
         client.ws.send(JSON.stringify(payload))
     } else {
         console.log("User not connected or socket closed", userId)
+    }
+}
+
+export function sendToOrg(orgId, payload) {
+    for (const [userId, client] of clients.entries()) {
+        if (String(client.orgId) !== String(orgId)) continue
+
+        if (client?.ws?.readyState === 1) {
+            client.ws.send(JSON.stringify({ ...payload, orgId }))
+        } else {
+            clients.delete(userId)
+        }
     }
 }

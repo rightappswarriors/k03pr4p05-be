@@ -636,6 +636,12 @@ export interface NexusGenObjects {
     itemId: number; // Int!
     label: string; // String!
   }
+  Courier: { // root type
+    createdAt: string; // String!
+    id: number; // Int!
+    name: string; // String!
+    phone: string; // String!
+  }
   CustomerDetails: { // root type
     client_key?: string | null; // String
     email?: string | null; // String
@@ -900,8 +906,14 @@ export interface NexusGenObjects {
     itemId: number; // Int!
     itemImage?: string | null; // String
     itemName: string; // String!
+    kompraOrderCount: number; // Int!
+    kompraUnitsSold: number; // Float!
+    posSalesCount: number; // Int!
+    posUnitsSold: number; // Float!
     profitMargin: number; // Float!
     revenuePerUnit: number; // Float!
+    salesOrderWalkInSalesCount: number; // Int!
+    salesOrderWalkInUnitsSold: number; // Float!
     status: NexusGenEnums['ItemStatus']; // ItemStatus!
     totalCost: number; // Float!
     totalRevenue: number; // Float!
@@ -941,6 +953,8 @@ export interface NexusGenObjects {
     statusAt: string; // String!
   }
   KompraCOrder: { // root type
+    courier?: NexusGenRootTypes['Courier'] | null; // Courier
+    courierId?: number | null; // Int
     createdAt: string; // String!
     customer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     customerId: number; // Int!
@@ -985,6 +999,7 @@ export interface NexusGenObjects {
     priceSnapshot: number; // Float!
     quantity: number; // Int!
     subtotal: number; // Float!
+    unit?: NexusGenRootTypes['InventoryItemUnit'] | null; // InventoryItemUnit
   }
   KompraCOrderSummary: { // root type
     createdAt: string; // String!
@@ -1000,7 +1015,7 @@ export interface NexusGenObjects {
     isActive: boolean; // Boolean!
     isVerified: boolean; // Boolean!
     orders: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
-    phone: string; // String!
+    phone?: string | null; // String
     profilePhoto?: string | null; // String
     updatedAt: string; // String!
   }
@@ -1347,6 +1362,7 @@ export interface NexusGenObjects {
   SalesAnalyticsPayload: { // root type
     bottomItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
     branches: NexusGenRootTypes['BranchPerformance'][]; // [BranchPerformance!]!
+    sourceBreakdown: NexusGenRootTypes['SourceBreakdown'][]; // [SourceBreakdown!]!
     summary: NexusGenRootTypes['AnalyticsSummary']; // AnalyticsSummary!
     topItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
     trend: NexusGenRootTypes['SalesTrendPoint'][]; // [SalesTrendPoint!]!
@@ -1449,6 +1465,14 @@ export interface NexusGenObjects {
     orgId: number; // Int!
     startTime: NexusGenScalars['DateTime']; // DateTime!
     userShifts: NexusGenRootTypes['UserShift'][]; // [UserShift!]!
+  }
+  SourceBreakdown: { // root type
+    grossProfit: number; // Float!
+    source: string; // String!
+    totalCost: number; // Float!
+    totalOrders: number; // Int!
+    totalRevenue: number; // Float!
+    unitsSold: number; // Float!
   }
   SubCenter: { // root type
     id: number; // Int!
@@ -1815,6 +1839,12 @@ export interface NexusGenFieldTypes {
     itemId: number; // Int!
     label: string; // String!
   }
+  Courier: { // field return type
+    createdAt: string; // String!
+    id: number; // Int!
+    name: string; // String!
+    phone: string; // String!
+  }
   CustomerDetails: { // field return type
     client_key: string | null; // String
     email: string | null; // String
@@ -2118,8 +2148,14 @@ export interface NexusGenFieldTypes {
     itemId: number; // Int!
     itemImage: string | null; // String
     itemName: string; // String!
+    kompraOrderCount: number; // Int!
+    kompraUnitsSold: number; // Float!
+    posSalesCount: number; // Int!
+    posUnitsSold: number; // Float!
     profitMargin: number; // Float!
     revenuePerUnit: number; // Float!
+    salesOrderWalkInSalesCount: number; // Int!
+    salesOrderWalkInUnitsSold: number; // Float!
     status: NexusGenEnums['ItemStatus']; // ItemStatus!
     totalCost: number; // Float!
     totalRevenue: number; // Float!
@@ -2160,6 +2196,8 @@ export interface NexusGenFieldTypes {
     statusAt: string; // String!
   }
   KompraCOrder: { // field return type
+    courier: NexusGenRootTypes['Courier'] | null; // Courier
+    courierId: number | null; // Int
     createdAt: string; // String!
     customer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     customerId: number; // Int!
@@ -2204,6 +2242,7 @@ export interface NexusGenFieldTypes {
     priceSnapshot: number; // Float!
     quantity: number; // Int!
     subtotal: number; // Float!
+    unit: NexusGenRootTypes['InventoryItemUnit'] | null; // InventoryItemUnit
   }
   KompraCOrderSummary: { // field return type
     createdAt: string; // String!
@@ -2219,7 +2258,7 @@ export interface NexusGenFieldTypes {
     isActive: boolean; // Boolean!
     isVerified: boolean; // Boolean!
     orders: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
-    phone: string; // String!
+    phone: string | null; // String
     profilePhoto: string | null; // String
     updatedAt: string; // String!
   }
@@ -2255,6 +2294,7 @@ export interface NexusGenFieldTypes {
     addItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     addItemToInventoryWithUnits: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
+    assignKompraOrderRider: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     cancelKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     cancelSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
@@ -2328,6 +2368,8 @@ export interface NexusGenFieldTypes {
     finalizeTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     initiatePayment: NexusGenRootTypes['PaymentInitiation'] | null; // PaymentInitiation
     login: NexusGenRootTypes['AuthPayload']; // AuthPayload!
+    markKompraOrderDelivered: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
+    markKompraOrderPacked: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     markOrderInDelivery: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     me: NexusGenRootTypes['User']; // User!
     placeKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
@@ -2745,6 +2787,7 @@ export interface NexusGenFieldTypes {
     getItemStockDistribution: NexusGenRootTypes['ItemStockDistribution'] | null; // ItemStockDistribution
     getItems: NexusGenRootTypes['Item'][]; // [Item!]!
     getItemsByOutlet: Array<NexusGenRootTypes['InventoryItems'] | null> | null; // [InventoryItems]
+    getKompraCOrdersForManagement: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
     getKompraCOrdersSummary: NexusGenRootTypes['KompraCOrderSummary'][]; // [KompraCOrderSummary!]!
     getMySubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     getOrgBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
@@ -2903,6 +2946,7 @@ export interface NexusGenFieldTypes {
   SalesAnalyticsPayload: { // field return type
     bottomItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
     branches: NexusGenRootTypes['BranchPerformance'][]; // [BranchPerformance!]!
+    sourceBreakdown: NexusGenRootTypes['SourceBreakdown'][]; // [SourceBreakdown!]!
     summary: NexusGenRootTypes['AnalyticsSummary']; // AnalyticsSummary!
     topItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
     trend: NexusGenRootTypes['SalesTrendPoint'][]; // [SalesTrendPoint!]!
@@ -3012,6 +3056,14 @@ export interface NexusGenFieldTypes {
     orgId: number; // Int!
     startTime: NexusGenScalars['DateTime']; // DateTime!
     userShifts: NexusGenRootTypes['UserShift'][]; // [UserShift!]!
+  }
+  SourceBreakdown: { // field return type
+    grossProfit: number; // Float!
+    source: string; // String!
+    totalCost: number; // Float!
+    totalOrders: number; // Int!
+    totalRevenue: number; // Float!
+    unitsSold: number; // Float!
   }
   SubCenter: { // field return type
     gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
@@ -3406,6 +3458,12 @@ export interface NexusGenFieldTypeNames {
     itemId: 'Int'
     label: 'String'
   }
+  Courier: { // field return type name
+    createdAt: 'String'
+    id: 'Int'
+    name: 'String'
+    phone: 'String'
+  }
   CustomerDetails: { // field return type name
     client_key: 'String'
     email: 'String'
@@ -3709,8 +3767,14 @@ export interface NexusGenFieldTypeNames {
     itemId: 'Int'
     itemImage: 'String'
     itemName: 'String'
+    kompraOrderCount: 'Int'
+    kompraUnitsSold: 'Float'
+    posSalesCount: 'Int'
+    posUnitsSold: 'Float'
     profitMargin: 'Float'
     revenuePerUnit: 'Float'
+    salesOrderWalkInSalesCount: 'Int'
+    salesOrderWalkInUnitsSold: 'Float'
     status: 'ItemStatus'
     totalCost: 'Float'
     totalRevenue: 'Float'
@@ -3751,6 +3815,8 @@ export interface NexusGenFieldTypeNames {
     statusAt: 'String'
   }
   KompraCOrder: { // field return type name
+    courier: 'Courier'
+    courierId: 'Int'
     createdAt: 'String'
     customer: 'KompraCustomer'
     customerId: 'Int'
@@ -3795,6 +3861,7 @@ export interface NexusGenFieldTypeNames {
     priceSnapshot: 'Float'
     quantity: 'Int'
     subtotal: 'Float'
+    unit: 'InventoryItemUnit'
   }
   KompraCOrderSummary: { // field return type name
     createdAt: 'String'
@@ -3846,6 +3913,7 @@ export interface NexusGenFieldTypeNames {
     addItemMedia: 'Media'
     addItemToInventoryWithUnits: 'InventoryItems'
     addItemsToInventory: 'BatchPayload'
+    assignKompraOrderRider: 'KompraCOrder'
     bulkCreateInventoryItems: 'InventoryItems'
     cancelKompraOrder: 'KompraCOrder'
     cancelSalesOrder: 'SalesOrder'
@@ -3919,6 +3987,8 @@ export interface NexusGenFieldTypeNames {
     finalizeTransaction: 'Transaction'
     initiatePayment: 'PaymentInitiation'
     login: 'AuthPayload'
+    markKompraOrderDelivered: 'KompraCOrder'
+    markKompraOrderPacked: 'KompraCOrder'
     markOrderInDelivery: 'KompraCOrder'
     me: 'User'
     placeKompraOrder: 'KompraCOrder'
@@ -4336,6 +4406,7 @@ export interface NexusGenFieldTypeNames {
     getItemStockDistribution: 'ItemStockDistribution'
     getItems: 'Item'
     getItemsByOutlet: 'InventoryItems'
+    getKompraCOrdersForManagement: 'KompraCOrder'
     getKompraCOrdersSummary: 'KompraCOrderSummary'
     getMySubscription: 'Subscription'
     getOrgBranches: 'Branch'
@@ -4494,6 +4565,7 @@ export interface NexusGenFieldTypeNames {
   SalesAnalyticsPayload: { // field return type name
     bottomItems: 'ItemPerformance'
     branches: 'BranchPerformance'
+    sourceBreakdown: 'SourceBreakdown'
     summary: 'AnalyticsSummary'
     topItems: 'ItemPerformance'
     trend: 'SalesTrendPoint'
@@ -4603,6 +4675,14 @@ export interface NexusGenFieldTypeNames {
     orgId: 'Int'
     startTime: 'DateTime'
     userShifts: 'UserShift'
+  }
+  SourceBreakdown: { // field return type name
+    grossProfit: 'Float'
+    source: 'String'
+    totalCost: 'Float'
+    totalOrders: 'Int'
+    totalRevenue: 'Float'
+    unitsSold: 'Float'
   }
   SubCenter: { // field return type name
     gisRows: 'GISRow'
@@ -4837,6 +4917,11 @@ export interface NexusGenArgTypes {
     addItemsToInventory: { // args
       inventoryId: string; // ID!
       items: NexusGenInputs['AddItemToInventoryInput'][]; // [AddItemToInventoryInput!]!
+    }
+    assignKompraOrderRider: { // args
+      orderId: number; // Int!
+      riderName: string; // String!
+      riderPhone?: string | null; // String
     }
     bulkCreateInventoryItems: { // args
       items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
@@ -5213,6 +5298,13 @@ export interface NexusGenArgTypes {
     login: { // args
       email: string; // String!
       password: string; // String!
+    }
+    markKompraOrderDelivered: { // args
+      orderId: number; // Int!
+    }
+    markKompraOrderPacked: { // args
+      orderId: number; // Int!
+      outletNote?: string | null; // String
     }
     markOrderInDelivery: { // args
       orderId: number; // Int!
@@ -5666,6 +5758,12 @@ export interface NexusGenArgTypes {
     }
     getItemsByOutlet: { // args
       outletId: string; // ID!
+    }
+    getKompraCOrdersForManagement: { // args
+      outletId?: number | null; // Int
+      skip?: number | null; // Int
+      status?: string | null; // String
+      take?: number | null; // Int
     }
     getKompraCOrdersSummary: { // args
       endDate?: string | null; // String
