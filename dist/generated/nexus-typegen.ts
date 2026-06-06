@@ -1069,9 +1069,21 @@ export interface NexusGenObjects {
     stocks?: string | null; // String
   }
   Organization: { // root type
+    bannerImg?: string | null; // String
+    bio?: string | null; // String
+    contactNumber?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    email?: string | null; // String
+    facebookLink?: string | null; // String
     id: number; // Int!
+    instagramLink?: string | null; // String
+    location?: string | null; // String
     name: string; // String!
+    profileImg?: string | null; // String
+    profilePhoto?: string | null; // String
+    twitterLink?: string | null; // String
+    updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
   }
   Outlet: { // root type
     address: string; // String!
@@ -1583,8 +1595,12 @@ export interface NexusGenObjects {
     timestamp: string; // String!
   }
   User: { // root type
+    address?: string | null; // String
+    city?: string | null; // String
     contactNumber?: string | null; // String
+    country?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    dateOfBirth?: NexusGenScalars['DateTime'] | null; // DateTime
     departmentId?: number | null; // Int
     email: string; // String!
     enabledPaymentMethod: boolean; // Boolean!
@@ -1597,8 +1613,10 @@ export interface NexusGenObjects {
     positionId?: string | null; // String
     profilePhoto?: string | null; // String
     role: NexusGenEnums['Role']; // Role!
+    updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     username: string; // String!
     verificationCode?: string | null; // String
+    zipCode?: string | null; // String
   }
   UserAttendanceEntry: { // root type
     attendance?: NexusGenRootTypes['Attendance'] | null; // Attendance
@@ -2412,6 +2430,7 @@ export interface NexusGenFieldTypes {
     updateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
     updateItem: NexusGenRootTypes['Item']; // Item!
     updateItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
+    updateMyProfile: NexusGenRootTypes['User'] | null; // User
     updateOrgItemCategory: NexusGenRootTypes['OrgItemCategory']; // OrgItemCategory!
     updateOrganization: NexusGenRootTypes['Organization'] | null; // Organization
     updateOutlet: NexusGenRootTypes['Outlet']; // Outlet!
@@ -2430,6 +2449,7 @@ export interface NexusGenFieldTypes {
     updateSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     updateSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     updateUser: NexusGenRootTypes['User']; // User!
+    updateUserProfile: NexusGenRootTypes['User'] | null; // User
     updateVatType: NexusGenRootTypes['VatType'] | null; // VatType
     verifyEmail: NexusGenRootTypes['AuthPayload']; // AuthPayload!
   }
@@ -2465,27 +2485,39 @@ export interface NexusGenFieldTypes {
   }
   Organization: { // field return type
     accountTitles: NexusGenRootTypes['AccountTitle'][]; // [AccountTitle!]!
+    bannerImg: string | null; // String
+    bio: string | null; // String
     branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     brands: NexusGenRootTypes['Brand'][]; // [Brand!]!
     centers: NexusGenRootTypes['Center'][]; // [Center!]!
+    contactNumber: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
     departments: NexusGenRootTypes['Department'][]; // [Department!]!
+    email: string | null; // String
     employees: NexusGenRootTypes['Employee'][]; // [Employee!]!
+    facebookLink: string | null; // String
     gisRows: NexusGenRootTypes['GISRow'][]; // [GISRow!]!
     id: number; // Int!
+    instagramLink: string | null; // String
     inventoryItems: NexusGenRootTypes['InventoryItem'][]; // [InventoryItem!]!
     itemCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
     itemGroups: NexusGenRootTypes['ItemGroup'][]; // [ItemGroup!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     kompraCOrders: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
+    location: string | null; // String
     name: string; // String!
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     positions: NexusGenRootTypes['Position'][]; // [Position!]!
+    profileImg: string | null; // String
+    profilePhoto: string | null; // String
     promoTypes: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
     salesOrders: NexusGenRootTypes['SalesOrder'][]; // [SalesOrder!]!
     subCenters: NexusGenRootTypes['SubCenter'][]; // [SubCenter!]!
     subscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     summaryRows: NexusGenRootTypes['SummaryRow'][]; // [SummaryRow!]!
+    twitterLink: string | null; // String
+    updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
     users: NexusGenRootTypes['User'][]; // [User!]!
     vatTypes: NexusGenRootTypes['VatType'][]; // [VatType!]!
   }
@@ -2789,6 +2821,7 @@ export interface NexusGenFieldTypes {
     getItemsByOutlet: Array<NexusGenRootTypes['InventoryItems'] | null> | null; // [InventoryItems]
     getKompraCOrdersForManagement: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
     getKompraCOrdersSummary: NexusGenRootTypes['KompraCOrderSummary'][]; // [KompraCOrderSummary!]!
+    getMyProfile: NexusGenRootTypes['User'] | null; // User
     getMySubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     getOrgBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     getOrgCategories: NexusGenRootTypes['OrgItemCategory'][]; // [OrgItemCategory!]!
@@ -2819,6 +2852,7 @@ export interface NexusGenFieldTypes {
     getTransactionsByOrgId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getUserById: NexusGenRootTypes['User']; // User!
+    getUserProfile: NexusGenRootTypes['User'] | null; // User
     gisRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
     inventoryItem: NexusGenRootTypes['InventoryItem'] | null; // InventoryItem
@@ -3193,9 +3227,13 @@ export interface NexusGenFieldTypes {
     timestamp: string; // String!
   }
   User: { // field return type
+    address: string | null; // String
     branchesOwned: NexusGenRootTypes['Branch'][]; // [Branch!]!
+    city: string | null; // String
     contactNumber: string | null; // String
+    country: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    dateOfBirth: NexusGenScalars['DateTime'] | null; // DateTime
     department: NexusGenRootTypes['Department'] | null; // Department
     departmentId: number | null; // Int
     email: string; // String!
@@ -3223,8 +3261,10 @@ export interface NexusGenFieldTypes {
     staff: Array<NexusGenRootTypes['OutletStaff'] | null>; // [OutletStaff]!
     summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null>; // [SummaryRow]!
     transaction: Array<NexusGenRootTypes['Transaction'] | null>; // [Transaction]!
+    updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
     username: string; // String!
     verificationCode: string | null; // String
+    zipCode: string | null; // String
   }
   UserAttendanceEntry: { // field return type
     attendance: NexusGenRootTypes['Attendance'] | null; // Attendance
@@ -4031,6 +4071,7 @@ export interface NexusGenFieldTypeNames {
     updateInventoryItemUnit: 'InventoryItemUnit'
     updateItem: 'Item'
     updateItemGroup: 'ItemGroup'
+    updateMyProfile: 'User'
     updateOrgItemCategory: 'OrgItemCategory'
     updateOrganization: 'Organization'
     updateOutlet: 'Outlet'
@@ -4049,6 +4090,7 @@ export interface NexusGenFieldTypeNames {
     updateSubscriptionAdmin: 'Subscription'
     updateSummaryRow: 'SummaryRow'
     updateUser: 'User'
+    updateUserProfile: 'User'
     updateVatType: 'VatType'
     verifyEmail: 'AuthPayload'
   }
@@ -4084,27 +4126,39 @@ export interface NexusGenFieldTypeNames {
   }
   Organization: { // field return type name
     accountTitles: 'AccountTitle'
+    bannerImg: 'String'
+    bio: 'String'
     branches: 'Branch'
     brands: 'Brand'
     centers: 'Center'
+    contactNumber: 'String'
     createdAt: 'DateTime'
+    deletedAt: 'DateTime'
     departments: 'Department'
+    email: 'String'
     employees: 'Employee'
+    facebookLink: 'String'
     gisRows: 'GISRow'
     id: 'Int'
+    instagramLink: 'String'
     inventoryItems: 'InventoryItem'
     itemCategories: 'ItemCategory'
     itemGroups: 'ItemGroup'
     items: 'Item'
     kompraCOrders: 'KompraCOrder'
+    location: 'String'
     name: 'String'
     outlets: 'Outlet'
     positions: 'Position'
+    profileImg: 'String'
+    profilePhoto: 'String'
     promoTypes: 'PromoType'
     salesOrders: 'SalesOrder'
     subCenters: 'SubCenter'
     subscription: 'Subscription'
     summaryRows: 'SummaryRow'
+    twitterLink: 'String'
+    updatedAt: 'DateTime'
     users: 'User'
     vatTypes: 'VatType'
   }
@@ -4408,6 +4462,7 @@ export interface NexusGenFieldTypeNames {
     getItemsByOutlet: 'InventoryItems'
     getKompraCOrdersForManagement: 'KompraCOrder'
     getKompraCOrdersSummary: 'KompraCOrderSummary'
+    getMyProfile: 'User'
     getMySubscription: 'Subscription'
     getOrgBranches: 'Branch'
     getOrgCategories: 'OrgItemCategory'
@@ -4438,6 +4493,7 @@ export interface NexusGenFieldTypeNames {
     getTransactionsByOrgId: 'Transaction'
     getTransactionsByStoreId: 'Transaction'
     getUserById: 'User'
+    getUserProfile: 'User'
     gisRow: 'GISRow'
     gisRows: 'GISRow'
     inventoryItem: 'InventoryItem'
@@ -4812,9 +4868,13 @@ export interface NexusGenFieldTypeNames {
     timestamp: 'String'
   }
   User: { // field return type name
+    address: 'String'
     branchesOwned: 'Branch'
+    city: 'String'
     contactNumber: 'String'
+    country: 'String'
     createdAt: 'DateTime'
+    dateOfBirth: 'DateTime'
     department: 'Department'
     departmentId: 'Int'
     email: 'String'
@@ -4842,8 +4902,10 @@ export interface NexusGenFieldTypeNames {
     staff: 'OutletStaff'
     summaryRows: 'SummaryRow'
     transaction: 'Transaction'
+    updatedAt: 'DateTime'
     username: 'String'
     verificationCode: 'String'
+    zipCode: 'String'
   }
   UserAttendanceEntry: { // field return type name
     attendance: 'Attendance'
@@ -5505,6 +5567,17 @@ export interface NexusGenArgTypes {
       id?: number | null; // Int
       name?: string | null; // String
     }
+    updateMyProfile: { // args
+      address?: string | null; // String
+      bio?: string | null; // String
+      city?: string | null; // String
+      country?: string | null; // String
+      dateOfBirth?: string | null; // String
+      phone?: string | null; // String
+      profilePhoto?: string | null; // String
+      state?: string | null; // String
+      zipCode?: string | null; // String
+    }
     updateOrgItemCategory: { // args
       cost_of_sale?: string | null; // String
       description?: string | null; // String
@@ -5518,8 +5591,17 @@ export interface NexusGenArgTypes {
       stocks?: string | null; // String
     }
     updateOrganization: { // args
-      id?: number | null; // Int
+      bannerImg?: string | null; // String
+      bio?: string | null; // String
+      contactNumber?: string | null; // String
+      email?: string | null; // String
+      facebookLink?: string | null; // String
+      id: number; // Int!
+      instagramLink?: string | null; // String
+      location?: string | null; // String
       name?: string | null; // String
+      profileImg?: string | null; // String
+      twitterLink?: string | null; // String
     }
     updateOutlet: { // args
       address?: string | null; // String
@@ -5624,6 +5706,18 @@ export interface NexusGenArgTypes {
       id: string; // ID!
       positionId?: string | null; // String
       username?: string | null; // String
+    }
+    updateUserProfile: { // args
+      address?: string | null; // String
+      bio?: string | null; // String
+      city?: string | null; // String
+      country?: string | null; // String
+      dateOfBirth?: string | null; // String
+      phone?: string | null; // String
+      profilePhoto?: string | null; // String
+      state?: string | null; // String
+      userId: number; // Int!
+      zipCode?: string | null; // String
     }
     updateVatType: { // args
       id?: number | null; // Int
@@ -5868,6 +5962,9 @@ export interface NexusGenArgTypes {
     }
     getUserById: { // args
       id: string; // ID!
+    }
+    getUserProfile: { // args
+      userId: number; // Int!
     }
     gisRow: { // args
       id?: number | null; // Int

@@ -97,3 +97,7 @@ export * from "./organization/organization.query.js";
 export * from './attendance/attendance.mutation.js';
 export * from './attendance/attendance.query.js';
 export * from './contact/contact.resolvers.js';
+export * from './userProfile/userProfile.mutation.js';
+export * from './userProfile/userProfile.query.js';
+export * from './organization/organization.mutation.js';
+export * from './organization/organization.query.js';

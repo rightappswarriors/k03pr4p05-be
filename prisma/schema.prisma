@@ -11,7 +11,10 @@ model Organization {
   id               Int               @id @default(autoincrement())
   name             String
   createdAt        DateTime          @default(now())
+  updatedAt        DateTime?         @updatedAt
+  deletedAt        DateTime?
   bannerImg        String?
+  profileImg       String?
   contactNumber    String?
   email            String?
   location         String?
@@ -82,6 +85,11 @@ model User {
   orgId                Int?
   isVerified           Boolean                  @default(false)
   verificationCode     String?
+  country              String?
+  zipCode              String?
+  city                 String?
+  address              String?
+  dateOfBirth          DateTime?
   isOwner              Boolean                  @default(false)
   positionId           String?
   departmentId         Int?
@@ -108,7 +116,7 @@ model User {
   position             Position?                @relation(fields: [positionId], references: [id])
   permissionOverrides  UserPermissionOverride[]
   userShifts           UserShift[]
-
+  updatedAt           DateTime?                 @updatedAt
   @@unique([orgId, username])
   @@unique([orgId, email])
 }
@@ -479,36 +487,36 @@ enum SalesOrderStatus {
 }
 
 model SalesOrder {
-  id              String           @id @default(cuid())
-  orderNumber     String           @unique
-  customer        String
-  orderMode       OrderMode        @default(WALK_IN)
-  status          SalesOrderStatus @default(PENDING)
-  date            DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  orgId           Int
-  userId          Int?
-  outletId        Int?
-  branchId        Int?
-  customerName    String?
-  customerContact String?
-  customerType    CustomerType     @default(REGULAR)
-  discountType    DiscountType     @default(NONE)
-  vatExemptSale   Float            @default(0)
-  totalPax        Int?
-  scPwdPax        Int?
-  scPwdCustomerId String?
-  deliveryAddress String?
-  deliveryNotes   String?
+  id                String           @id @default(cuid())
+  orderNumber       String           @unique
+  customer          String
+  orderMode         OrderMode        @default(WALK_IN)
+  status            SalesOrderStatus @default(PENDING)
+  date              DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  orgId             Int
+  userId            Int?
+  outletId          Int?
+  branchId          Int?
+  customerName      String?
+  customerContact   String?
+  customerType      CustomerType     @default(REGULAR)
+  discountType      DiscountType     @default(NONE)
+  vatExemptSale     Float            @default(0)
+  totalPax          Int?
+  scPwdPax          Int?
+  scPwdCustomerId   String?
+  deliveryAddress   String?
+  deliveryNotes     String?
   // Pricing
-  subtotal          Float @default(0)
-  discountAmount    Float @default(0)
-  vatAmount         Float @default(0)
-  total             Float @default(0)
-  vatRate           Float @default(0)
-  discountRate      Float @default(0)
-  extraChargesTotal Float @default(0)
-  grandTotal        Float @default(0)
+  subtotal          Float            @default(0)
+  discountAmount    Float            @default(0)
+  vatAmount         Float            @default(0)
+  total             Float            @default(0)
+  vatRate           Float            @default(0)
+  discountRate      Float            @default(0)
+  extraChargesTotal Float            @default(0)
+  grandTotal        Float            @default(0)
   outletPromoId     Int?
 
   // Delivery details (filled when moving Processing → Shipped)
@@ -542,15 +550,15 @@ model ExtraCharge {
 }
 
 model SalesOrderItem {
-  id               Int     @id @default(autoincrement())
+  id               Int          @id @default(autoincrement())
   salesOrderId     String
   itemId           Int?
   quantity         Float
   unitPrice        Float
   totalPrice       Float
-  discountQuantity Float?  @default(0)
-  discountRate     Float?  @default(0)
-  discountAmount   Float?  @default(0)
+  discountQuantity Float?       @default(0)
+  discountRate     Float?       @default(0)
+  discountAmount   Float?       @default(0)
   discountType     DiscountType @default(NONE)
   unitId           Int?
   unitName         String?
@@ -1050,13 +1058,13 @@ model ScPwdCustomer {
   transactions           Transaction[]
   salesOrders            SalesOrder[]
 
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
+  @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])
   @@index([orgId])
   @@index([idNumber])
   @@index([oscaId])
   @@index([govId])
   @@index([fullName])
-  @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
-  @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])
 }
 
 model CustomerDeviceToken {
@@ -1699,21 +1707,18 @@ model DiscountAudit {
   voidReason             String?
   createdAt              DateTime     @default(now())
 
-  @@index([oscaGovId])
-  @@index([customerId])
-  @@index([createdAt])
-
   user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
   item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
 
+  @@index([oscaGovId])
+  @@index([customerId])
+  @@index([createdAt])
   @@index([customerId, createdAt])
   @@index([oscaGovId, createdAt])
   @@index([salesOrderId])
   @@index([transactionId])
   @@index([kompraOrderId])
 }
-
-
 
 model OrderCourierPreference {
   id           Int          @id @default(autoincrement())

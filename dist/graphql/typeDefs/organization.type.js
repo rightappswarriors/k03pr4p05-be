@@ -5,6 +5,18 @@ export const Organization = objectType({
         t.nonNull.int('id');
         t.nonNull.string('name');
         t.nonNull.dateTime('createdAt');
+        t.nullable.dateTime('updatedAt');
+        t.nullable.dateTime('deletedAt');
+        t.nullable.string('bannerImg');
+        t.nullable.string('profileImg');
+        t.nullable.string('contactNumber');
+        t.nullable.string('email');
+        t.nullable.string('location');
+        t.nullable.string('profilePhoto');
+        t.nullable.string('facebookLink');
+        t.nullable.string('instagramLink');
+        t.nullable.string('twitterLink');
+        t.nullable.string('bio');
         t.nullable.field('subscription', {
             type: 'Subscription',
             resolve: (parent, _, ctx) => {

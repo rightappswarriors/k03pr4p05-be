@@ -1,4 +1,5 @@
 // src/graphql/typeDefs/user.type.ts    
+import { DateTime } from 'graphql-scalars/typings/typeDefs'
 import { objectType, enumType } from 'nexus'
 
 export const Role = enumType({
@@ -28,7 +29,14 @@ export const User = objectType({
           t.nonNull.boolean('isVerified')
           t.nullable.string('verificationCode')
           t.nonNull.dateTime('createdAt')
+          t.nullable.dateTime('updatedAt')
           t.nullable.string('profilePhoto');
+          t.nullable.string('zipCode');
+          t.nullable.string('city');
+          t.nullable.string('address');
+          t.nullable.string('country')
+          t.nullable.dateTime('dateOfBirth');
+          t.nullable.string('zipCode');
           t.nullable.int('managerId')
           t.nonNull.boolean('enabledPaymentMethod')
           t.nullable.string('contactNumber');
@@ -36,7 +44,7 @@ export const User = objectType({
           t.nullable.field('position', {
                type: 'Position',
                resolve: (parent, _, ctx) => {
-                    return ctx.prisma.position.findUnique({ where: { id: parent.positionId } })
+                    return ctx.prisma.user.findUnique({ where: { id: parent.id } }).position()
                }
           })
           t.nullable.int('departmentId')
@@ -151,7 +159,7 @@ export const User = objectType({
                type: "PromoType",
                resolve: (parent, _, ctx) => {
                     return ctx.prisma.promoType({
-                         where: {  
+                         where: {
                               id: parent.id
                          }
                     }).promoType()

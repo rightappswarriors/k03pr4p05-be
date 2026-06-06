@@ -1183,8 +1183,9 @@ type Mutation {
   updateInventoryItemUnit(data: UpdateInventoryItemUnitInput!, id: Int!): InventoryItemUnit!
   updateItem(data: UpdateItemInput!, id: ID!): Item!
   updateItemGroup(id: Int, name: String): ItemGroup
+  updateMyProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, zipCode: String): User
   updateOrgItemCategory(cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, id: Int!, isActive: Boolean, name: String, sales: String, stocks: String): OrgItemCategory!
-  updateOrganization(id: Int, name: String): Organization
+  updateOrganization(bannerImg: String, bio: String, contactNumber: String, email: String, facebookLink: String, id: Int!, instagramLink: String, location: String, name: String, profileImg: String, twitterLink: String): Organization
   updateOutlet(address: String, bannerImage: String, bir: String, code: String, governmentTax: Float, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String, outletId: ID!, outletPromos: [OutletPromoInput!], outletType: OutletType, phone: String, ptu: String, serviceCharge: Float, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   updateOutletItem(data: UpdateOutletItemInput!): InventoryItems
   updateOutletPromo(data: UpdateOutletPromoInput!, id: Int!): OutletPromo!
@@ -1201,6 +1202,7 @@ type Mutation {
   updateSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, centerId: Int, costInputAmount: Float, costInputVatInclusive: Boolean, costLines: Json, description: String, id: Int!, itemCode: String, itemId: Int, itemName: String, opExPct: Float, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean, subCenterId: Int, vatTypeId: Int): SummaryRow
   updateUser(fullname: String, id: ID!, positionId: String, username: String): User!
+  updateUserProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, userId: Int!, zipCode: String): User
   updateVatType(id: Int, name: String, rate: Float): VatType
   verifyEmail(code: String!, email: String!): AuthPayload!
 }
@@ -1262,27 +1264,39 @@ type OrgItemCategory {
 
 type Organization {
   accountTitles: [AccountTitle!]!
+  bannerImg: String
+  bio: String
   branches: [Branch!]!
   brands: [Brand!]!
   centers: [Center!]!
+  contactNumber: String
   createdAt: DateTime!
+  deletedAt: DateTime
   departments: [Department!]!
+  email: String
   employees: [Employee!]!
+  facebookLink: String
   gisRows: [GISRow!]!
   id: Int!
+  instagramLink: String
   inventoryItems: [InventoryItem!]!
   itemCategories: [ItemCategory!]!
   itemGroups: [ItemGroup!]!
   items: [Item!]!
   kompraCOrders: [KompraCOrder!]!
+  location: String
   name: String!
   outlets: [Outlet!]!
   positions: [Position!]!
+  profileImg: String
+  profilePhoto: String
   promoTypes: [PromoType!]!
   salesOrders: [SalesOrder!]!
   subCenters: [SubCenter!]!
   subscription: Subscription
   summaryRows: [SummaryRow!]!
+  twitterLink: String
+  updatedAt: DateTime
   users: [User!]!
   vatTypes: [VatType!]!
 }
@@ -1685,6 +1699,7 @@ type Query {
   getItemsByOutlet(outletId: ID!): [InventoryItems]
   getKompraCOrdersForManagement(outletId: Int, skip: Int, status: String, take: Int): [KompraCOrder!]!
   getKompraCOrdersSummary(endDate: String, organizationId: Int, skip: Int, startDate: String, take: Int): [KompraCOrderSummary!]!
+  getMyProfile: User
   getMySubscription: Subscription
   getOrgBranches: [Branch!]!
   getOrgCategories(groupId: Int, isActive: Boolean, orderBy: String, pageSize: Int, query: String): [OrgItemCategory!]!
@@ -1715,6 +1730,7 @@ type Query {
   getTransactionsByOrgId(endDate: String, startDate: String): [Transaction!]!
   getTransactionsByStoreId(endDate: DateTime, outletId: Int!, startDate: DateTime): [Transaction!]!
   getUserById(id: ID!): User!
+  getUserProfile(userId: Int!): User
   gisRow(id: Int): GISRow
   gisRows(endDate: String, startDate: String): [GISRow]
   inventoryItem(id: Int): InventoryItem
@@ -2348,9 +2364,13 @@ input UpdatePromoTypeInput {
 }
 
 type User {
+  address: String
   branchesOwned: [Branch!]!
+  city: String
   contactNumber: String
+  country: String
   createdAt: DateTime!
+  dateOfBirth: DateTime
   department: Department
   departmentId: Int
   email: String!
@@ -2378,8 +2398,10 @@ type User {
   staff: [OutletStaff]!
   summaryRows: [SummaryRow]!
   transaction: [Transaction]!
+  updatedAt: DateTime
   username: String!
   verificationCode: String
+  zipCode: String
 }
 
 type UserAttendanceEntry {
