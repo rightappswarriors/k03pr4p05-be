@@ -935,34 +935,46 @@ type KompraCDeliveryTracking {
 }
 
 type KompraCOrder {
+  cancelledAt: DateTime
   courier: Courier
   courierId: Int
-  createdAt: String!
+  createdAt: DateTime!
   customer: KompraCustomer!
   customerId: Int!
   customerNote: String
-  deliveredAt: String
+  customerType: CustomerType
+  deliveredAt: DateTime
   deliveryAddress: DeliveryAddress!
   deliveryAddressId: Int!
+  discountAmount: Float
+  discountType: DiscountType
   estimatedDeliveryAt: String
   fees: [KompraCOrderFee!]!
+  grandTotal: Float
   id: Int!
   items: [KompraCOrderItem!]!
   outlet: Outlet!
   outletId: Int!
   outletNote: String
+  packedAt: DateTime
   paymentMethod: KompraCPaymentMethod!
   paymentReference: String
   paymentStatus: String!
+  placedAt: DateTime
   riderName: String
   riderPhone: String
+  scPwdCustomer: ScPwdCustomer
+  scPwdPax: Int
   scheduledDeliveryAt: String
   status: OrderStatus!
   subtotal: Float!
   total: Float!
+  totalPax: Int
   tracking: [KompraCDeliveryTracking!]!
   transactionNumber: String!
-  updatedAt: String!
+  updatedAt: DateTime
+  vatAmount: Float
+  vatExemptSale: Float
 }
 
 type KompraCOrderFee {

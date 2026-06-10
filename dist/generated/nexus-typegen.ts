@@ -953,34 +953,46 @@ export interface NexusGenObjects {
     statusAt: string; // String!
   }
   KompraCOrder: { // root type
+    cancelledAt?: NexusGenScalars['DateTime'] | null; // DateTime
     courier?: NexusGenRootTypes['Courier'] | null; // Courier
     courierId?: number | null; // Int
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     customer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     customerId: number; // Int!
     customerNote?: string | null; // String
-    deliveredAt?: string | null; // String
+    customerType?: NexusGenEnums['CustomerType'] | null; // CustomerType
+    deliveredAt?: NexusGenScalars['DateTime'] | null; // DateTime
     deliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
     deliveryAddressId: number; // Int!
+    discountAmount?: number | null; // Float
+    discountType?: NexusGenEnums['DiscountType'] | null; // DiscountType
     estimatedDeliveryAt?: string | null; // String
     fees: NexusGenRootTypes['KompraCOrderFee'][]; // [KompraCOrderFee!]!
+    grandTotal?: number | null; // Float
     id: number; // Int!
     items: NexusGenRootTypes['KompraCOrderItem'][]; // [KompraCOrderItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
     outletNote?: string | null; // String
+    packedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     paymentMethod: NexusGenEnums['KompraCPaymentMethod']; // KompraCPaymentMethod!
     paymentReference?: string | null; // String
     paymentStatus: string; // String!
+    placedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     riderName?: string | null; // String
     riderPhone?: string | null; // String
+    scPwdCustomer?: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    scPwdPax?: number | null; // Int
     scheduledDeliveryAt?: string | null; // String
     status: NexusGenEnums['OrderStatus']; // OrderStatus!
     subtotal: number; // Float!
     total: number; // Float!
+    totalPax?: number | null; // Int
     tracking: NexusGenRootTypes['KompraCDeliveryTracking'][]; // [KompraCDeliveryTracking!]!
     transactionNumber: string; // String!
-    updatedAt: string; // String!
+    updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    vatAmount?: number | null; // Float
+    vatExemptSale?: number | null; // Float
   }
   KompraCOrderFee: { // root type
     amount: number; // Float!
@@ -2214,34 +2226,46 @@ export interface NexusGenFieldTypes {
     statusAt: string; // String!
   }
   KompraCOrder: { // field return type
+    cancelledAt: NexusGenScalars['DateTime'] | null; // DateTime
     courier: NexusGenRootTypes['Courier'] | null; // Courier
     courierId: number | null; // Int
-    createdAt: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
     customer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     customerId: number; // Int!
     customerNote: string | null; // String
-    deliveredAt: string | null; // String
+    customerType: NexusGenEnums['CustomerType'] | null; // CustomerType
+    deliveredAt: NexusGenScalars['DateTime'] | null; // DateTime
     deliveryAddress: NexusGenRootTypes['DeliveryAddress']; // DeliveryAddress!
     deliveryAddressId: number; // Int!
+    discountAmount: number | null; // Float
+    discountType: NexusGenEnums['DiscountType'] | null; // DiscountType
     estimatedDeliveryAt: string | null; // String
     fees: NexusGenRootTypes['KompraCOrderFee'][]; // [KompraCOrderFee!]!
+    grandTotal: number | null; // Float
     id: number; // Int!
     items: NexusGenRootTypes['KompraCOrderItem'][]; // [KompraCOrderItem!]!
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
     outletNote: string | null; // String
+    packedAt: NexusGenScalars['DateTime'] | null; // DateTime
     paymentMethod: NexusGenEnums['KompraCPaymentMethod']; // KompraCPaymentMethod!
     paymentReference: string | null; // String
     paymentStatus: string; // String!
+    placedAt: NexusGenScalars['DateTime'] | null; // DateTime
     riderName: string | null; // String
     riderPhone: string | null; // String
+    scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    scPwdPax: number | null; // Int
     scheduledDeliveryAt: string | null; // String
     status: NexusGenEnums['OrderStatus']; // OrderStatus!
     subtotal: number; // Float!
     total: number; // Float!
+    totalPax: number | null; // Int
     tracking: NexusGenRootTypes['KompraCDeliveryTracking'][]; // [KompraCDeliveryTracking!]!
     transactionNumber: string; // String!
-    updatedAt: string; // String!
+    updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    vatAmount: number | null; // Float
+    vatExemptSale: number | null; // Float
   }
   KompraCOrderFee: { // field return type
     amount: number; // Float!
@@ -3855,34 +3879,46 @@ export interface NexusGenFieldTypeNames {
     statusAt: 'String'
   }
   KompraCOrder: { // field return type name
+    cancelledAt: 'DateTime'
     courier: 'Courier'
     courierId: 'Int'
-    createdAt: 'String'
+    createdAt: 'DateTime'
     customer: 'KompraCustomer'
     customerId: 'Int'
     customerNote: 'String'
-    deliveredAt: 'String'
+    customerType: 'CustomerType'
+    deliveredAt: 'DateTime'
     deliveryAddress: 'DeliveryAddress'
     deliveryAddressId: 'Int'
+    discountAmount: 'Float'
+    discountType: 'DiscountType'
     estimatedDeliveryAt: 'String'
     fees: 'KompraCOrderFee'
+    grandTotal: 'Float'
     id: 'Int'
     items: 'KompraCOrderItem'
     outlet: 'Outlet'
     outletId: 'Int'
     outletNote: 'String'
+    packedAt: 'DateTime'
     paymentMethod: 'KompraCPaymentMethod'
     paymentReference: 'String'
     paymentStatus: 'String'
+    placedAt: 'DateTime'
     riderName: 'String'
     riderPhone: 'String'
+    scPwdCustomer: 'ScPwdCustomer'
+    scPwdPax: 'Int'
     scheduledDeliveryAt: 'String'
     status: 'OrderStatus'
     subtotal: 'Float'
     total: 'Float'
+    totalPax: 'Int'
     tracking: 'KompraCDeliveryTracking'
     transactionNumber: 'String'
-    updatedAt: 'String'
+    updatedAt: 'DateTime'
+    vatAmount: 'Float'
+    vatExemptSale: 'Float'
   }
   KompraCOrderFee: { // field return type name
     amount: 'Float'

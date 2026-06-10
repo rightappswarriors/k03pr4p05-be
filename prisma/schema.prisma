@@ -116,7 +116,8 @@ model User {
   position             Position?                @relation(fields: [positionId], references: [id])
   permissionOverrides  UserPermissionOverride[]
   userShifts           UserShift[]
-  updatedAt           DateTime?                 @updatedAt
+  updatedAt            DateTime?                @updatedAt
+
   @@unique([orgId, username])
   @@unique([orgId, email])
 }
@@ -655,8 +656,20 @@ model KompraCOrder {
   customerNote           String?
   outletNote             String?
   createdAt              DateTime                  @default(now())
+  packedAt               DateTime?
+  placedAt               DateTime?
+  cancelledAt            DateTime?
   updatedAt              DateTime                  @updatedAt
   courierId              Int?
+  scPwdCustomerId        String?
+  customerType           CustomerType?             @default(REGULAR)
+  discountType           DiscountType?             @default(NONE)
+  scPwdPax               Int?
+  totalPax               Int?
+  vatExemptSale          Float?                    @default(0)
+  discountAmount         Float?                    @default(0)
+  vatAmount              Float?                    @default(0)
+  grandTotal             Float?
   tracking               KompraCDeliveryTracking[]
   courier                Courier?                  @relation(fields: [courierId], references: [id])
   customer               KompraCustomer            @relation(fields: [customerId], references: [id])
@@ -665,6 +678,9 @@ model KompraCOrder {
   fees                   KompraCOrderFee[]
   items                  KompraCOrderItem[]
   OrderCourierPreference OrderCourierPreference[]
+  scPwdCustomer          ScPwdCustomer?            @relation(fields: [scPwdCustomerId], references: [id])
+
+  @@index([scPwdCustomerId])
 }
 
 enum OrderStatus {
@@ -1036,27 +1052,28 @@ model Transaction {
 }
 
 model ScPwdCustomer {
-  id                     String        @id @default(cuid())
+  id                     String         @id @default(cuid())
   orgId                  Int?
   fullName               String
   idNumber               String
-  oscaId                 String?       @unique
-  govId                  String?       @unique
+  oscaId                 String?        @unique
+  govId                  String?        @unique
   idType                 String
   customerType           CustomerType
   dateOfBirth            DateTime?
   contactNumber          String?
   address                String?
-  bnpcCapManuallyReached Boolean       @default(false)
+  bnpcCapManuallyReached Boolean        @default(false)
   bnpcCapManualReason    String?
-  isRepresentative       Boolean       @default(false)
+  isRepresentative       Boolean        @default(false)
   representativeName     String?
   representativeIdNumber String?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  org                    Organization? @relation(fields: [orgId], references: [id])
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  org                    Organization?  @relation(fields: [orgId], references: [id])
   transactions           Transaction[]
   salesOrders            SalesOrder[]
+  kompraCOrders          KompraCOrder[]
 
   @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
   @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])

@@ -107,7 +107,6 @@ export const KompraCOrderType = objectType({
         t.nonNull.field('status', { type: 'OrderStatus' });
         t.nullable.string('scheduledDeliveryAt');
         t.nullable.string('estimatedDeliveryAt');
-        t.nullable.string('deliveredAt');
         t.nonNull.field('paymentMethod', { type: 'KompraCPaymentMethod' });
         t.nonNull.string('paymentStatus');
         t.nullable.string('paymentReference');
@@ -115,8 +114,12 @@ export const KompraCOrderType = objectType({
         t.nullable.string('riderPhone');
         t.nullable.string('customerNote');
         t.nullable.string('outletNote');
-        t.nonNull.string('createdAt');
-        t.nonNull.string('updatedAt');
+        t.nonNull.dateTime('createdAt');
+        t.nullable.dateTime('placedAt');
+        t.nullable.dateTime('packedAt');
+        t.nullable.dateTime('updatedAt');
+        t.nullable.dateTime('cancelledAt');
+        t.nullable.dateTime('deliveredAt');
         t.nullable.int('courierId');
         t.nonNull.field('customer', { type: 'KompraCustomer' });
         t.nonNull.field('outlet', { type: 'Outlet' });
@@ -125,6 +128,16 @@ export const KompraCOrderType = objectType({
         t.nonNull.list.nonNull.field('items', { type: 'KompraCOrderItem' });
         t.nonNull.list.nonNull.field('fees', { type: 'KompraCOrderFee' });
         t.nonNull.list.nonNull.field('tracking', { type: 'KompraCDeliveryTracking' });
+        // BNPC and Customer Type fields (matching SalesScreen)
+        t.nullable.field('customerType', { type: 'CustomerType' });
+        t.nullable.field('discountType', { type: 'DiscountType' });
+        t.nullable.field('scPwdCustomer', { type: 'ScPwdCustomer' });
+        t.nullable.int('scPwdPax');
+        t.nullable.int('totalPax');
+        t.nullable.float('vatExemptSale');
+        t.nullable.float('discountAmount');
+        t.nullable.float('vatAmount');
+        t.nullable.float('grandTotal');
     },
 });
 export const KompraCOrderSummaryType = objectType({
@@ -544,6 +557,19 @@ export const KompraCMutation = extendType({
                             scheduledDeliveryAt: input.scheduledDeliveryAt ? new Date(input.scheduledDeliveryAt) : null,
                             subtotal,
                             total,
+                            // BNPC and customer type fields
+                            customerType: input.discountType && input.discountType !== 'NONE'
+                                ? (input.discountType === 'BNPC_SENIOR_CITIZEN' || input.discountType === 'BNPC_PWD'
+                                    ? (input.discountType === 'BNPC_PWD' ? 'PWD' : 'SENIOR_CITIZEN')
+                                    : (input.discountType === 'PWD' ? 'PWD' : 'SENIOR_CITIZEN'))
+                                : 'REGULAR',
+                            discountType: input.discountType,
+                            scPwdPax: input.scPwdPax,
+                            totalPax: input.totalPax,
+                            vatExemptSale: breakdown.vatExemptSale ?? 0,
+                            discountAmount: breakdown.discountAmount ?? 0,
+                            vatAmount: breakdown.vatAmount ?? 0,
+                            grandTotal: total,
                             items: { create: orderItems },
                             fees: {
                                 create: [
@@ -638,11 +664,12 @@ export const KompraCMutation = extendType({
                             event: 'outlet_preparing',
                             actorType: 'outlet',
                             note: args.outletNote ?? 'Packed and ready for rider assignment',
+                            packedAt: new Date(),
                         },
                     });
                     return tx.kompraCOrder.update({
                         where: { id: args.orderId },
-                        data: { status: 'preparing', outletNote: args.outletNote ?? undefined },
+                        data: { status: 'preparing', outletNote: args.outletNote ?? undefined, packedAt: new Date() },
                         include: kompraOrderManagementInclude,
                     });
                 });
@@ -785,7 +812,7 @@ export const KompraCMutation = extendType({
                     for (const item of orderItems) {
                         await tx.inventoryItems.update({
                             where: { id: item.inventoryItemId },
-                            data: { quantity: { increment: item.quantity } },
+                            data: { quantity: { increment: item.quantity }, cancelledAt: new Date() },
                         });
                     }
                     await tx.kompraCDeliveryTracking.create({

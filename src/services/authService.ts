@@ -1,25 +1,15 @@
 
 import { prisma } from '../lib/prisma.js';
 import bcrypt from 'bcrypt'
-import nodemailer from 'nodemailer'
 import jwt from 'jsonwebtoken'
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com'
-const SMTP_PORT = Number(process.env.SMTP_PORT || 587)
-const SMTP_USER = process.env.SMTP_USER || ''
-const SMTP_PASS = process.env.SMTP_PASS || ''
-const EMAIL_FROM = process.env.EMAIL_FROM || 'no-reply@example.com'
+import { Resend } from 'resend'
+
+const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
+const EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev'
 const JWT_SECRET = process.env.JWT_SECRET
 const REFRESH_SECRET = process.env.REFRESH_SECRET
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS,
-  },
-})
+const resend = new Resend(RESEND_API_KEY)
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString()
@@ -51,15 +41,13 @@ export async function registerUser({ fullname, role, email, password, contactNum
   console.log('Created user: ', user)
   // Send OTP email
   const subject = 'Verify your account'
-  const text = `Please verify your account using this OTP code: ${verificationCode}`
   const html = `<p>Welcome ${fullname},</p><p>Use the code <strong>${verificationCode}</strong> to verify your account.</p>`
 
   try {
-    await transporter.sendMail({
+    await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
       subject,
-      text,
       html,
     })
   } catch (error) {
@@ -167,15 +155,13 @@ export async function resendOTP({ email }) {
 
   // Send OTP email
   const subject = 'Verify your account'
-  const text = `Your verification code is: ${verificationCode}`
   const html = `<p>Your verification code is: <strong>${verificationCode}</strong></p>`
 
   try {
-    await transporter.sendMail({
+    await resend.emails.send({
       from: EMAIL_FROM,
       to: email,
       subject,
-      text,
       html,
     })
   } catch (error) {
