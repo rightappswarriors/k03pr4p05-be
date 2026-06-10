@@ -141,7 +141,7 @@ export const loginUser = async (email: any, password: any, res: any) => {
       userId: user.id,
     },
     REFRESH_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "24h" }
   );
   res.cookie("jid", refresh_token, {
     httpOnly: true,

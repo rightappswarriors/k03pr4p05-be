@@ -313,5 +313,21 @@ export const userMutation = extendType({
                 return true;
             },
         });
+        t.nonNull.field("changePassword", {
+            type: "Boolean",
+            args: {
+                oldPassword: nonNull(stringArg()),
+                newPassword: nonNull(stringArg()),
+            },
+            async resolve(_, { oldPassword, newPassword }, ctx) {
+                requireAuth(ctx);
+                const { changePassword } = await import("../../../services/userProfile.service.js");
+                return changePassword({
+                    userId: Number(ctx.user.userId),
+                    oldPassword,
+                    newPassword,
+                });
+            },
+        });
     },
 });

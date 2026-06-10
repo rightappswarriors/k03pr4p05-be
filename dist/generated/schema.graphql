@@ -1081,6 +1081,7 @@ type Mutation {
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelKompraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): KompraCOrder!
   cancelSalesOrder(id: String!, reason: String): SalesOrder
+  changePassword(newPassword: String!, oldPassword: String!): Boolean!
   confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
   confirmKompraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): KompraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): KompraCOrder!

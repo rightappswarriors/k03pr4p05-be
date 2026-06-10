@@ -67,12 +67,10 @@ export const RefreshMutation = extendType({
             { expiresIn: "15m" }
           );
 
-          // ✅ Fix 3: Extended from "7d" → "30d" so mobile users who don't
-          //    open the app for days/weeks aren't silently logged out
           const newRefreshToken = jwt.sign(
             { userId: user.id },
             REFRESH_SECRET,
-            { expiresIn: "30d" }
+            { expiresIn: "24h" }
           );
 
           res.cookie("jid", newRefreshToken, {

@@ -117,7 +117,7 @@ export const loginUser = async (email, password, res) => {
     }, JWT_SECRET, { expiresIn: "1d" });
     const refresh_token = jwt.sign({
         userId: user.id,
-    }, REFRESH_SECRET, { expiresIn: "7d" });
+    }, REFRESH_SECRET, { expiresIn: "24h" });
     res.cookie("jid", refresh_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",

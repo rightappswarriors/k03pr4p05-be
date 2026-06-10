@@ -50,9 +50,7 @@ export const RefreshMutation = extendType({
                     if (!user)
                         throw new Error("User not found");
                     const newAccessToken = jwt.sign({ userId: user.id, role: user.role, email: user.email }, JWT_SECRET, { expiresIn: "15m" });
-                    // ✅ Fix 3: Extended from "7d" → "30d" so mobile users who don't
-                    //    open the app for days/weeks aren't silently logged out
-                    const newRefreshToken = jwt.sign({ userId: user.id }, REFRESH_SECRET, { expiresIn: "30d" });
+                    const newRefreshToken = jwt.sign({ userId: user.id }, REFRESH_SECRET, { expiresIn: "24h" });
                     res.cookie("jid", newRefreshToken, {
                         httpOnly: true,
                         secure: process.env.NODE_ENV === "production",

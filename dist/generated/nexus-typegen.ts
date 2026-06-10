@@ -2340,6 +2340,7 @@ export interface NexusGenFieldTypes {
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
     cancelKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     cancelSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    changePassword: boolean; // Boolean!
     confirmDelivery: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     confirmKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     confirmOrderReceived: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
@@ -3993,6 +3994,7 @@ export interface NexusGenFieldTypeNames {
     bulkCreateInventoryItems: 'InventoryItems'
     cancelKompraOrder: 'KompraCOrder'
     cancelSalesOrder: 'SalesOrder'
+    changePassword: 'Boolean'
     confirmDelivery: 'SupplierOrder'
     confirmKompraOrder: 'KompraCOrder'
     confirmOrderReceived: 'KompraCOrder'
@@ -5033,6 +5035,10 @@ export interface NexusGenArgTypes {
     cancelSalesOrder: { // args
       id: string; // String!
       reason?: string | null; // String
+    }
+    changePassword: { // args
+      newPassword: string; // String!
+      oldPassword: string; // String!
     }
     confirmDelivery: { // args
       items: NexusGenInputs['SupplierOrderItemInput'][]; // [SupplierOrderItemInput!]!
