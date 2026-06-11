@@ -655,8 +655,10 @@ model KompraCOrder {
   riderPhone             String?
   customerNote           String?
   outletNote             String?
+  cancelNote             String?
   createdAt              DateTime                  @default(now())
   packedAt               DateTime?
+  shippedAt              DateTime?
   placedAt               DateTime?
   cancelledAt            DateTime?
   updatedAt              DateTime                  @updatedAt
@@ -691,6 +693,7 @@ enum OrderStatus {
   received
   cancelled
   returned
+  packed
 }
 
 model Courier {

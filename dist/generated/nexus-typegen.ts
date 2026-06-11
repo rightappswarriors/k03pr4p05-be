@@ -439,7 +439,7 @@ export interface NexusGenEnums {
   KompraCPaymentMethod: "card" | "cash_on_delivery" | "gcash" | "paymaya" | "qrph"
   MediaType: "image" | "video"
   OrderModeEnum: "DELIVERY" | "PICK_UP" | "WALK_IN"
-  OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "pending" | "preparing" | "received" | "returned"
+  OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "packed" | "pending" | "preparing" | "received" | "returned"
   OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
@@ -953,6 +953,7 @@ export interface NexusGenObjects {
     statusAt: string; // String!
   }
   KompraCOrder: { // root type
+    cancelNote?: string | null; // String
     cancelledAt?: NexusGenScalars['DateTime'] | null; // DateTime
     courier?: NexusGenRootTypes['Courier'] | null; // Courier
     courierId?: number | null; // Int
@@ -984,6 +985,7 @@ export interface NexusGenObjects {
     scPwdCustomer?: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
     scPwdPax?: number | null; // Int
     scheduledDeliveryAt?: string | null; // String
+    shippedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['OrderStatus']; // OrderStatus!
     subtotal: number; // Float!
     total: number; // Float!
@@ -2226,6 +2228,7 @@ export interface NexusGenFieldTypes {
     statusAt: string; // String!
   }
   KompraCOrder: { // field return type
+    cancelNote: string | null; // String
     cancelledAt: NexusGenScalars['DateTime'] | null; // DateTime
     courier: NexusGenRootTypes['Courier'] | null; // Courier
     courierId: number | null; // Int
@@ -2257,6 +2260,7 @@ export interface NexusGenFieldTypes {
     scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
     scPwdPax: number | null; // Int
     scheduledDeliveryAt: string | null; // String
+    shippedAt: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['OrderStatus']; // OrderStatus!
     subtotal: number; // Float!
     total: number; // Float!
@@ -3880,6 +3884,7 @@ export interface NexusGenFieldTypeNames {
     statusAt: 'String'
   }
   KompraCOrder: { // field return type name
+    cancelNote: 'String'
     cancelledAt: 'DateTime'
     courier: 'Courier'
     courierId: 'Int'
@@ -3911,6 +3916,7 @@ export interface NexusGenFieldTypeNames {
     scPwdCustomer: 'ScPwdCustomer'
     scPwdPax: 'Int'
     scheduledDeliveryAt: 'String'
+    shippedAt: 'DateTime'
     status: 'OrderStatus'
     subtotal: 'Float'
     total: 'Float'

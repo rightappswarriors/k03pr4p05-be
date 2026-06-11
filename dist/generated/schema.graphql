@@ -935,6 +935,7 @@ type KompraCDeliveryTracking {
 }
 
 type KompraCOrder {
+  cancelNote: String
   cancelledAt: DateTime
   courier: Courier
   courierId: Int
@@ -966,6 +967,7 @@ type KompraCOrder {
   scPwdCustomer: ScPwdCustomer
   scPwdPax: Int
   scheduledDeliveryAt: String
+  shippedAt: DateTime
   status: OrderStatus!
   subtotal: Float!
   total: Float!
@@ -1242,6 +1244,7 @@ enum OrderStatus {
   cancelled
   confirmed
   in_delivery
+  packed
   pending
   preparing
   received
