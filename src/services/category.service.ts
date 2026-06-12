@@ -129,8 +129,9 @@ export const updateCategoryById = async (id: any, name: string) => {
 export const deleteCategory = async (id: any) => {
   // Use a transaction to ensure both deletions succeed or fail together.
   return await prisma.$transaction(async (tx) => {
-    return await tx.itemCategory.delete({
+    return await tx.itemCategory.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
   });
 };

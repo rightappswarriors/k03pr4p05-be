@@ -41,8 +41,9 @@ export const employeeMutation = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
-                return ctx.prisma.employee.delete({
-                    where: { id }
+                return ctx.prisma.employee.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
                 });
             }
         });

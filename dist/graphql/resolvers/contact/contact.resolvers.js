@@ -135,7 +135,10 @@ export const ContactMutation = extendType({
             args: { id: nonNull(intArg()) },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
-                return ctx.prisma.contact.delete({ where: { id } });
+                return ctx.prisma.contact.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
+                });
             },
         });
         // Soft-toggle isActive

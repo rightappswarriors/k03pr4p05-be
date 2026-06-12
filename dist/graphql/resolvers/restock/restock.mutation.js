@@ -74,8 +74,9 @@ export const RestockMutation = extendType({
                     select: { id: true },
                 });
                 await Promise.all(cycles.map(c => removeCycleJob(c.id).catch(() => { })));
-                return ctx.prisma.restockSchedule.delete({
+                return ctx.prisma.restockSchedule.update({
                     where: { id },
+                    data: { deletedAt: new Date() },
                     include: { scheduleItems: { include: { item: true } } },
                 });
             },
@@ -213,8 +214,9 @@ export const RestockMutation = extendType({
                 if (!existing)
                     throw new Error("Cycle not found");
                 await removeCycleJob(id).catch(() => { });
-                return ctx.prisma.restockCycle.delete({
+                return ctx.prisma.restockCycle.update({
                     where: { id },
+                    data: { deletedAt: new Date() },
                     include: { cycleItems: { include: { item: true } } },
                 });
             },

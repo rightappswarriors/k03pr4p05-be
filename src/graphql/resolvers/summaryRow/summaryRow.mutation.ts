@@ -248,7 +248,10 @@ export const summaryRowMutation = extendType({
       type: 'SummaryRow',
       args: { id: nonNull(intArg()) },
       resolve: async (_, { id }, ctx) =>
-        ctx.prisma.summaryRow.delete({ where: { id: id! } })
+        ctx.prisma.summaryRow.update({
+          where: { id: id! },
+          data: { deletedAt: new Date() },
+        })
     })
   }
 })

@@ -38,8 +38,9 @@ export const centerMutation = extendType({
       },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
-        return ctx.prisma.center.delete({
-          where: { id }
+        return ctx.prisma.center.update({
+          where: { id },
+          data: { deletedAt: new Date() },
         })
       }
     })

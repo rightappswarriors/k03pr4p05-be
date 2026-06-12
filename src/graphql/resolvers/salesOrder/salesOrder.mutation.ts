@@ -15,6 +15,7 @@ import {
   findOrCreateScPwdCustomer,
   getWeeklyBnpcState,
 } from '../../../services/transaction.service.js';
+import { deductSalesOrderInventory } from '../../../services/inventoryDeduction.service.js';
 
 export const SalesOrderItemInput = inputObjectType({
   name: "SalesOrderItemInput",
@@ -299,10 +300,22 @@ async function updateStatus(ctx: any, id: string, status: string) {
     throw new Error(`Cannot move a ${modeLabel} order from ${existing.status} directly to ${status}.${nextText}`);
   }
 
-  const updated = await ctx.prisma.salesOrder.update({
-    where: { id },
-    data: { status },
-    include: salesOrderInclude,
+  const updated = await ctx.prisma.$transaction(async (tx: any) => {
+    const order = await tx.salesOrder.update({
+      where: { id },
+      data: { status },
+      include: salesOrderInclude,
+    });
+
+    if (status === "COMPLETED") {
+      await deductSalesOrderInventory(tx, id);
+      return tx.salesOrder.findUnique({
+        where: { id },
+        include: salesOrderInclude,
+      });
+    }
+
+    return order;
   });
 
   await ctx.prisma.auditLog.create({
@@ -658,7 +671,10 @@ export const SalesOrderMutation = extendType({
         });
         if (!charge) throw new Error("Extra charge not found");
         return ctx.prisma.$transaction(async (tx: any) => {
-          await tx.extraCharge.delete({ where: { id: extraChargeId } });
+          await tx.extraCharge.update({
+            where: { id: extraChargeId },
+            data: { deletedAt: new Date() },
+          });
           return recalculateExtraTotals(tx, charge.salesOrderId);
         });
       },

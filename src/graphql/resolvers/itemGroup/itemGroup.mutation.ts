@@ -33,8 +33,9 @@ export const itemGroupMutation = extendType({
         id: intArg()
       },
       resolve: async (_, { id }, ctx) => {
-        return ctx.prisma.itemGroup.delete({
-          where: { id }
+        return ctx.prisma.itemGroup.update({
+          where: { id },
+          data: { deletedAt: new Date() },
         })
       }
     })

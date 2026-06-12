@@ -2,6 +2,7 @@
 import { arg, extendType, floatArg, inputObjectType, intArg, list, nonNull, nullable, stringArg, } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
 import { findOrCreateScPwdCustomer, getWeeklyBnpcState, } from '../../../services/transaction.service.js';
+import { deductSalesOrderInventory } from '../../../services/inventoryDeduction.service.js';
 export const SalesOrderItemInput = inputObjectType({
     name: "SalesOrderItemInput",
     definition(t) {
@@ -250,10 +251,20 @@ async function updateStatus(ctx, id, status) {
         const nextText = next ? ` Next valid status is ${next}.` : "";
         throw new Error(`Cannot move a ${modeLabel} order from ${existing.status} directly to ${status}.${nextText}`);
     }
-    const updated = await ctx.prisma.salesOrder.update({
-        where: { id },
-        data: { status },
-        include: salesOrderInclude,
+    const updated = await ctx.prisma.$transaction(async (tx) => {
+        const order = await tx.salesOrder.update({
+            where: { id },
+            data: { status },
+            include: salesOrderInclude,
+        });
+        if (status === "COMPLETED") {
+            await deductSalesOrderInventory(tx, id);
+            return tx.salesOrder.findUnique({
+                where: { id },
+                include: salesOrderInclude,
+            });
+        }
+        return order;
     });
     await ctx.prisma.auditLog.create({
         data: {
@@ -572,7 +583,10 @@ export const SalesOrderMutation = extendType({
                 if (!charge)
                     throw new Error("Extra charge not found");
                 return ctx.prisma.$transaction(async (tx) => {
-                    await tx.extraCharge.delete({ where: { id: extraChargeId } });
+                    await tx.extraCharge.update({
+                        where: { id: extraChargeId },
+                        data: { deletedAt: new Date() },
+                    });
                     return recalculateExtraTotals(tx, charge.salesOrderId);
                 });
             },

@@ -47,7 +47,8 @@ export const updatePromoType = async (id: number, orgId: number, data: { name?: 
 };
 
 export const deletePromoType = async (id: number, orgId: number) => {
-  return await prisma.promoType.delete({
+  return await prisma.promoType.update({
     where: { id, orgId },
+    data: { deletedAt: new Date() },
   });
 };

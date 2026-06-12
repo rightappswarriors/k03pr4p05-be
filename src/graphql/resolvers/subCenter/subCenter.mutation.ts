@@ -46,8 +46,9 @@ export const subCenterMutation = extendType({
       },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
-        return ctx.prisma.subCenter.delete({
-          where: { id }
+        return ctx.prisma.subCenter.update({
+          where: { id },
+          data: { deletedAt: new Date() },
         })
       }
     })

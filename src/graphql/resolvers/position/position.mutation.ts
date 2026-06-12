@@ -105,7 +105,10 @@ export const positionMutation = extendType({
             throw new Error("Position belongs to a different organization")
           }
           
-          await ctx.prisma.position.delete({ where: { id } })
+          await ctx.prisma.position.update({
+            where: { id },
+            data: { deletedAt: new Date() },
+          })
           // Log to AuditLog
           await ctx.prisma.auditLog.create({
             data: {

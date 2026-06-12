@@ -78,8 +78,9 @@ export const deleteAPI = async (id) => {
                 hasKey: false
             }
         });
-        await prisma.paymongoAPIKeys.delete({
-            where: { id: id }
+        await prisma.paymongoAPIKeys.update({
+            where: { id: id },
+            data: { deletedAt: new Date() },
         });
         return true;
     });

@@ -42,8 +42,9 @@ export const vatTypeMutation = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
-                return ctx.prisma.vatType.delete({
-                    where: { id }
+                return ctx.prisma.vatType.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
                 });
             }
         });

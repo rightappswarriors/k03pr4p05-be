@@ -35,8 +35,9 @@ export const placeLocationMutation = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
-                return ctx.prisma.placeLocation.delete({
-                    where: { id }
+                return ctx.prisma.placeLocation.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
                 });
             }
         });

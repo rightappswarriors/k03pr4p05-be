@@ -336,17 +336,19 @@ export const updateInventory = async (id, name) => {
 export const deleteInventory = async (id) => {
   await prisma.$transaction(async (tx) => {
     // Delete all inventory items associated with the inventory first.
-    await tx.inventoryItems.deleteMany({
+    await tx.inventoryItems.updateMany({
       where: {
         inventoryId: id,
       },
+      data: { deletedAt: new Date() },
     });
 
-    // Then, delete the inventory record itself.
-    await tx.inventory.delete({
+    // Then, soft-delete the inventory record itself.
+    await tx.inventory.update({
       where: {
         id: id,
       },
+      data: { deletedAt: new Date() },
     });
   });
 };
@@ -772,8 +774,9 @@ export const updateInventoryItem = async (
 };
 
 export const deleteInventoryItem = async (id: number) => {
-  return prisma.inventoryItems.delete({
+  return prisma.inventoryItems.update({
     where: { id },
+    data: { deletedAt: new Date() },
     include: { item: true },
   });
 };

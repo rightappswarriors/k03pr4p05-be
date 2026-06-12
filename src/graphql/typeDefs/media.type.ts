@@ -169,7 +169,10 @@ export const MediaMutation = extendType({
       type: "Media",
       args: { id: nonNull(intArg()) },
       resolve: async (_root, { id }, ctx) => {
-        const deleted = await ctx.prisma.media.delete({ where: { id } });
+        const deleted = await ctx.prisma.media.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        });
  
         // Compact remaining sortOrders so there are no gaps
         if (deleted.itemId) {

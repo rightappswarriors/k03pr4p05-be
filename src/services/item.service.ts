@@ -256,8 +256,9 @@ export const updateInventoryItem = async (id, data) => {
  */
 export const deleteInventoryItem = async (id) => {
   try {
-    const deleted = await prisma.inventoryItems.delete({
+    const deleted = await prisma.inventoryItems.update({
       where: { id },
+      data: { deletedAt: new Date() },
       include: {
         item: true,
         location: true,
@@ -376,8 +377,9 @@ export const updateItem = async (id: number, data: UpdateItemInput) => {
 };
 
 export const deleteItem = async (id) => {
-  return prisma.item.delete({
-    where: { id: id }
+  return prisma.item.update({
+    where: { id: id },
+    data: { deletedAt: new Date() },
   })
 }
 export const getItems = async (query, size, orderBy, orgId) => {

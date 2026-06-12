@@ -4,6 +4,7 @@
 import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, list, arg, intArg, stringArg, floatArg, } from 'nexus';
 import { computeScPwdBreakdown, getWeeklyBnpcState } from '../../services/transaction.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
+import { deductKompraOrderInventory } from '../../services/inventoryDeduction.service.js';
 const LOG_PREFIX = '[KompraCTypes]';
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 export const OrderStatusEnum = enumType({
@@ -562,12 +563,6 @@ export const KompraCMutation = extendType({
                     if (discountAuditEntries.length > 0) {
                         await tx.discountAudit.createMany({ data: discountAuditEntries });
                     }
-                    for (const item of input.items) {
-                        await tx.inventoryItems.update({
-                            where: { id: item.inventoryItemId },
-                            data: { quantity: { decrement: item.quantity } },
-                        });
-                    }
                     const { refreshOutletItemSearchIndex } = await import('../../lib/ekumpra/nearestOutletsSearch.js');
                     await refreshOutletItemSearchIndex(input.outletId);
                     return order;
@@ -715,7 +710,7 @@ export const KompraCMutation = extendType({
             resolve: async (_root, args, ctx) => {
                 requireKompraManagementAccess(ctx);
                 try {
-                    return await ctx.prisma.$transaction(async (tx) => {
+                    const result = await ctx.prisma.$transaction(async (tx) => {
                         const courier = await tx.courier.findFirst({ where: { phone: args.riderPhone } })
                             ?? await tx.courier.create({ data: { name: args.riderName, phone: args.riderPhone } });
                         await tx.kompraCDeliveryTracking.create({
@@ -727,6 +722,7 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
+                    return result;
                 }
                 catch (error) {
                     console.error(`${LOG_PREFIX} markOrderInDelivery — ERROR:`, error);
@@ -739,16 +735,24 @@ export const KompraCMutation = extendType({
             args: { orderId: nonNull(intArg()), customerId: nonNull(intArg()) },
             resolve: async (_root, { orderId, customerId }, ctx) => {
                 try {
-                    return await ctx.prisma.$transaction(async (tx) => {
+                    const result = await ctx.prisma.$transaction(async (tx) => {
                         await tx.kompraCDeliveryTracking.create({
                             data: { orderId, event: 'delivered', actorType: 'customer', actorId: customerId },
                         });
-                        return tx.kompraCOrder.update({
+                        await tx.kompraCOrder.update({
                             where: { id: orderId },
                             data: { status: 'received', deliveredAt: new Date() },
                             include: kompraOrderManagementInclude,
                         });
+                        await deductKompraOrderInventory(tx, orderId);
+                        return tx.kompraCOrder.findUnique({
+                            where: { id: orderId },
+                            include: kompraOrderManagementInclude,
+                        });
                     });
+                    const { refreshOutletItemSearchIndex } = await import('../../lib/ekumpra/nearestOutletsSearch.js');
+                    await refreshOutletItemSearchIndex(result.outletId);
+                    return result;
                 }
                 catch (error) {
                     console.error(`${LOG_PREFIX} confirmOrderReceived — ERROR:`, error);
@@ -767,9 +771,14 @@ export const KompraCMutation = extendType({
                         await tx.kompraCDeliveryTracking.create({
                             data: { orderId, event: 'delivered', actorType: 'outlet' },
                         });
-                        return tx.kompraCOrder.update({
+                        await tx.kompraCOrder.update({
                             where: { id: orderId },
                             data: { status: 'received', deliveredAt: new Date(), paymentStatus: 'paid' },
+                            include: kompraOrderManagementInclude,
+                        });
+                        await deductKompraOrderInventory(tx, orderId);
+                        return tx.kompraCOrder.findUnique({
+                            where: { id: orderId },
                             include: kompraOrderManagementInclude,
                         });
                     });
@@ -808,14 +817,6 @@ export const KompraCMutation = extendType({
                 }
                 try {
                     const result = await ctx.prisma.$transaction(async (tx) => {
-                        // Restore inventory stock for each item
-                        const orderItems = await tx.kompraCOrderItem.findMany({ where: { orderId: args.orderId } });
-                        for (const item of orderItems) {
-                            await tx.inventoryItems.update({
-                                where: { id: item.inventoryItemId },
-                                data: { quantity: { increment: item.quantity } },
-                            });
-                        }
                         await tx.kompraCDeliveryTracking.create({
                             data: {
                                 orderId: args.orderId,

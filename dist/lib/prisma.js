@@ -20,9 +20,11 @@ global.prisma = prisma;
 export { prisma };
 **/
 import { PrismaClient } from "@prisma/client";
+import { softDeleteExtension } from "./softDelete.js";
+const createPrismaClient = () => new PrismaClient().$extends(softDeleteExtension());
 const globalForPrisma = global;
 export const prisma = globalForPrisma.prisma ??
-    new PrismaClient();
+    createPrismaClient();
 if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = prisma;
 }

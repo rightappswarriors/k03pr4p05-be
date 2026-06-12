@@ -493,8 +493,9 @@ export const updateOutlet = async (id, outletData) => {
  * @returns {Promise<object>} The deleted outlet object.
  */
 export const deleteOutlet = async (id) => {
-  return await prisma.outlet.delete({
+  return await prisma.outlet.update({
     where: { id },
+    data: { deletedAt: new Date() },
   });
 };
 

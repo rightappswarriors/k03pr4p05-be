@@ -112,8 +112,9 @@ export const orgItemCategoryMutation = extendType({
                     throw new Error("Category not found or does not belong to your organization.");
                 }
                 try {
-                    return await ctx.prisma.orgItemCategory.delete({
+                    return await ctx.prisma.orgItemCategory.update({
                         where: { id },
+                        data: { deletedAt: new Date() },
                     });
                 }
                 catch (error) {

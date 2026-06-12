@@ -83,8 +83,9 @@ export const gisRowMutation = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 const orgId = Number(ctx.user?.orgId);
-                return ctx.prisma.gISRow.delete({
-                    where: { id: Number(id), orgId }
+                return ctx.prisma.gISRow.update({
+                    where: { id: Number(id), orgId },
+                    data: { deletedAt: new Date() },
                 });
             }
         });

@@ -252,8 +252,9 @@ export const updateUser = async (id, userData) => {
  * @returns {Promise<object>} The deleted user object.
  */
 export const deleteUser = async (id) => {
-    return await prisma.user.delete({
+    return await prisma.user.update({
         where: { id },
+        data: { deletedAt: new Date() },
     });
 };
 export const getStaffByOutletId = async (outletId) => {

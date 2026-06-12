@@ -96,8 +96,9 @@ export const updateBranch = async (id, branchData) => {
  * @returns {Promise<object>} The deleted branch object.
  */
 export const deleteBranch = async (id) => {
-    return await prisma.branch.delete({
+    return await prisma.branch.update({
         where: { id },
+        data: { deletedAt: new Date() },
     });
 };
 export const getBranchTransactions = async (branchId, startDate, endDate) => {

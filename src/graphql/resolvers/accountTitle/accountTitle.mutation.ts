@@ -77,8 +77,9 @@ export const accountTitleMutation = extendType({
           throw new Error('Account title not found or access denied')
         }
         
-        return ctx.prisma.accountTitle.delete({
-          where: { id }
+        return ctx.prisma.accountTitle.update({
+          where: { id },
+          data: { deletedAt: new Date() },
         })
       }
     })

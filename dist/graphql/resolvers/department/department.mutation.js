@@ -37,8 +37,9 @@ export const departmentMutation = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
-                return ctx.prisma.department.delete({
-                    where: { id }
+                return ctx.prisma.department.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
                 });
             }
         });

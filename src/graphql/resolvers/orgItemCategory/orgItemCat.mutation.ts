@@ -123,8 +123,9 @@ export const orgItemCategoryMutation = extendType({
                 }
 
                 try {
-                    return await ctx.prisma.orgItemCategory.delete({
+                    return await ctx.prisma.orgItemCategory.update({
                         where: { id },
+                        data: { deletedAt: new Date() },
                     });
                 } catch (error) {
                     if (process.env.NODE_ENV === "development") console.error("Error deleting OrgItemCategory:", error);

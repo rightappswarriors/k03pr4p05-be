@@ -45,8 +45,9 @@ export const updateOutletPromo = async (id, data) => {
     });
 };
 export const deleteOutletPromo = async (id) => {
-    return await prisma.outletPromo.delete({
+    return await prisma.outletPromo.update({
         where: { id },
+        data: { deletedAt: new Date() },
     });
 };
 export const upsertOutletPromo = async (data) => {

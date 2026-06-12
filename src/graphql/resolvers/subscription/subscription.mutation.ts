@@ -124,8 +124,9 @@ export const subscriptionMutation = extendType({
         requireAuth(ctx);
         requireRole(ctx, 'ADMIN');
 
-        return ctx.prisma.subscription.delete({
+        return ctx.prisma.subscription.update({
           where: { orgId },
+          data: { deletedAt: new Date() },
           include: { org: true },
         });
       },

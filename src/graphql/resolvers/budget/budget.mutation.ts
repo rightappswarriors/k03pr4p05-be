@@ -82,7 +82,10 @@ export const budgetMutation = extendType({
           throw new Error('Budget entry not found or access denied')
         }
 
-        return ctx.prisma.budget.delete({ where: { id } })
+        return ctx.prisma.budget.update({
+          where: { id },
+          data: { deletedAt: new Date() },
+        })
       },
     })
   },

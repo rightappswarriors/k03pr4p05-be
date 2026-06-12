@@ -39,8 +39,9 @@ export const inventoryItemMutation = extendType({
                 id: intArg()
             },
             resolve: async (_, { id }, ctx) => {
-                return ctx.prisma.inventoryItem.delete({
-                    where: { id }
+                return ctx.prisma.inventoryItem.update({
+                    where: { id },
+                    data: { deletedAt: new Date() },
                 });
             }
         });
