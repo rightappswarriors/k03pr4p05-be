@@ -347,7 +347,6 @@ export const SalesOrderQuery = extendType({
           include: {
             item: true,
             units: {
-              where: { isActive: true },
               orderBy: [{ isDefault: "desc" }, { price: "asc" }],
             },
             inventory: {
@@ -360,7 +359,7 @@ export const SalesOrderQuery = extendType({
         });
 
         let items = inventoryItems;
-
+        
         if (outletId == null && branchId == null) {
           const inventoryItemIds = inventoryItems
             .map((entry: any) => Number(entry.itemId))

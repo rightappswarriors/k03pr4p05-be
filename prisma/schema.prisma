@@ -713,59 +713,6 @@ model KompraCOrder {
   @@index([scPwdCustomerId])
 }
 
-enum OrderStatus {
-  pending
-  confirmed
-  preparing
-  in_delivery
-  received
-  cancelled
-  returned
-  packed
-}
-
-model Courier {
-  id                     Int                      @id @default(autoincrement())
-  name                   String
-  phone                  String
-  createdAt              DateTime                 @default(now())
-  deletedAt              DateTime?
-  orders                 KompraCOrder[]
-  OrderCourierPreference OrderCourierPreference[]
-  api_order              api_order[]
-}
-
-model KompraCustomer {
-  id           Int                   @id @default(autoincrement())
-  fullname     String
-  email        String                @unique
-  passwordHash String
-  profilePhoto String?
-  isVerified   Boolean               @default(false)
-  isActive     Boolean               @default(true)
-  createdAt    DateTime              @default(now())
-  updatedAt    DateTime              @updatedAt
-  deletedAt    DateTime?
-  phone        String?               @unique
-  deviceTokens CustomerDeviceToken[]
-  addresses    DeliveryAddress[]
-  orders       KompraCOrder[]
-}
-
-model DeliveryAddress {
-  id         Int            @id @default(autoincrement())
-  customerId Int
-  label      String
-  address    String
-  latitude   Float
-  longitude  Float
-  isDefault  Boolean        @default(false)
-  createdAt  DateTime       @default(now())
-  deletedAt  DateTime?
-  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  orders     KompraCOrder[]
-}
-
 model KompraCOrderItem {
   id              Int                @id @default(autoincrement())
   deletedAt       DateTime?
@@ -840,6 +787,59 @@ model OutletItemSearchIndex {
   @@unique([outletId, itemId])
   @@index([itemId, quantity])
   @@index([outletId])
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  in_delivery
+  received
+  cancelled
+  returned
+  packed
+}
+
+model Courier {
+  id                     Int                      @id @default(autoincrement())
+  name                   String
+  phone                  String
+  createdAt              DateTime                 @default(now())
+  deletedAt              DateTime?
+  orders                 KompraCOrder[]
+  OrderCourierPreference OrderCourierPreference[]
+  api_order              api_order[]
+}
+
+model KompraCustomer {
+  id           Int                   @id @default(autoincrement())
+  fullname     String
+  email        String                @unique
+  passwordHash String
+  profilePhoto String?
+  isVerified   Boolean               @default(false)
+  isActive     Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  deletedAt    DateTime?
+  phone        String?               @unique
+  deviceTokens CustomerDeviceToken[]
+  addresses    DeliveryAddress[]
+  orders       KompraCOrder[]
+}
+
+model DeliveryAddress {
+  id         Int            @id @default(autoincrement())
+  customerId Int
+  label      String
+  address    String
+  latitude   Float
+  longitude  Float
+  isDefault  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  deletedAt  DateTime?
+  customer   KompraCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     KompraCOrder[]
 }
 
 model Color {

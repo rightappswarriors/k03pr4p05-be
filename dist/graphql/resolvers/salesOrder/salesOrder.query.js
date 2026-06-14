@@ -323,7 +323,6 @@ export const SalesOrderQuery = extendType({
                     include: {
                         item: true,
                         units: {
-                            where: { isActive: true },
                             orderBy: [{ isDefault: "desc" }, { price: "asc" }],
                         },
                         inventory: {

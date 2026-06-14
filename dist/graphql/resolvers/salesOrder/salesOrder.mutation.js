@@ -513,25 +513,48 @@ export const SalesOrderMutation = extendType({
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+                if (process.env.NODE_ENV === "development") {
+                    console.log("[updateSalesOrder] Args:", args);
+                    console.log("[updateSalesOrder] User:", {
+                        id: ctx.user?.id,
+                        orgId: ctx.user?.orgId,
+                        role: ctx.user?.role,
+                    });
+                }
                 const orgId = Number(ctx.user.orgId);
-                const existing = await ctx.prisma.salesOrder.findFirst({ where: { id: args.id, orgId } });
+                const existing = await ctx.prisma.salesOrder.findFirst({
+                    where: { id: args.id, orgId },
+                });
+                if (process.env.NODE_ENV === "development") {
+                    console.log("[updateSalesOrder] Existing Order:", existing);
+                }
                 if (!existing)
                     throw new Error("Sales order not found");
-                if (args.orderMode === "DELIVERY" && !args.deliveryAddress?.trim() && !existing.deliveryAddress) {
+                if (args.orderMode === "DELIVERY" &&
+                    !args.deliveryAddress?.trim() &&
+                    !existing.deliveryAddress) {
                     throw new Error("Delivery address is required for delivery orders.");
                 }
-                return ctx.prisma.salesOrder.update({
+                const updateData = {
+                    customerName: args.customerName ?? undefined,
+                    customer: args.customerName ?? undefined,
+                    customerContact: args.customerContact ?? undefined,
+                    deliveryAddress: args.deliveryAddress ?? undefined,
+                    deliveryNotes: args.deliveryNotes ?? undefined,
+                    orderMode: args.orderMode ?? undefined,
+                };
+                if (process.env.NODE_ENV === "development") {
+                    console.log("[updateSalesOrder] Update Data:", updateData);
+                }
+                const result = await ctx.prisma.salesOrder.update({
                     where: { id: args.id },
-                    data: {
-                        customerName: args.customerName ?? undefined,
-                        customer: args.customerName ?? undefined,
-                        customerContact: args.customerContact ?? undefined,
-                        deliveryAddress: args.deliveryAddress ?? undefined,
-                        deliveryNotes: args.deliveryNotes ?? undefined,
-                        orderMode: args.orderMode ?? undefined,
-                    },
+                    data: updateData,
                     include: salesOrderInclude,
                 });
+                if (process.env.NODE_ENV === "development") {
+                    console.log("[updateSalesOrder] Updated Result:", result);
+                }
+                return result;
             },
         });
         t.field("updateSalesOrderStatus", {
@@ -541,9 +564,15 @@ export const SalesOrderMutation = extendType({
                 status: nonNull(arg({ type: "SalesOrderStatusEnum" })),
             },
             resolve: async (_, { salesOrderId, status }, ctx) => {
-                requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
-                return updateStatus(ctx, salesOrderId, status);
+                try {
+                    requireAuth(ctx);
+                    requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+                    return updateStatus(ctx, salesOrderId, status);
+                }
+                catch (error) {
+                    console.error(`[updateSalesOrderStatus] Error updating status for order ${salesOrderId} to ${status}:`, error);
+                    throw new Error(`Failed to update sales order status: ${error instanceof Error ? error.message : String(error)}`);
+                }
             },
         });
         t.field("addExtraCharge", {
