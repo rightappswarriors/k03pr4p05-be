@@ -1,6 +1,7 @@
 import { extendType, nonNull, intArg, stringArg, arg, objectType } from "nexus";
 import { requireAuth, requireOwnership, requireRole } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
+import { getRemainingStockBatch } from "../../../services/outlet.service.js";
 
 
 // Add this objectType
@@ -111,12 +112,12 @@ export const InventoryQuery = extendType({
       args: {
         outletId: nonNull(arg({ type: "ID" })),
       },
+      // outlet-detail resolver (getItemsByOutlet)
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         await requireOwnership(ctx, "Outlet", outletId);
         try {
-          if (process.env.NODE_ENV === "development") console.log("Fetching inventory for outletId:", outletId);
           const inventory = await ctx.prisma.inventory.findUnique({
             where: { outletId: Number(outletId) },
             include: { items: { include: { item: true, units: true } } },
@@ -124,13 +125,23 @@ export const InventoryQuery = extendType({
           if (!inventory) {
             throw new Error("Inventory not found for outlet");
           }
-          if (process.env.NODE_ENV === "development") console.log("Inventory fetched successfully:", inventory.inventoryItems);
-          return inventory.items;
+
+          // Batch-compute remainingStock for all items
+          const itemIds = inventory.items.map((i) => i.item.id);
+          const remainingMap = await getRemainingStockBatch(itemIds);
+
+          return inventory.items.map((invItem) => ({
+            ...invItem,
+            item: {
+              ...invItem.item,
+              remainingStock: remainingMap.get(invItem.item.id) ?? invItem.item.stock,
+            },
+          }));
         } catch (error) {
           if (process.env.NODE_ENV === "development") console.error("Error getting items by outlet:", error);
           throw new Error("Failed to get outlet items.");
         }
-      },
+      }
     });
     // !GET invetory Items
     // Get inventory items by rack
@@ -164,7 +175,7 @@ export const InventoryQuery = extendType({
         return inventoryService.getDashboardInventoryStats(Number(ctx.user.orgId));
       },
     });
-     t.list.field("getItems", {
+    t.list.field("getItems", {
       type: "Item",
       args: {
         query: stringArg(),

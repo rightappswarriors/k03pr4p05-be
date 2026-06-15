@@ -797,6 +797,7 @@ type Item {
   isBNPC: Boolean!
   isVatExempt: Boolean!
   itemCode: String
+  maxAllocatable: Float
   media: [Media!]!
   minQuantity: Int!
   name: String!
@@ -808,6 +809,7 @@ type Item {
   priceB: Float
   priceC: Float
   purchaseUnit: [ItemUnit!]!
+  remainingStock: Float
   searchIndex: [OutletItemSearchIndex!]!
   sellingPrice: Float
   skuNumber: String
@@ -1170,7 +1172,7 @@ type Mutation {
   removeExtraCharge(extraChargeId: String!): SalesOrder
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   resendOTP(email: String!): String!
-  restockOutlet(inventoryItemId: Int!, quantity: Float!, reason: String): InventoryItems
+  restockOutlet: RestockOutletPayload
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   setPositionPermissions(permissions: [PermissionInput!]!, positionId: String!): [PositionPermission!]!
   setUserPermissionOverride(canCreate: Boolean, canDelete: Boolean, canEdit: Boolean, canView: Boolean, pageId: String!, userId: Int!): UserPermissionOverride!
@@ -1870,6 +1872,12 @@ type RestockCycleItem {
 input RestockCycleItemInput {
   itemId: Int!
   quantity: Float!
+}
+
+type RestockOutletPayload {
+  inventoryItem: InventoryItems
+  warehouseStockBefore: Float
+  wasOverWarehouse: Boolean
 }
 
 type RestockSchedule {

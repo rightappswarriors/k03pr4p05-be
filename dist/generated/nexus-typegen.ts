@@ -1349,6 +1349,11 @@ export interface NexusGenObjects {
     itemId: number; // Int!
     quantity: number; // Float!
   }
+  RestockOutletPayload: { // root type
+    inventoryItem?: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
+    warehouseStockBefore?: number | null; // Float
+    wasOverWarehouse?: boolean | null; // Boolean
+  }
   RestockSchedule: { // root type
     address?: string | null; // String
     branchId?: number | null; // Int
@@ -2120,6 +2125,7 @@ export interface NexusGenFieldTypes {
     isBNPC: boolean; // Boolean!
     isVatExempt: boolean; // Boolean!
     itemCode: string | null; // String
+    maxAllocatable: number | null; // Float
     media: NexusGenRootTypes['Media'][]; // [Media!]!
     minQuantity: number; // Int!
     name: string; // String!
@@ -2131,6 +2137,7 @@ export interface NexusGenFieldTypes {
     priceB: number | null; // Float
     priceC: number | null; // Float
     purchaseUnit: NexusGenRootTypes['ItemUnit'][]; // [ItemUnit!]!
+    remainingStock: number | null; // Float
     searchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
     sellingPrice: number | null; // Float
     skuNumber: string | null; // String
@@ -2431,7 +2438,7 @@ export interface NexusGenFieldTypes {
     removeExtraCharge: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     reorderItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     resendOTP: string; // String!
-    restockOutlet: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
+    restockOutlet: NexusGenRootTypes['RestockOutletPayload'] | null; // RestockOutletPayload
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setPositionPermissions: NexusGenRootTypes['PositionPermission'][]; // [PositionPermission!]!
     setUserPermissionOverride: NexusGenRootTypes['UserPermissionOverride']; // UserPermissionOverride!
@@ -2964,6 +2971,11 @@ export interface NexusGenFieldTypes {
     item: NexusGenRootTypes['Item']; // Item!
     itemId: number; // Int!
     quantity: number; // Float!
+  }
+  RestockOutletPayload: { // field return type
+    inventoryItem: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
+    warehouseStockBefore: number | null; // Float
+    wasOverWarehouse: boolean | null; // Boolean
   }
   RestockSchedule: { // field return type
     address: string | null; // String
@@ -3776,6 +3788,7 @@ export interface NexusGenFieldTypeNames {
     isBNPC: 'Boolean'
     isVatExempt: 'Boolean'
     itemCode: 'String'
+    maxAllocatable: 'Float'
     media: 'Media'
     minQuantity: 'Int'
     name: 'String'
@@ -3787,6 +3800,7 @@ export interface NexusGenFieldTypeNames {
     priceB: 'Float'
     priceC: 'Float'
     purchaseUnit: 'ItemUnit'
+    remainingStock: 'Float'
     searchIndex: 'OutletItemSearchIndex'
     sellingPrice: 'Float'
     skuNumber: 'String'
@@ -4087,7 +4101,7 @@ export interface NexusGenFieldTypeNames {
     removeExtraCharge: 'SalesOrder'
     reorderItemMedia: 'Media'
     resendOTP: 'String'
-    restockOutlet: 'InventoryItems'
+    restockOutlet: 'RestockOutletPayload'
     setItemPrimaryMedia: 'Media'
     setPositionPermissions: 'PositionPermission'
     setUserPermissionOverride: 'UserPermissionOverride'
@@ -4620,6 +4634,11 @@ export interface NexusGenFieldTypeNames {
     item: 'Item'
     itemId: 'Int'
     quantity: 'Float'
+  }
+  RestockOutletPayload: { // field return type name
+    inventoryItem: 'InventoryItems'
+    warehouseStockBefore: 'Float'
+    wasOverWarehouse: 'Boolean'
   }
   RestockSchedule: { // field return type name
     address: 'String'
@@ -5468,11 +5487,6 @@ export interface NexusGenArgTypes {
     }
     resendOTP: { // args
       email: string; // String!
-    }
-    restockOutlet: { // args
-      inventoryItemId: number; // Int!
-      quantity: number; // Float!
-      reason?: string | null; // String
     }
     setItemPrimaryMedia: { // args
       itemId: number; // Int!

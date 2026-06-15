@@ -1,5 +1,6 @@
 //rai-pos-backend\src\graphql\typeDefs\item.type.ts
 import { objectType } from 'nexus'
+import { getRemainingStock } from '../../services/outlet.service.js'
 
 export const Item = objectType({
     name: 'Item',
@@ -34,6 +35,19 @@ export const Item = objectType({
         t.float("priceC")
         t.float("totalCost")
         t.int("vatTypeId")
+        t.nullable.float("maxAllocatable", {
+            resolve: async (item: any) => {
+                if (item.maxAllocatable !== undefined) return item.maxAllocatable;
+                return null;
+            },
+        });
+        t.nullable.float("remainingStock", {
+            resolve: async (item: any, _args, ctx) => {
+                if (item.remainingStock !== undefined) return item.remainingStock;
+                return await getRemainingStock(item.id);
+            },
+        });
+
         t.nullable.field('vatType', { // Added relation
             type: 'VatType',
             resolve: (parent, _, ctx) => {

@@ -1,8 +1,7 @@
 
 import { prisma } from '../lib/prisma.js';
-
 export const getInventoryItemById = async (id: number) => {
-  return prisma.inventoryItems.findUnique({
+  const inventoryItem = await prisma.inventoryItems.findUnique({
     where: { id },
     select: {
       id: true,
@@ -20,6 +19,8 @@ export const getInventoryItemById = async (id: number) => {
           sellingPrice: true,
           description: true,
           image: true,
+          isBNPC: true,
+          hasSeniorDiscountVATExempt: true,
           costLines: { select: { id: true, label: true, amount: true } },
         },
       },
@@ -45,8 +46,66 @@ export const getInventoryItemById = async (id: number) => {
       },
     },
   });
+
+  if (!inventoryItem) return null;
+
+  // Max this row can be set to (excludes this row's own allocation)
+  const maxAllocatable = await getRemainingStock(inventoryItem.item.id, inventoryItem.id);
+
+  // Org-wide unallocated stock (includes this row's allocation)
+  const unallocated = await getRemainingStock(inventoryItem.item.id);
+
+  return {
+    ...inventoryItem,
+    item: {
+      ...inventoryItem.item,
+      remainingStock: unallocated,   // for display: "Available Stock"
+      maxAllocatable,                 // for validation cap on baseQty
+    },
+  };
 };
 
+export const getRemainingStock = async (
+  itemId: number,
+  excludeInventoryItemId?: number,
+): Promise<number> => {
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: { stock: true },
+  });
+  if (!item) return 0;
+
+  const distributed = await prisma.inventoryItems.aggregate({
+    where: {
+      itemId,
+      deletedAt: null,
+      ...(excludeInventoryItemId ? { id: { not: excludeInventoryItemId } } : {}),
+    },
+    _sum: { quantity: true },
+  });
+
+  const totalDistributed = distributed._sum.quantity ?? 0;
+  return item.stock - totalDistributed;
+};
+// helper to get Stock Batch for multiple items at once (used in outlet query resolvers)
+export const getRemainingStockBatch = async (itemIds: number[]): Promise<Map<number, number>> => {
+  const items = await prisma.item.findMany({
+    where: { id: { in: itemIds } },
+    select: { id: true, stock: true },
+  });
+
+  const distributed = await prisma.inventoryItems.groupBy({
+    by: ['itemId'],
+    where: { itemId: { in: itemIds }, deletedAt: null },
+    _sum: { quantity: true },
+  });
+
+  const distributedMap = new Map(distributed.map((d) => [d.itemId, d._sum.quantity ?? 0]));
+
+  return new Map(
+    items.map((item) => [item.id, item.stock - (distributedMap.get(item.id) ?? 0)]),
+  );
+};
 /**
  * @description
  * Creates a new Outlet in the database.
@@ -401,7 +460,7 @@ export const getOutletItemsByAssignedStaff = async (
           },
         },
       },
-      
+
       inventory: {
         select: {
           items: {

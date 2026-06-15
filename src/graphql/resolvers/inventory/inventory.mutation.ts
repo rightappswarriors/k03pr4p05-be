@@ -78,7 +78,15 @@ export const AddItemToInventoryWithUnitsInput = inputObjectType({
   }
 })
 
-
+// In your nexus types
+export const RestockOutletPayload = objectType({
+  name: "RestockOutletPayload",
+  definition(t) {
+    t.field("inventoryItem", { type: "InventoryItems" });
+    t.boolean("wasOverWarehouse");
+    t.float("warehouseStockBefore");
+  },
+});
 export const InventoryMutation = extendType({
   type: "Mutation",
   definition(t) {
@@ -231,12 +239,8 @@ export const InventoryMutation = extendType({
       },
     });
     t.field("restockOutlet", {
-      type: "InventoryItems",
-      args: {
-        inventoryItemId: nonNull(intArg()),
-        quantity: nonNull(floatArg()),
-        reason: stringArg(),
-      },
+      type: "RestockOutletPayload",
+      args: { /* ... */ },
       async resolve(_, { inventoryItemId, quantity, reason }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
@@ -246,10 +250,7 @@ export const InventoryMutation = extendType({
           reason: reason ?? undefined,
           createdBy: ctx.user.userId,
         });
-        if (result.wasOverWarehouse && process.env.NODE_ENV === "development") {
-          console.warn(`⚠️ Restocked more than warehouse stock`);
-        }
-        return result.inventoryItem;
+        return result; // { inventoryItem, wasOverWarehouse, warehouseStockBefore }
       }
     });
 
