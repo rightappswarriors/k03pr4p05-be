@@ -76,10 +76,12 @@ export const loginUser = async (email, password, res) => {
     });
     if (!user) {
         console.log(`User not found for email: ${email}`);
+        throw new Error('Invalid email or password.');
         return null;
     }
     if (!user.password) {
         console.log(`User ${email} has no password stored`);
+        throw new Error('Invalid email or password.');
         return null;
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);

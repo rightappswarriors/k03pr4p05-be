@@ -272,6 +272,7 @@ type Budget {
 }
 
 type CartItem {
+  costSnapshot: Float
   discountAmount: Float
   discountQuantity: Float
   discountRate: Float
@@ -281,6 +282,7 @@ type CartItem {
   itemId: Int!
   originalPrice: Float!
   priceAtSale: Float!
+  priceSnapshot: Float
   quantity: Float!
   transaction: Transaction!
   transactionId: Int!
@@ -990,6 +992,7 @@ type KompraCOrderFee {
 }
 
 type KompraCOrderItem {
+  costSnapshot: Float
   id: Int!
   inventoryItem: InventoryItems!
   inventoryItemId: Int!
@@ -2038,6 +2041,7 @@ input SalesOrderFilterInput {
 }
 
 type SalesOrderItem {
+  costSnapshot: Float
   customItemName: String
   discountAmount: Float
   discountQuantity: Float
@@ -2047,6 +2051,7 @@ type SalesOrderItem {
   isCustomItem: Boolean!
   item: Item
   itemId: Int
+  priceSnapshot: Float
   quantity: Float!
   salesOrderId: String!
   totalPrice: Float!

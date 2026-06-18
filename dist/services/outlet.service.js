@@ -51,6 +51,8 @@ export const getInventoryItemById = async (id) => {
     const maxAllocatable = await getRemainingStock(inventoryItem.item.id, inventoryItem.id);
     // Org-wide unallocated stock (includes this row's allocation)
     const unallocated = await getRemainingStock(inventoryItem.item.id);
+    if (process.env.NODE_ENV === "development")
+        console.log('[DEBUG] remainingStock:', unallocated, 'maxAllocatable:', maxAllocatable);
     return {
         ...inventoryItem,
         item: {

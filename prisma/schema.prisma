@@ -483,8 +483,20 @@ model Item {
   color                      Color[]                 @relation("ColorToItem")
   purchaseUnit               ItemUnit[]              @relation("ItemToItemUnit")
   salesOrderItems            SalesOrderItem[]
+  costHistory                ItemCostHistory[] // newly added relation to track cost history, graphql query: itemCostHistory(itemId: Int!): [ItemCostHistory!]! needed to be updated and services as well.
 
   @@unique([orgId, name])
+}
+
+model ItemCostHistory {
+  id          Int      @id @default(autoincrement())
+  itemId      Int
+  totalCost   Float
+  costLines   Json // snapshot of costLines at that point
+  effectiveAt DateTime @default(now())
+  changedBy   Int? // userId
+  reason      String? // "manual update", "supplier price change", etc.
+  item        Item     @relation(fields: [itemId], references: [id])
 }
 
 enum OrderMode {
@@ -585,11 +597,12 @@ model SalesOrderItem {
   discountType     DiscountType @default(NONE)
   unitId           Int?
   unitName         String?
-
+  costSnapshot     Float? // cost at time of  Sales Order
+  priceSnapshot    Float? // not implemented yet; for future use if we want to snapshot the price at time of transaction
   // ── Custom / manual item fields ──────────────────────────────────────────
-  isCustomItem   Boolean @default(false) // true = manually entered, not from inventory
-  customItemName String? // display name for custom items
-  vatExempt      Boolean @default(false) // VAT override; used when isCustomItem = true
+  isCustomItem     Boolean      @default(false) // true = manually entered, not from inventory
+  customItemName   String? // display name for custom items
+  vatExempt        Boolean      @default(false) // VAT override; used when isCustomItem = true
 
   salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
   item       Item?      @relation(fields: [itemId], references: [id]) // ← nullable relation
@@ -727,6 +740,7 @@ model KompraCOrderItem {
   item            Item               @relation(fields: [itemId], references: [id])
   order           KompraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   unit            InventoryItemUnit? @relation(fields: [unitId], references: [id])
+  costSnapshot    Float? // cost at time of transaction
 
   @@unique([orderId, inventoryItemId])
 }
@@ -1059,6 +1073,8 @@ model CartItem {
   finalPrice        Float              @default(0)
   item              Item               @relation(fields: [itemId], references: [id])
   transaction       Transaction        @relation(fields: [transactionId], references: [id])
+  costSnapshot      Float? // cost at time of transaction
+  priceSnapshot     Float? // Not implemented yet, but can be used to store the price of the item at the time of transaction for historical purposes
   unit              InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@id([transactionId, itemId])

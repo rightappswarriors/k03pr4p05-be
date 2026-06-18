@@ -120,6 +120,8 @@ export const SalesOrderItemType = objectType({
         t.nonNull.boolean("isCustomItem");
         t.nullable.string("customItemName");
         t.nonNull.boolean("vatExempt");
+        t.nullable.float("costSnapshot"); // cost at time of transaction
+        t.nullable.float("priceSnapshot"); // Not implemented yet, but can be used to store the price of the item at the time of transaction for historical purposes
         // item resolver is nullable — will be null for custom items
         t.nullable.field("item", {
             type: "Item",

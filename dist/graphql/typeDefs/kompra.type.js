@@ -168,6 +168,7 @@ export const KompraCOrderItemType = objectType({
         t.nonNull.int('itemId');
         t.nonNull.int('quantity');
         t.nonNull.float('priceSnapshot');
+        t.nullable.float('costSnapshot');
         t.nonNull.float('subtotal');
         t.nullable.field('unit', { type: 'InventoryItemUnit' });
         t.nonNull.field('item', { type: 'Item' });

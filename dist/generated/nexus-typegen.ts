@@ -591,6 +591,7 @@ export interface NexusGenObjects {
     year: number; // Int!
   }
   CartItem: { // root type
+    costSnapshot?: number | null; // Float
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
     discountRate?: number | null; // Float
@@ -599,6 +600,7 @@ export interface NexusGenObjects {
     itemId: number; // Int!
     originalPrice: number; // Float!
     priceAtSale: number; // Float!
+    priceSnapshot?: number | null; // Float
     quantity: number; // Float!
     transactionId: number; // Int!
     unitId?: number | null; // Int
@@ -1004,6 +1006,7 @@ export interface NexusGenObjects {
     type: NexusGenEnums['FeeType']; // FeeType!
   }
   KompraCOrderItem: { // root type
+    costSnapshot?: number | null; // Float
     id: number; // Int!
     inventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     inventoryItemId: number; // Int!
@@ -1443,6 +1446,7 @@ export interface NexusGenObjects {
     trackingNumber?: string | null; // String
   }
   SalesOrderItem: { // root type
+    costSnapshot?: number | null; // Float
     customItemName?: string | null; // String
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
@@ -1451,6 +1455,7 @@ export interface NexusGenObjects {
     id: number; // Int!
     isCustomItem: boolean; // Boolean!
     itemId?: number | null; // Int
+    priceSnapshot?: number | null; // Float
     quantity: number; // Float!
     salesOrderId: string; // String!
     totalPrice: number; // Float!
@@ -1821,6 +1826,7 @@ export interface NexusGenFieldTypes {
     year: number; // Int!
   }
   CartItem: { // field return type
+    costSnapshot: number | null; // Float
     discountAmount: number | null; // Float
     discountQuantity: number | null; // Float
     discountRate: number | null; // Float
@@ -1830,6 +1836,7 @@ export interface NexusGenFieldTypes {
     itemId: number; // Int!
     originalPrice: number; // Float!
     priceAtSale: number; // Float!
+    priceSnapshot: number | null; // Float
     quantity: number; // Float!
     transaction: NexusGenRootTypes['Transaction']; // Transaction!
     transactionId: number; // Int!
@@ -2286,6 +2293,7 @@ export interface NexusGenFieldTypes {
     type: NexusGenEnums['FeeType']; // FeeType!
   }
   KompraCOrderItem: { // field return type
+    costSnapshot: number | null; // Float
     id: number; // Int!
     inventoryItem: NexusGenRootTypes['InventoryItems']; // InventoryItems!
     inventoryItemId: number; // Int!
@@ -3077,6 +3085,7 @@ export interface NexusGenFieldTypes {
     trackingNumber: string | null; // String
   }
   SalesOrderItem: { // field return type
+    costSnapshot: number | null; // Float
     customItemName: string | null; // String
     discountAmount: number | null; // Float
     discountQuantity: number | null; // Float
@@ -3086,6 +3095,7 @@ export interface NexusGenFieldTypes {
     isCustomItem: boolean; // Boolean!
     item: NexusGenRootTypes['Item'] | null; // Item
     itemId: number | null; // Int
+    priceSnapshot: number | null; // Float
     quantity: number; // Float!
     salesOrderId: string; // String!
     totalPrice: number; // Float!
@@ -3484,6 +3494,7 @@ export interface NexusGenFieldTypeNames {
     year: 'Int'
   }
   CartItem: { // field return type name
+    costSnapshot: 'Float'
     discountAmount: 'Float'
     discountQuantity: 'Float'
     discountRate: 'Float'
@@ -3493,6 +3504,7 @@ export interface NexusGenFieldTypeNames {
     itemId: 'Int'
     originalPrice: 'Float'
     priceAtSale: 'Float'
+    priceSnapshot: 'Float'
     quantity: 'Float'
     transaction: 'Transaction'
     transactionId: 'Int'
@@ -3949,6 +3961,7 @@ export interface NexusGenFieldTypeNames {
     type: 'FeeType'
   }
   KompraCOrderItem: { // field return type name
+    costSnapshot: 'Float'
     id: 'Int'
     inventoryItem: 'InventoryItems'
     inventoryItemId: 'Int'
@@ -4740,6 +4753,7 @@ export interface NexusGenFieldTypeNames {
     trackingNumber: 'String'
   }
   SalesOrderItem: { // field return type name
+    costSnapshot: 'Float'
     customItemName: 'String'
     discountAmount: 'Float'
     discountQuantity: 'Float'
@@ -4749,6 +4763,7 @@ export interface NexusGenFieldTypeNames {
     isCustomItem: 'Boolean'
     item: 'Item'
     itemId: 'Int'
+    priceSnapshot: 'Float'
     quantity: 'Float'
     salesOrderId: 'String'
     totalPrice: 'Float'

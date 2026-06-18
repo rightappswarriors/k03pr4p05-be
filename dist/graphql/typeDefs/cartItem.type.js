@@ -16,6 +16,8 @@ export const CartItem = objectType({
         t.nonNull.float("originalPrice");
         t.nonNull.float("vatExclusivePrice");
         t.nonNull.float("finalPrice");
+        t.nullable.float("costSnapshot"); // cost at time of transaction
+        t.nullable.float("priceSnapshot"); // Not implemented yet, but can be used to store the price of the item at the time of transaction for historical purposes
         t.nonNull.field("transaction", {
             type: "Transaction",
             resolve: (parent, _, ctx) => ctx.prisma.cartItem

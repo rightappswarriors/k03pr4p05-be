@@ -9,6 +9,7 @@ export const getItemStockDistribution = async (itemId, orgId) => {
             minQuantity: true,
             stockLabel: true,
             stockDescription: true,
+            image: true,
             InventoryItems: {
                 select: {
                     id: true,

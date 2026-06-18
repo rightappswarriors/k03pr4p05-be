@@ -132,6 +132,9 @@ export const SalesOrderItemType = objectType({
     t.nonNull.boolean("isCustomItem");
     t.nullable.string("customItemName");
     t.nonNull.boolean("vatExempt");
+    t.nullable.float("costSnapshot");      // cost at time of transaction
+    t.nullable.float("priceSnapshot");     // Not implemented yet, but can be used to store the price of the item at the time of transaction for historical purposes
+
     // item resolver is nullable — will be null for custom items
     t.nullable.field("item", {
       type: "Item",
@@ -142,7 +145,7 @@ export const SalesOrderItemType = objectType({
     });
   },
 });
- 
+
 
 export const SalesOrderStatusEnum = enumType({
   name: "SalesOrderStatusEnum",
@@ -199,9 +202,9 @@ export const InventoryForItemType = objectType({
       resolve: (parent: any, _, ctx) =>
         parent.outletId
           ? ctx.prisma.outlet.findUnique({
-              where: { id: parent.outletId },
-              select: { id: true, name: true, code: true },
-            })
+            where: { id: parent.outletId },
+            select: { id: true, name: true, code: true },
+          })
           : null,
     });
   },
