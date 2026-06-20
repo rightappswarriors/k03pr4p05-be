@@ -134,6 +134,7 @@ export const ItemMutation = extendType({
                 }
             },
         });
+        // updates item cost and price history tracking
         t.nonNull.field("updateItem", {
             type: "Item",
             args: {
@@ -151,7 +152,7 @@ export const ItemMutation = extendType({
                 try {
                     if (process.env.NODE_ENV === "development")
                         console.log("Updating item with data:", { id, ...data });
-                    const updatedItem = await itemService.updateItem(Number(id), data);
+                    const updatedItem = await itemService.updateItem(Number(id), data, ctx.user?.id);
                     if (!updatedItem) {
                         throw new Error("Item not found");
                     }

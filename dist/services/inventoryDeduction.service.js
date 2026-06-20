@@ -127,13 +127,18 @@ export async function deductKompraOrderInventory(tx, orderId) {
     const claim = await tx.kompraCOrder.updateMany({
         where: { id: orderId, inventoryDeductedAt: null },
         data: { inventoryDeductedAt: claimedAt },
-        include: { outlet: true }
     });
     if (claim.count === 0)
         return false;
+    const order = await tx.kompraCOrder.findUnique({
+        where: { id: orderId },
+        include: { outlet: true },
+    });
+    if (!order)
+        throw new Error(`Kompra order ${orderId} not found.`);
     const orderItems = await tx.kompraCOrderItem.findMany({ where: { orderId } });
     for (const item of orderItems) {
-        await deductInventoryItem(tx, item.inventoryItemId, Number(item.quantity), item.itemId, { unitId: item.unitId }, claim.outlet.name);
+        await deductInventoryItem(tx, item.inventoryItemId, Number(item.quantity), item.itemId, { unitId: item.unitId }, order.outlet?.name);
     }
     return true;
 }

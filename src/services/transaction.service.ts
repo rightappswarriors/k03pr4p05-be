@@ -1,4 +1,4 @@
-//transaction.service.ts
+// Updated transaction snapshot persistence.
 // this is how I would rewrite processTransaction to be more robust and handle inventory deductions, stock movements, and notifications all in one transaction. it also includes a new function for processing customer returns, which adds back to inventory if the item is resellable, and logs a stock movement either way.
 // posterminal
 import { prisma } from '../lib/prisma.js';
@@ -584,6 +584,7 @@ export const processTransaction = async (transactionData: any, itemsSold: any) =
     }
 
     // 8 — Create transaction record
+    // save historical cost and selling price at transaction time
     const newTransaction = await tx.transaction.create({
       data: {
         ...transactionData,
@@ -602,6 +603,9 @@ export const processTransaction = async (transactionData: any, itemsSold: any) =
               originalPrice: item.originalPrice ?? item.priceAtSale ?? item.price,
               vatExclusivePrice: item.vatExclusivePrice ?? item.priceAtSale ?? item.price,
               finalPrice: item.finalPrice ?? item.priceAtSale ?? item.price,
+              // save historical cost and selling price at transaction time
+              costSnapshot: item.totalCost ?? item.finalPrice ?? item.originalPrice,
+              priceSnapshot: item.finalPrice ?? item.priceAtSale ?? item.originalPrice,
             })),
           },
         },

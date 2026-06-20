@@ -1,4 +1,4 @@
-// graphql/kompra/types.ts
+// Updated Kompra order snapshot persistence.
 // Full Nexus type definitions — packed enum, cancelNote, shippedAt, packedAt,
 // scPwdCustomer in management include, cancelKompraOrder with reason + cancelledAt.
 import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, list, arg, intArg, stringArg, floatArg, } from 'nexus';
@@ -482,6 +482,7 @@ export const KompraCMutation = extendType({
                         throw new Error(`Item ${item.itemId} has insufficient stock`);
                     }
                 }
+                // preserve cost and price used when order was placed
                 const orderItems = input.items.map((item) => {
                     const live = liveMap.get(item.inventoryItemId);
                     return {
@@ -490,6 +491,7 @@ export const KompraCMutation = extendType({
                         quantity: item.quantity,
                         priceSnapshot: live.price,
                         subtotal: live.price * item.quantity,
+                        costSnapshot: live.item?.totalCost ?? null,
                     };
                 });
                 const subtotal = orderItems.reduce((sum, i) => sum + i.subtotal, 0);

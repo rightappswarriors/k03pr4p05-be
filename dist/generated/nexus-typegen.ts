@@ -321,6 +321,7 @@ export interface NexusGenInputs {
     status?: NexusGenEnums['SalesOrderStatusEnum'] | null; // SalesOrderStatusEnum
   }
   SalesOrderItemInput: { // input type
+    costSnapshot?: number | null; // Float
     customItemName?: string | null; // String
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
@@ -329,6 +330,7 @@ export interface NexusGenInputs {
     hasSeniorDiscountVATExempt?: boolean | null; // Boolean
     isCustomItem?: boolean | null; // Boolean
     itemId?: number | null; // Int
+    priceSnapshot?: number | null; // Float
     quantity: number; // Float!
     unitId?: number | null; // Int
     unitName?: string | null; // String
@@ -893,6 +895,15 @@ export interface NexusGenObjects {
     item: NexusGenRootTypes['Item']; // Item!
     itemId: number; // Int!
   }
+  ItemCostHistory: { // root type
+    changedBy?: number | null; // Int
+    costLines?: NexusGenScalars['Json'] | null; // Json
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: number; // Int!
+    itemId: number; // Int!
+    reason?: string | null; // String
+    totalCost: number; // Float!
+  }
   ItemGroup: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description?: string | null; // String
@@ -922,6 +933,14 @@ export interface NexusGenObjects {
     trend: NexusGenEnums['ItemTrend']; // ItemTrend!
     trendPct: number; // Float!
     unitsSold: number; // Float!
+  }
+  ItemPriceHistory: { // root type
+    changedBy?: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: number; // Int!
+    itemId: number; // Int!
+    price: number; // Float!
+    reason?: string | null; // String
   }
   ItemStockDistribution: { // root type
     itemId: number; // Int!
@@ -2121,6 +2140,7 @@ export interface NexusGenFieldTypes {
     category: NexusGenRootTypes['ItemCategory'] | null; // ItemCategory
     categoryId: number | null; // Int
     color: NexusGenRootTypes['Color'][]; // [Color!]!
+    costHistory: NexusGenRootTypes['ItemCostHistory'][]; // [ItemCostHistory!]!
     costLines: NexusGenRootTypes['CostLines'][]; // [CostLines!]!
     description: string | null; // String
     exactExpiryDate: NexusGenScalars['DateTime']; // DateTime!
@@ -2143,6 +2163,7 @@ export interface NexusGenFieldTypes {
     orgId: number; // Int!
     priceB: number | null; // Float
     priceC: number | null; // Float
+    priceHistory: NexusGenRootTypes['ItemPriceHistory'][]; // [ItemPriceHistory!]!
     purchaseUnit: NexusGenRootTypes['ItemUnit'][]; // [ItemUnit!]!
     remainingStock: number | null; // Float
     searchIndex: NexusGenRootTypes['OutletItemSearchIndex'][]; // [OutletItemSearchIndex!]!
@@ -2177,6 +2198,16 @@ export interface NexusGenFieldTypes {
     item: NexusGenRootTypes['Item']; // Item!
     itemId: number; // Int!
   }
+  ItemCostHistory: { // field return type
+    changedBy: number | null; // Int
+    costLines: NexusGenScalars['Json'] | null; // Json
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    reason: string | null; // String
+    totalCost: number; // Float!
+  }
   ItemGroup: { // field return type
     categories: NexusGenRootTypes['OrgItemCategory'][]; // [OrgItemCategory!]!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -2208,6 +2239,15 @@ export interface NexusGenFieldTypes {
     trend: NexusGenEnums['ItemTrend']; // ItemTrend!
     trendPct: number; // Float!
     unitsSold: number; // Float!
+  }
+  ItemPriceHistory: { // field return type
+    changedBy: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    price: number; // Float!
+    reason: string | null; // String
   }
   ItemStockDistribution: { // field return type
     itemId: number; // Int!
@@ -2904,9 +2944,11 @@ export interface NexusGenFieldTypes {
     inventoryItemUnits: NexusGenRootTypes['InventoryItemUnit'][]; // [InventoryItemUnit!]!
     inventoryItems: Array<NexusGenRootTypes['InventoryItem'] | null> | null; // [InventoryItem]
     itemByName: NexusGenRootTypes['Item'] | null; // Item
+    itemCostHistory: NexusGenRootTypes['ItemCostHistory'][]; // [ItemCostHistory!]!
     itemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
     itemGroups: Array<NexusGenRootTypes['ItemGroup'] | null> | null; // [ItemGroup]
     itemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
+    itemPriceHistory: NexusGenRootTypes['ItemPriceHistory'][]; // [ItemPriceHistory!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     kompraCOrder: NexusGenRootTypes['KompraCOrder'] | null; // KompraCOrder
     myAttendanceHistory: NexusGenRootTypes['PaginatedAttendance'] | null; // PaginatedAttendance
@@ -3789,6 +3831,7 @@ export interface NexusGenFieldTypeNames {
     category: 'ItemCategory'
     categoryId: 'Int'
     color: 'Color'
+    costHistory: 'ItemCostHistory'
     costLines: 'CostLines'
     description: 'String'
     exactExpiryDate: 'DateTime'
@@ -3811,6 +3854,7 @@ export interface NexusGenFieldTypeNames {
     orgId: 'Int'
     priceB: 'Float'
     priceC: 'Float'
+    priceHistory: 'ItemPriceHistory'
     purchaseUnit: 'ItemUnit'
     remainingStock: 'Float'
     searchIndex: 'OutletItemSearchIndex'
@@ -3845,6 +3889,16 @@ export interface NexusGenFieldTypeNames {
     item: 'Item'
     itemId: 'Int'
   }
+  ItemCostHistory: { // field return type name
+    changedBy: 'Int'
+    costLines: 'Json'
+    effectiveAt: 'DateTime'
+    id: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+    reason: 'String'
+    totalCost: 'Float'
+  }
   ItemGroup: { // field return type name
     categories: 'OrgItemCategory'
     createdAt: 'DateTime'
@@ -3876,6 +3930,15 @@ export interface NexusGenFieldTypeNames {
     trend: 'ItemTrend'
     trendPct: 'Float'
     unitsSold: 'Float'
+  }
+  ItemPriceHistory: { // field return type name
+    changedBy: 'Int'
+    effectiveAt: 'DateTime'
+    id: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+    price: 'Float'
+    reason: 'String'
   }
   ItemStockDistribution: { // field return type name
     itemId: 'Int'
@@ -4572,9 +4635,11 @@ export interface NexusGenFieldTypeNames {
     inventoryItemUnits: 'InventoryItemUnit'
     inventoryItems: 'InventoryItem'
     itemByName: 'Item'
+    itemCostHistory: 'ItemCostHistory'
     itemGroup: 'ItemGroup'
     itemGroups: 'ItemGroup'
     itemMedia: 'Media'
+    itemPriceHistory: 'ItemPriceHistory'
     items: 'Item'
     kompraCOrder: 'KompraCOrder'
     myAttendanceHistory: 'PaginatedAttendance'
@@ -6066,6 +6131,9 @@ export interface NexusGenArgTypes {
     itemByName: { // args
       name: string; // String!
     }
+    itemCostHistory: { // args
+      itemId: number; // Int!
+    }
     itemGroup: { // args
       id?: number | null; // Int
     }
@@ -6073,6 +6141,9 @@ export interface NexusGenArgTypes {
       orgId?: number | null; // Int
     }
     itemMedia: { // args
+      itemId: number; // Int!
+    }
+    itemPriceHistory: { // args
       itemId: number; // Int!
     }
     items: { // args

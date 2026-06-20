@@ -99,6 +99,32 @@ export const ItemQuery = extendType({
           }
         }
       })
+    t.nonNull.list.nonNull.field("itemCostHistory", {
+      type: "ItemCostHistory",
+      args: {
+        itemId: nonNull(intArg()),
+      },
+      async resolve(_, { itemId }, ctx) {
+        requireAuth(ctx)
+        return ctx.prisma.itemCostHistory.findMany({
+          where: { itemId },
+          orderBy: { effectiveAt: "desc" },
+        })
+      },
+    })
+    t.nonNull.list.nonNull.field("itemPriceHistory", {
+      type: "ItemPriceHistory",
+      args: {
+        itemId: nonNull(intArg()),
+      },
+      async resolve(_, { itemId }, ctx) {
+        requireAuth(ctx)
+        return ctx.prisma.itemPriceHistory.findMany({
+          where: { itemId },
+          orderBy: { effectiveAt: "desc" },
+        })
+      },
+    })
     t.nonNull.list.nonNull.field("getInventoryItemsByRack", {
       type: "ItemsByRack",
       args: {

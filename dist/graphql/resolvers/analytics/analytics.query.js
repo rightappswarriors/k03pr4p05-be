@@ -259,24 +259,31 @@ function salesOrderSource(order) {
 function lineQuantity(line) {
     return Number(line.quantity ?? 0);
 }
+// fallback for historical records without snapshots
 function lineRevenue(line) {
     const qty = lineQuantity(line);
     const lineTotal = line.totalPrice ?? line.subtotal ?? line.lineTotal;
     if (lineTotal !== undefined && lineTotal !== null) {
         return Number(lineTotal);
     }
-    const unitPrice = line.finalPrice ??
+    const effectivePrice = line.priceSnapshot ??
+        line.finalPrice ??
         line.priceAtSale ??
         line.unitPrice ??
-        line.priceSnapshot ??
         line.originalPrice ??
         line.item?.sellingPrice ??
         line.inventoryItem?.price ??
         0;
-    return qty * Number(unitPrice ?? 0);
+    return qty * Number(effectivePrice ?? 0);
 }
+// fallback for historical records without snapshots
 function lineCost(line) {
-    return lineQuantity(line) * Number(line.item?.totalCost ?? line.inventoryItem?.item?.totalCost ?? 0);
+    const effectiveCost = line.costSnapshot ??
+        line.priceSnapshot ??
+        line.item?.totalCost ??
+        line.inventoryItem?.item?.totalCost ??
+        0;
+    return lineQuantity(line) * Number(effectiveCost);
 }
 function orderCost(order) {
     return (order.items ?? []).reduce((sum, line) => sum + lineCost(line), 0);
@@ -294,6 +301,15 @@ function addItemsToMap(itemMap, orders) {
             if (!id)
                 continue;
             if (!itemMap[id]) {
+                // fallback for historical records without snapshots
+                const effectivePrice = line.priceSnapshot ??
+                    line.item?.sellingPrice ??
+                    line.inventoryItem?.price ??
+                    0;
+                const effectiveCost = line.costSnapshot ??
+                    line.item?.totalCost ??
+                    line.inventoryItem?.item?.totalCost ??
+                    0;
                 itemMap[id] = {
                     itemId: id,
                     itemName: line.item?.name ??
@@ -314,8 +330,8 @@ function addItemsToMap(itemMap, orders) {
                     salesOrderWalkInUnitsSold: 0,
                     kompraOrderCount: 0,
                     kompraUnitsSold: 0,
-                    sellingPrice: Number(line.item?.sellingPrice ?? line.inventoryItem?.price ?? 0),
-                    totalCost: Number(line.item?.totalCost ?? line.inventoryItem?.item?.totalCost ?? 0),
+                    sellingPrice: Number(effectivePrice),
+                    totalCost: Number(effectiveCost),
                 };
             }
             itemMap[id].revenue += lineRevenue(line);

@@ -19,6 +19,9 @@ export const SalesOrderItemInput = inputObjectType({
         t.nullable.string("customItemName");
         t.nullable.boolean("vatExempt");
         t.nullable.boolean("hasSeniorDiscountVATExempt");
+        // preserve historical cost and price at order creation
+        t.nullable.float("costSnapshot");
+        t.nullable.float("priceSnapshot");
     },
 });
 export const DeliveryInput = inputObjectType({
@@ -101,6 +104,7 @@ async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, week
             isVatExempt: true,
             vatExempt: true,
             vatRate: true,
+            totalCost: true,
         },
     });
     const itemMeta = new Map(itemRecords.map((item) => [item.id, item]));
@@ -141,6 +145,7 @@ async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, week
                 finalPrice: originalPrice,
                 lineTotal,
                 eligibleAmount: 0,
+                totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
             };
         }
         if (bnpcEligible) {
@@ -165,6 +170,7 @@ async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, week
                 finalPrice: roundMoney(originalPrice * 0.95),
                 lineTotal,
                 eligibleAmount: roundMoney(eligibleAmountToDiscount),
+                totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
             };
         }
         const effectiveSeniorType = seniorFallbackEligible ? seniorType : seniorType;
@@ -186,6 +192,7 @@ async function computeAutomaticSalesOrderBreakdown(tx, items, customerType, week
             finalPrice: roundMoney(discountedUnit),
             lineTotal,
             eligibleAmount: roundMoney(vatExclusivePrice * eligibleQty),
+            totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
         };
     });
     const appliedTypes = Array.from(new Set(itemBreakdown.filter((item) => Number(item.discountAmount ?? 0) > 0).map((item) => item.discountType)));
@@ -419,6 +426,9 @@ export const SalesOrderMutation = extendType({
                                     isCustomItem: item.isCustomItem ?? false,
                                     customItemName: item.isCustomItem ? item.customItemName?.trim() ?? null : null,
                                     vatExempt: item.vatExempt ?? false,
+                                    // preserve historical cost and price at order creation
+                                    costSnapshot: item.isCustomItem ? null : item.totalCost,
+                                    priceSnapshot: item.unitPrice,
                                 })),
                             },
                             extraCharges: {

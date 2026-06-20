@@ -128,6 +128,36 @@ export const Item = objectType({
                 return ctx.prisma.item.findUnique({ where: { id: parent.id } }).searchIndex();
             }
         })
+        // Cost history timeline
+        t.nonNull.list.nonNull.field("costHistory", {
+            type: "ItemCostHistory",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .costHistory({
+                        orderBy: {
+                            effectiveAt: "desc"
+                        }
+                    })
+            }
+        })
+        // Price history timeline
+        t.nonNull.list.nonNull.field("priceHistory", {
+            type: "ItemPriceHistory",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .priceHistory({
+                        orderBy: {
+                            effectiveAt: "desc"
+                        }
+                    })
+            }
+        })
     }
 })
 
@@ -214,6 +244,55 @@ export const OutletItemSearchIndex = objectType({
             },
         })
     },
+})
+
+export const ItemCostHistory = objectType({
+    name: "ItemCostHistory",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("itemId")
+        t.nonNull.float("totalCost")
+        t.field("costLines", {
+            type: "Json"
+        })
+        t.nonNull.dateTime("effectiveAt")
+        t.nullable.int("changedBy")
+        t.nullable.string("reason")
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.itemCostHistory
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .item()
+            }
+        })
+    }
+})
+
+export const ItemPriceHistory = objectType({
+    name: "ItemPriceHistory",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("itemId")
+        t.nonNull.float("price")
+        t.nonNull.dateTime("effectiveAt")
+        t.nullable.int("changedBy")
+        t.nullable.string("reason")
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.itemPriceHistory
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .item()
+            }
+        })
+    }
 })
 /*
 export const EkumpraCOrderItem = objectType({

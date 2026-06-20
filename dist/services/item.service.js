@@ -200,63 +200,119 @@ export const getItemById = async (id) => {
         where: { id: id }
     });
 };
+// TODO:
+// InventoryScreen timeline UI
+// Cost history timeline
+// Price history timeline
+// newest first
+// show reason and effective date
+// Future InventoryScreen should display:
+// Timeline card:
+// Price History
+// Date
+// Old price
+// Reason
+// Changed by
+// -------------------------------
+// Cost History
+// Date
+// Total cost
+// Reason
+// Changed by
+// Newest first.
 /**
  * Updates a single Item by id.
  * Replaces all costLines in one transaction (deleteMany + create).
- * totalCost is recalculated from the incoming costLines when provided.
+ * Tracks price and cost changes in history.
  */
-export const updateItem = async (id, data) => {
+export const updateItem = async (id, data, userId) => {
     // Only recalculate totalCost when costLines are explicitly provided
-    const totalCost = data.costLines != null
+    const newTotalCost = data.costLines != null
         ? data.costLines.reduce((sum, line) => sum + line.amount, 0)
         : undefined;
-    return prisma.item.update({
-        where: { id },
-        data: {
-            // Spread scalar fields — Prisma ignores undefined values
-            name: data.name ?? undefined,
-            image: data.image ?? undefined,
-            description: data.description ?? undefined,
-            barcode: data.barcode ?? undefined,
-            brand: data.brand ?? undefined,
-            sellingPrice: data.sellingPrice,
-            brandId: data.brandId ?? undefined,
-            itemCode: data.itemCode ?? undefined,
-            categoryId: data.categoryId ?? undefined,
-            stock: data.stock ?? undefined,
-            priceB: data.priceB ?? undefined,
-            priceC: data.priceC ?? undefined,
-            opExPct: data.opExPct ?? undefined,
-            minQuantity: data.minQuantity ?? undefined,
-            vatExempt: data.vatExempt ?? undefined,
-            isVatExempt: data.isVatExempt ?? undefined,
-            isBNPC: data.isBNPC ?? undefined,
-            hasSeniorDiscountVATExempt: data.hasSeniorDiscountVATExempt ?? undefined,
-            vatTypeId: data.vatTypeId ?? undefined,
-            vatRate: data.vatRate ?? undefined,
-            ServiceCharge: data.ServiceCharge ?? undefined,
-            assembly: data.assembly ?? undefined,
-            skuNumber: data.skuNumber ?? undefined,
-            stockLabel: data.stockLabel ?? undefined,
-            stockDescription: data.stockDescription ?? undefined,
-            // Only touch totalCost / costLines when caller provided costLines
-            ...(totalCost !== undefined && { totalCost }),
-            ...(data.costLines != null && {
-                costLines: {
-                    deleteMany: {}, // wipe existing lines
-                    create: data.costLines.map((line) => ({
-                        label: line.label,
-                        amount: line.amount,
-                    })),
+    return prisma.$transaction(async (tx) => {
+        // Fetch current item for comparison
+        const oldItem = await tx.item.findUnique({
+            where: { id },
+            include: { costLines: true },
+        });
+        const oldSellingPrice = oldItem?.sellingPrice ?? 0;
+        const oldTotalCost = oldItem?.totalCost ?? 0;
+        const newSellingPrice = data.sellingPrice;
+        // Update the item
+        const updated = await tx.item.update({
+            where: { id },
+            data: {
+                // Spread scalar fields — Prisma ignores undefined values
+                name: data.name ?? undefined,
+                image: data.image ?? undefined,
+                description: data.description ?? undefined,
+                barcode: data.barcode ?? undefined,
+                brand: data.brand ?? undefined,
+                sellingPrice: data.sellingPrice,
+                brandId: data.brandId ?? undefined,
+                itemCode: data.itemCode ?? undefined,
+                categoryId: data.categoryId ?? undefined,
+                stock: data.stock ?? undefined,
+                priceB: data.priceB ?? undefined,
+                priceC: data.priceC ?? undefined,
+                opExPct: data.opExPct ?? undefined,
+                minQuantity: data.minQuantity ?? undefined,
+                vatExempt: data.vatExempt ?? undefined,
+                isVatExempt: data.isVatExempt ?? undefined,
+                isBNPC: data.isBNPC ?? undefined,
+                hasSeniorDiscountVATExempt: data.hasSeniorDiscountVATExempt ?? undefined,
+                vatTypeId: data.vatTypeId ?? undefined,
+                vatRate: data.vatRate ?? undefined,
+                ServiceCharge: data.ServiceCharge ?? undefined,
+                assembly: data.assembly ?? undefined,
+                skuNumber: data.skuNumber ?? undefined,
+                stockLabel: data.stockLabel ?? undefined,
+                stockDescription: data.stockDescription ?? undefined,
+                // Only touch totalCost / costLines when caller provided costLines
+                ...(newTotalCost !== undefined && { totalCost: newTotalCost }),
+                ...(data.costLines != null && {
+                    costLines: {
+                        deleteMany: {}, // wipe existing lines
+                        create: data.costLines.map((line) => ({
+                            label: line.label,
+                            amount: line.amount,
+                        })),
+                    },
+                }),
+            },
+            include: {
+                category: true,
+                brandDetails: true,
+                costLines: true,
+                media: { orderBy: { sortOrder: "asc" } },
+            },
+        });
+        // Record selling price changes
+        if (oldSellingPrice !== newSellingPrice) {
+            await tx.itemPriceHistory.create({
+                data: {
+                    itemId: id,
+                    price: newSellingPrice,
+                    changedBy: userId,
+                    reason: "manual update",
                 },
-            }),
-        },
-        include: {
-            category: true,
-            brandDetails: true,
-            costLines: true,
-            media: { orderBy: { sortOrder: "asc" } },
-        },
+            });
+        }
+        // Record cost changes for audit trail
+        if (newTotalCost !== undefined && oldTotalCost !== newTotalCost) {
+            const costLinesSnapshot = data.costLines ?? oldItem?.costLines ?? [];
+            await tx.itemCostHistory.create({
+                data: {
+                    itemId: id,
+                    totalCost: newTotalCost,
+                    costLines: costLinesSnapshot,
+                    changedBy: userId,
+                    reason: "manual update",
+                },
+            });
+        }
+        return updated;
     });
 };
 export const deleteItem = async (id) => {

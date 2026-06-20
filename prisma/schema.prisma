@@ -483,7 +483,8 @@ model Item {
   color                      Color[]                 @relation("ColorToItem")
   purchaseUnit               ItemUnit[]              @relation("ItemToItemUnit")
   salesOrderItems            SalesOrderItem[]
-  costHistory                ItemCostHistory[] // newly added relation to track cost history, graphql query: itemCostHistory(itemId: Int!): [ItemCostHistory!]! needed to be updated and services as well.
+  costHistory                ItemCostHistory[] // relation to track cost history
+  priceHistory               ItemPriceHistory[] // relation to track price history
 
   @@unique([orgId, name])
 }
@@ -497,6 +498,18 @@ model ItemCostHistory {
   changedBy   Int? // userId
   reason      String? // "manual update", "supplier price change", etc.
   item        Item     @relation(fields: [itemId], references: [id])
+}
+
+model ItemPriceHistory {
+  id          Int      @id @default(autoincrement())
+  itemId      Int
+  price       Float
+  effectiveAt DateTime @default(now())
+  changedBy   Int? // userId
+  reason      String? // "manual update", "supplier price change", etc.
+  item        Item     @relation(fields: [itemId], references: [id])
+
+  @@index([itemId, effectiveAt])
 }
 
 enum OrderMode {

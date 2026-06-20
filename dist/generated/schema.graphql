@@ -788,6 +788,7 @@ type Item {
   category: ItemCategory
   categoryId: Int
   color: [Color!]!
+  costHistory: [ItemCostHistory!]!
   costLines: [CostLines!]!
   description: String
   exactExpiryDate: DateTime!
@@ -810,6 +811,7 @@ type Item {
   orgId: Int!
   priceB: Float
   priceC: Float
+  priceHistory: [ItemPriceHistory!]!
   purchaseUnit: [ItemUnit!]!
   remainingStock: Float
   searchIndex: [OutletItemSearchIndex!]!
@@ -848,6 +850,17 @@ type ItemCategoryMap {
   itemId: Int!
 }
 
+type ItemCostHistory {
+  changedBy: Int
+  costLines: Json
+  effectiveAt: DateTime!
+  id: Int!
+  item: Item!
+  itemId: Int!
+  reason: String
+  totalCost: Float!
+}
+
 type ItemGroup {
   categories: [OrgItemCategory!]!
   createdAt: DateTime!
@@ -884,6 +897,16 @@ type ItemPerformance {
   trend: ItemTrend!
   trendPct: Float!
   unitsSold: Float!
+}
+
+type ItemPriceHistory {
+  changedBy: Int
+  effectiveAt: DateTime!
+  id: Int!
+  item: Item!
+  itemId: Int!
+  price: Float!
+  reason: String
 }
 
 enum ItemStatus {
@@ -1759,9 +1782,11 @@ type Query {
   inventoryItemUnits(inventoryItemId: Int!): [InventoryItemUnit!]!
   inventoryItems(orgId: Int): [InventoryItem]
   itemByName(name: String!): Item
+  itemCostHistory(itemId: Int!): [ItemCostHistory!]!
   itemGroup(id: Int): ItemGroup
   itemGroups(orgId: Int): [ItemGroup]
   itemMedia(itemId: Int!): [Media!]!
+  itemPriceHistory(itemId: Int!): [ItemPriceHistory!]!
   items(excludeIds: [Int!], limit: Int, search: String): [Item!]!
   kompraCOrder(id: Int!): KompraCOrder
   myAttendanceHistory(limit: Int = 20, page: Int = 1): PaginatedAttendance
@@ -2062,6 +2087,7 @@ type SalesOrderItem {
 }
 
 input SalesOrderItemInput {
+  costSnapshot: Float
   customItemName: String
   discountAmount: Float
   discountQuantity: Float
@@ -2070,6 +2096,7 @@ input SalesOrderItemInput {
   hasSeniorDiscountVATExempt: Boolean
   isCustomItem: Boolean
   itemId: Int
+  priceSnapshot: Float
   quantity: Float!
   unitId: Int
   unitName: String

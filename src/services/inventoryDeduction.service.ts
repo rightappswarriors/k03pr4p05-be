@@ -46,103 +46,114 @@ async function deductInventoryItem(tx: TxClient, inventoryItemId: number, quanti
   if (Number(itemRecord.quantity) < baseQuantityToDeduct) {
     throw new Error(`Insufficient stock for ${itemRecord.name}${outletName ? ` in ${outletName}` : ''}.`);
   }}*/
-    await tx.inventoryItems.update({
-      where: { id: inventoryItemId },
-      data: { quantity: { decrement: baseQuantityToDeduct } },
-    });
-    await tx.item.update({
-      where: { id: itemId },
-      data: { stock: { decrement: baseQuantityToDeduct } },
-    });
-  }
+  await tx.inventoryItems.update({
+    where: { id: inventoryItemId },
+    data: { quantity: { decrement: baseQuantityToDeduct } },
+  });
+  await tx.item.update({
+    where: { id: itemId },
+    data: { stock: { decrement: baseQuantityToDeduct } },
+  });
+}
 
-  export async function deductSalesOrderInventory(tx: TxClient, salesOrderId: string) {
-    const claimedAt = new Date();
-    const claim = await tx.salesOrder.updateMany({
-      where: { id: salesOrderId, inventoryDeductedAt: null },
-      data: { inventoryDeductedAt: claimedAt },
-    });
-    if (claim.count === 0) return false;
+export async function deductSalesOrderInventory(tx: TxClient, salesOrderId: string) {
+  const claimedAt = new Date();
+  const claim = await tx.salesOrder.updateMany({
+    where: { id: salesOrderId, inventoryDeductedAt: null },
+    data: { inventoryDeductedAt: claimedAt },
+  });
+  if (claim.count === 0) return false;
 
-    const order = await tx.salesOrder.findUnique({
-      where: { id: salesOrderId },
-      include: {
-        outlet: { include: { inventory: true } },
-        items: true,
-      },
-    });
+  const order = await tx.salesOrder.findUnique({
+    where: { id: salesOrderId },
+    include: {
+      outlet: { include: { inventory: true } },
+      items: true,
+    },
+  });
 
-    if (!order) throw new Error("Sales order not found.");
-    // Decrement stock for each item in the order. If outlet has no inventory, skip inventory deduction and just check item stock. This is for the use case of sales orders created before the inventory feature was implemented, where outlets may not have inventory records yet.
-    if (!order.outlet?.inventory) {
-      for (const item of order.items) {
-        if (item.isCustomItem || !item.itemId) continue;
-        const quantity = Number(item.quantity);
-        assertPositiveQuantity(quantity, "Sales order item");
-        const itemQuantity = await tx.item.findUnique({
-          where: { id: item.itemId },
-          select: { stock: true, name: true },
-        })
-        if (!itemQuantity) throw new Error(`Item ${item.itemId} not found.`);
-        if (Number(itemQuantity.stock) < quantity) {
-          throw new Error(`Insufficient stock for ${itemQuantity.name}.`);
-        }
-        await tx.item.update({
-          where: { id: item.itemId },
-          data: { stock: { decrement: quantity } },
-        });
-        return true
-      }
-    }
-
+  if (!order) throw new Error("Sales order not found.");
+  // Decrement stock for each item in the order. If outlet has no inventory, skip inventory deduction and just check item stock. This is for the use case of sales orders created before the inventory feature was implemented, where outlets may not have inventory records yet.
+  if (!order.outlet?.inventory) {
     for (const item of order.items) {
       if (item.isCustomItem || !item.itemId) continue;
       const quantity = Number(item.quantity);
       assertPositiveQuantity(quantity, "Sales order item");
-
-      let inventoryItemId: number | null = null;
-      if (item.unitId) {
-        const unit = await tx.inventoryItemUnit.findUnique({
-          where: { id: item.unitId },
-          select: { id: true, inventoryItemId: true },
-        });
-        if (!unit) throw new Error(`Inventory unit ${item.unitId} not found.`);
-        inventoryItemId = unit.inventoryItemId;
-      } else {
-        const inventoryItem = await tx.inventoryItems.findFirst({
-          where: {
-            inventoryId: order.outlet.inventory.id,
-            itemId: item.itemId,
-          },
-          select: { id: true },
-        });
-        inventoryItemId = inventoryItem?.id ?? null;
+      const itemQuantity = await tx.item.findUnique({
+        where: { id: item.itemId },
+        select: { stock: true, name: true },
+      })
+      if (!itemQuantity) throw new Error(`Item ${item.itemId} not found.`);
+      if (Number(itemQuantity.stock) < quantity) {
+        throw new Error(`Insufficient stock for ${itemQuantity.name}.`);
       }
-
-      if (!inventoryItemId) {
-        throw new Error(`Inventory record not found for item ${item.itemId}.`);
-      }
-
-      await deductInventoryItem(tx, inventoryItemId, quantity, item.itemId, { unitId: item.unitId }, order.outlet.name);
+      await tx.item.update({
+        where: { id: item.itemId },
+        data: { stock: { decrement: quantity } },
+      });
+      return true
     }
-
-    return true;
   }
 
+  for (const item of order.items) {
+    if (item.isCustomItem || !item.itemId) continue;
+    const quantity = Number(item.quantity);
+    assertPositiveQuantity(quantity, "Sales order item");
 
-  export async function deductKompraOrderInventory(tx: TxClient, orderId: number) {
-    const claimedAt = new Date();
-    const claim = await tx.kompraCOrder.updateMany({
-      where: { id: orderId, inventoryDeductedAt: null },
-      data: { inventoryDeductedAt: claimedAt },
-      include: { outlet: true }
-    });
-    if (claim.count === 0) return false;
-
-    const orderItems = await tx.kompraCOrderItem.findMany({ where: { orderId } });
-    for (const item of orderItems) {
-      await deductInventoryItem(tx, item.inventoryItemId, Number(item.quantity), item.itemId, { unitId: item.unitId }, claim.outlet.name);
+    let inventoryItemId: number | null = null;
+    if (item.unitId) {
+      const unit = await tx.inventoryItemUnit.findUnique({
+        where: { id: item.unitId },
+        select: { id: true, inventoryItemId: true },
+      });
+      if (!unit) throw new Error(`Inventory unit ${item.unitId} not found.`);
+      inventoryItemId = unit.inventoryItemId;
+    } else {
+      const inventoryItem = await tx.inventoryItems.findFirst({
+        where: {
+          inventoryId: order.outlet.inventory.id,
+          itemId: item.itemId,
+        },
+        select: { id: true },
+      });
+      inventoryItemId = inventoryItem?.id ?? null;
     }
 
-    return true;
+    if (!inventoryItemId) {
+      throw new Error(`Inventory record not found for item ${item.itemId}.`);
+    }
+
+    await deductInventoryItem(tx, inventoryItemId, quantity, item.itemId, { unitId: item.unitId }, order.outlet.name);
   }
+
+  return true;
+}
+
+export async function deductKompraOrderInventory(tx: TxClient, orderId: number) {
+  const claimedAt = new Date();
+  const claim = await tx.kompraCOrder.updateMany({
+    where: { id: orderId, inventoryDeductedAt: null },
+    data: { inventoryDeductedAt: claimedAt },
+  });
+  if (claim.count === 0) return false;
+
+  const order = await tx.kompraCOrder.findUnique({
+    where: { id: orderId },
+    include: { outlet: true },
+  });
+  if (!order) throw new Error(`Kompra order ${orderId} not found.`);
+
+  const orderItems = await tx.kompraCOrderItem.findMany({ where: { orderId } });
+  for (const item of orderItems) {
+    await deductInventoryItem(
+      tx,
+      item.inventoryItemId,
+      Number(item.quantity),
+      item.itemId,
+      { unitId: item.unitId },
+      order.outlet?.name,
+    );
+  }
+
+  return true;
+}

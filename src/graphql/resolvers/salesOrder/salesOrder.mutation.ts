@@ -33,6 +33,9 @@ export const SalesOrderItemInput = inputObjectType({
     t.nullable.string("customItemName");
     t.nullable.boolean("vatExempt");
     t.nullable.boolean("hasSeniorDiscountVATExempt");
+    // preserve historical cost and price at order creation
+    t.nullable.float("costSnapshot");
+    t.nullable.float("priceSnapshot");
   },
 });
 
@@ -129,6 +132,7 @@ async function computeAutomaticSalesOrderBreakdown(
       isVatExempt: true,
       vatExempt: true,
       vatRate: true,
+      totalCost: true,
     },
   });
   const itemMeta = new Map<number, any>(itemRecords.map((item: any) => [item.id, item]));
@@ -176,6 +180,7 @@ async function computeAutomaticSalesOrderBreakdown(
         finalPrice: originalPrice,
         lineTotal,
         eligibleAmount: 0,
+        totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
       };
     }
 
@@ -203,6 +208,7 @@ async function computeAutomaticSalesOrderBreakdown(
         finalPrice: roundMoney(originalPrice * 0.95),
         lineTotal,
         eligibleAmount: roundMoney(eligibleAmountToDiscount),
+        totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
       };
     }
 
@@ -227,6 +233,7 @@ async function computeAutomaticSalesOrderBreakdown(
       finalPrice: roundMoney(discountedUnit),
       lineTotal,
       eligibleAmount: roundMoney(vatExclusivePrice * eligibleQty),
+      totalCost: meta?.totalCost ?? 0, // preserve totalCost for snapshot
     };
   });
 
@@ -497,6 +504,9 @@ export const SalesOrderMutation = extendType({
                   isCustomItem: item.isCustomItem ?? false,
                   customItemName: item.isCustomItem ? item.customItemName?.trim() ?? null : null,
                   vatExempt: item.vatExempt ?? false,
+                  // preserve historical cost and price at order creation
+                  costSnapshot: item.isCustomItem ? null : item.totalCost,
+                  priceSnapshot: item.unitPrice,
                 })),
               },
               extraCharges: {
