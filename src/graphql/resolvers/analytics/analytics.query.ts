@@ -14,7 +14,8 @@ import {
     floatArg,
     booleanArg,
 } from 'nexus';
-import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { requireAnyPagePermission, requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS, requireAny } from '../../../lib/permissions.map.js';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -516,7 +517,11 @@ export const AnalyticsQuery = extendType({
             },
             async resolve(_, { preset, startDate, endDate }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
+                requireRole(ctx, ['ADMIN', 'MANAGER', 'STAFF', 'OWNER']);
+                requireAny(ctx,
+                    PAGE_PERMISSIONS.salesAnalytics.view,
+                    PAGE_PERMISSIONS.dashboard.view,
+                );
                 const orgId = Number(ctx.user.orgId)
                 const { currentStart, currentEnd, prevStart, prevEnd } =
                     resolveDateWindow(preset, startDate, endDate);
@@ -910,7 +915,10 @@ export const AnalyticsQuery = extendType({
             async resolve(_, { preset, startDate, endDate, take = 20, page = 1, search, section = 'top' }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
-
+                requireAny(ctx,
+                    PAGE_PERMISSIONS.salesAnalytics.view,
+                    PAGE_PERMISSIONS.dashboard.view,
+                );
                 const orgId = Number(ctx.user.orgId);
                 const { currentStart, currentEnd, prevStart, prevEnd } =
                     resolveDateWindow(preset, startDate, endDate);
@@ -1312,7 +1320,8 @@ export const AnalyticsQuery = extendType({
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
-
+                requireAny(ctx, PAGE_PERMISSIONS.dashboard.view, PAGE_PERMISSIONS.finance.view, PAGE_PERMISSIONS.salesAnalytics.view)
+                
                 const orgId = args.organizationId ?? Number(ctx.user.orgId);
 
                 const dateFilter: any = {};
@@ -1365,7 +1374,7 @@ export const AnalyticsQuery = extendType({
                 let salesOrderCompletedCount = 0;
                 let kompraCompletedTotal = 0;
                 let kompraCompletedCount = 0;
-            
+
                 for (const order of allOrders) {
                     const s = order.status;
                     const t = Number(order.total ?? 0);

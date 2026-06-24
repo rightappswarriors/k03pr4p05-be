@@ -1,5 +1,6 @@
 import { arg, extendType, nonNull, nullable, stringArg, intArg, list } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const positionMutation = extendType({
     type: "Mutation",
     definition(t) {
@@ -11,6 +12,7 @@ export const positionMutation = extendType({
             resolve: async (parent, { input }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["OWNER"]);
+                PAGE_PERMISSIONS.hr.create(ctx);
                 const orgId = Number(ctx.user.orgId);
                 try {
                     const position = await ctx.prisma.position.create({
@@ -50,11 +52,13 @@ export const positionMutation = extendType({
             },
             resolve: async (parent, { id, input }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ["OWNER"]);
+                requireRole(ctx, ["OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.hr.edit(ctx);
                 const orgId = Number(ctx.user.orgId);
                 const oldPosition = await ctx.prisma.position.findUnique({ where: { id } });
                 // Verify the position belongs to the user's organization
                 if (!oldPosition || oldPosition.orgId !== orgId) {
+                    console.log('organization id', orgId, 'old position id', oldPosition.orgId);
                     throw new Error("Position not found or access denied");
                 }
                 const position = await ctx.prisma.position.update({
@@ -89,6 +93,7 @@ export const positionMutation = extendType({
             resolve: async (parent, { id }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["OWNER"]);
+                PAGE_PERMISSIONS.hr.delete(ctx);
                 const orgId = Number(ctx.user.orgId);
                 console.log("Attempting to delete position with ID:", id, "by user:", ctx.user.username);
                 try {
@@ -135,6 +140,7 @@ export const positionMutation = extendType({
             resolve: async (parent, { positionId, permissions }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["OWNER"]);
+                PAGE_PERMISSIONS.hr.edit(ctx);
                 const orgId = Number(ctx.user.orgId);
                 // Verify the position exists and belongs to this organization
                 const position = await ctx.prisma.position.findUnique({ where: { id: positionId } });
@@ -187,6 +193,7 @@ export const positionMutation = extendType({
             resolve: async (parent, { userId, pageId, canView, canCreate, canEdit, canDelete }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["OWNER"]);
+                PAGE_PERMISSIONS.hr.edit(ctx);
                 const override = await ctx.prisma.userPermissionOverride.upsert({
                     where: { userId_pageId: { userId, pageId } },
                     update: { canView, canCreate, canEdit, canDelete },

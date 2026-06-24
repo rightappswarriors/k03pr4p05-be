@@ -11,7 +11,7 @@ export const accountTitleMutation = extendType({
             },
             resolve: async (_, { label, code }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER']);
+                requireRole(ctx, ['OWNER', 'STAFF']);
                 const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.accountTitle.create({
                     data: {

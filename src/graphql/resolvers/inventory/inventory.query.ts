@@ -2,6 +2,7 @@ import { extendType, nonNull, intArg, stringArg, arg, objectType } from "nexus";
 import { requireAuth, requireOwnership, requireRole } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
 import { getRemainingStockBatch } from "../../../services/outlet.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 
 // Add this objectType
@@ -79,7 +80,7 @@ export const InventoryQuery = extendType({
       },
       async resolve(_, { inventoryId, itemId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF', "OWNER"]);
         return ctx.prisma.inventoryItems.findUnique({
           where: { inventoryId_itemId: { inventoryId, itemId } },
         });
@@ -92,7 +93,7 @@ export const InventoryQuery = extendType({
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
         await requireOwnership(ctx, "Outlet", outletId)
         try {
           const inventory = await inventoryService.getInventoryByOutletId(Number(outletId));
@@ -115,7 +116,7 @@ export const InventoryQuery = extendType({
       // outlet-detail resolver (getItemsByOutlet)
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
         await requireOwnership(ctx, "Outlet", outletId);
         try {
           const inventory = await ctx.prisma.inventory.findUnique({
@@ -154,8 +155,8 @@ export const InventoryQuery = extendType({
 
       async resolve(_, { inventoryId, rackName }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.inventory.view(ctx)
         try {
           return await inventoryService.getInventoryItemsByRack(
             inventoryId,
@@ -171,7 +172,8 @@ export const InventoryQuery = extendType({
       type: 'DashboardInventoryStats',
       async resolve(_, __, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
+        requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER', 'STAFF']);
+        PAGE_PERMISSIONS.dashboard.view(ctx)
         return inventoryService.getDashboardInventoryStats(Number(ctx.user.orgId));
       },
     });
@@ -183,8 +185,8 @@ export const InventoryQuery = extendType({
       },
       async resolve(_, { query, size }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.posTerminal.view(ctx)
         try {
           return await inventoryService.getAllItems(ctx.user.orgId, query || undefined, size || 100);
         } catch (error) {

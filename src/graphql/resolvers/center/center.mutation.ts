@@ -1,5 +1,6 @@
 import { extendType, intArg, stringArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
 
 export const centerMutation = extendType({
   type: 'Mutation',
@@ -11,6 +12,8 @@ export const centerMutation = extendType({
       },
       resolve: async (_, { label }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx,['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.masterFile.create(ctx)
         const orgId = Number(ctx.user.orgId)
         return ctx.prisma.center.create({
           data: { orgId, label }
@@ -25,6 +28,9 @@ export const centerMutation = extendType({
       },
       resolve: async (_, { id, label }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        
+        PAGE_PERMISSIONS.masterFile.edit(ctx)
         return ctx.prisma.center.update({
           where: { id },
           data: { label }
@@ -38,6 +44,8 @@ export const centerMutation = extendType({
       },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.masterFile.delete(ctx)
         return ctx.prisma.center.update({
           where: { id },
           data: { deletedAt: new Date() },

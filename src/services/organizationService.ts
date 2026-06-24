@@ -1,7 +1,6 @@
-
 import { prisma } from '../lib/prisma.js';
 
-export async function createOrganization(userId: number, name: string) {
+export async function createOrganization(userId: number, name: string, roles: string[] = ['SELLER']) {
   try {
     if (process.env.NODE_ENV === "development") {
       console.log(`[OrganizationService] Creating organization: ${name} for user ${userId}`)
@@ -14,7 +13,6 @@ export async function createOrganization(userId: number, name: string) {
     })
 
     if (existingUser?.orgId) {
-      // User already has organization, return it
       const existingOrg = await prisma.organization.findUnique({
         where: { id: existingUser.orgId }
       })
@@ -29,9 +27,11 @@ export async function createOrganization(userId: number, name: string) {
     const organization = await prisma.organization.create({
       data: {
         name: name.trim(),
+        roles: roles as any,
       },
     });
-    // When org is created, auto-seed standard PH VAT types
+
+    // Auto-seed standard PH VAT types
     await prisma.vatType.createMany({
       data: [
         { orgId: organization.id, name: 'VAT Inclusive (12%)', rate: 0.12 },
@@ -39,7 +39,6 @@ export async function createOrganization(userId: number, name: string) {
         { orgId: organization.id, name: 'Zero-Rated (0%)', rate: 0.0 },
       ]
     });
-    // In your organization creation service, after org is created:
 
     await prisma.promoType.createMany({
       data: [
@@ -76,6 +75,7 @@ export async function createOrganization(userId: number, name: string) {
       ],
       skipDuplicates: true,
     });
+
     await prisma.user.update({
       where: { id: userId },
       data: {

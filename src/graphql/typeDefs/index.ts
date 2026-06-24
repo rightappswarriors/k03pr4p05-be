@@ -19,6 +19,7 @@ export * from './itemGroup.type.js';
 export * from './location.type.js';
 export * from './media.type.js';
 export * from './organization.type.js';
+export * from './orgRole.type.js';
 export * from "./restock.type.js"
 export * from './outlet.type.js';
 export * from './outletPromo.type.js';
@@ -42,3 +43,10 @@ export * from './attendance.type.js'; // New
 export * from './supplierOrder.type.js'
 export * from '../types/added.types.js';
 export * from "./contact.type.js";
+export * from './poStatus.type.js';
+export * from './deliveryStatus.type.js';
+export * from './supplierItem.type.js';
+export * from './purchaseOrder.type.js';
+export * from './delivery.type.js';
+export * from './receivedItemMap.type.js';
+export * from './supplierDashboard.type.js';

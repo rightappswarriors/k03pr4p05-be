@@ -2,6 +2,7 @@ import { extendType, nonNull, intArg, stringArg, list, arg, objectType, inputObj
 import { requireAuth, requireOwnership, requireRole, } from "../../../middleware/auth.middleware.js";
 import * as inventoryService from "../../../services/inventory.service.js";
 import * as transactionService from "../../../services/transaction.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const BatchPayload = objectType({
     name: "BatchPayload",
     definition(t) {
@@ -86,7 +87,8 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { outletId, name }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.inventory.create(ctx);
                 await requireOwnership(ctx, "Outlet", Number(outletId));
                 try {
                     return await inventoryService.createInventory(name ?? "", outletId);
@@ -107,7 +109,8 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { id, name }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.inventory.edit(ctx);
                 try {
                     return await inventoryService.updateInventory(id, name);
                 }
@@ -125,7 +128,8 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.inventory.delete(ctx);
                 await requireOwnership(ctx, "Invetory", id);
                 try {
                     await inventoryService.deleteInventory(id);
@@ -152,7 +156,8 @@ export const InventoryMutation = extendType({
             },
             async resolve(_, { inventoryId, items }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.outletInventory.create(ctx);
                 inventoryId = Number(inventoryId);
                 const inventory = await ctx.prisma.inventory.findFirst({
                     where: { id: inventoryId },
@@ -186,6 +191,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { outletId, data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                PAGE_PERMISSIONS.outletInventory.create(ctx);
                 outletId = Number(outletId);
                 const outlet = await ctx.prisma.outlet.findUnique({
                     where: { id: outletId },
@@ -228,6 +234,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { inventoryItemId, quantity, reason }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                PAGE_PERMISSIONS.outletInventory.edit(ctx);
                 const result = await inventoryService.restockOutlet({
                     inventoryItemId,
                     quantity,
@@ -265,6 +272,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { transactionId, outletId, items }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", "MANAGER", "CASHIER"]);
+                PAGE_PERMISSIONS.posTerminal.create(ctx);
                 return transactionService.processCustomerReturn({
                     transactionId,
                     outletId,
@@ -281,6 +289,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                PAGE_PERMISSIONS.outletInventory.edit(ctx);
                 try {
                     // Verify ownership via inventory → outlet chain
                     const inventoryItem = await ctx.prisma.inventoryItems.findUnique({
@@ -317,6 +326,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                PAGE_PERMISSIONS.inventory.create(ctx);
                 if (process.env.NODE_ENV === "development")
                     console.log("Incoming data:", JSON.stringify(data, null, 2));
                 try {
@@ -391,6 +401,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { id, data }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                PAGE_PERMISSIONS.inventory.edit(ctx);
                 try {
                     const existingItem = await ctx.prisma.item.findUnique({
                         where: { id },
@@ -450,6 +461,7 @@ export const InventoryMutation = extendType({
             async resolve(_, { id, quantity, price, minQuantity, costLines, opExPct, priceB, priceC }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                PAGE_PERMISSIONS.inventory.edit(ctx);
                 try {
                     const inventoryItem = await ctx.prisma.inventoryItems.findUnique({
                         where: { id },

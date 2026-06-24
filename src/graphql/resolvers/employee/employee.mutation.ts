@@ -1,5 +1,6 @@
 import { extendType, intArg, stringArg } from 'nexus'
-import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
 
 export const employeeMutation = extendType({
   type: 'Mutation',
@@ -14,6 +15,8 @@ export const employeeMutation = extendType({
       },
       resolve: async (_, { orgId, name, positionId, departmentId }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.hr.create(ctx)
         return ctx.prisma.employee.create({
           data: { orgId, name, positionId, departmentId }
         })
@@ -29,6 +32,8 @@ export const employeeMutation = extendType({
       },
       resolve: async (_, { id, name, positionId, departmentId }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.hr.edit(ctx)
         return ctx.prisma.employee.update({
           where: { id },
           data: { name, positionId, departmentId }
@@ -42,6 +47,8 @@ export const employeeMutation = extendType({
       },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.hr.delete(ctx)
         return ctx.prisma.employee.update({
           where: { id },
           data: { deletedAt: new Date() },

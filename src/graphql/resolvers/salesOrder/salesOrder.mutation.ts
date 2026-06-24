@@ -16,6 +16,7 @@ import {
   getWeeklyBnpcState,
 } from '../../../services/transaction.service.js';
 import { deductSalesOrderInventory } from '../../../services/inventoryDeduction.service.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 
 export const SalesOrderItemInput = inputObjectType({
   name: "SalesOrderItemInput",
@@ -389,7 +390,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
-
+        PAGE_PERMISSIONS.salesOrder.create(ctx)
         const orgId = Number(ctx.user.orgId);
         const userId = Number(ctx.user.userId);
         const orderMode = args.orderMode;
@@ -610,7 +611,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
-
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         if (process.env.NODE_ENV === "development") {
           console.log("[updateSalesOrder] Args:", args);
           console.log("[updateSalesOrder] User:", {
@@ -672,11 +673,13 @@ export const SalesOrderMutation = extendType({
         salesOrderId: nonNull(stringArg()),
         status: nonNull(arg({ type: "SalesOrderStatusEnum" })),
       },
+
       resolve: async (_, { salesOrderId, status }, ctx) => {
         try {
 
           requireAuth(ctx);
           requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+          PAGE_PERMISSIONS.salesOrder.edit(ctx)
           return updateStatus(ctx, salesOrderId, status);
         } catch (error) {
           console.error(`[updateSalesOrderStatus] Error updating status for order ${salesOrderId} to ${status}:`, error);
@@ -695,6 +698,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { salesOrderId, label, amount }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         const orgId = Number(ctx.user.orgId);
         const order = await ctx.prisma.salesOrder.findFirst({ where: { id: salesOrderId, orgId } });
         if (!order) throw new Error("Sales order not found");
@@ -714,6 +718,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { extraChargeId }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         const orgId = Number(ctx.user.orgId);
         const charge = await ctx.prisma.extraCharge.findFirst({
           where: { id: extraChargeId, salesOrder: { orgId } },
@@ -736,6 +741,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         return updateStatus(ctx, id, "PROCESSING");
       },
     });
@@ -749,6 +755,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { id, delivery }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         const orgId = Number(ctx.user.orgId);
         const order = await ctx.prisma.salesOrder.findFirst({ where: { id, orgId } });
         if (!order) throw new Error("Sales order not found");
@@ -789,6 +796,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         await ctx.prisma.salesOrderDelivery.updateMany({
           where: { salesOrderId: id },
           data: { receivedAt: new Date() },
@@ -806,6 +814,7 @@ export const SalesOrderMutation = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.edit(ctx)
         return updateStatus(ctx, id, "CANCELLED");
       },
     });

@@ -15,6 +15,7 @@ import {
   requireRole,
 } from "../../../middleware/auth.middleware.js";
 import * as transactionService from "../../../services/transaction.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const CustomerDetails = inputObjectType({
   name: "CustomerDetailsInput",
   definition(t) {
@@ -110,6 +111,7 @@ export const TransactionMutation = extendType({
       async resolve(_, args, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        PAGE_PERMISSIONS.posTerminal.create(ctx)
         const { itemsSold, ...transactionData } = args;
         if ((transactionData as any).scPwdPax && (transactionData as any).totalPax && (transactionData as any).scPwdPax > (transactionData as any).totalPax) {
           throw new Error("SC/PWD pax must be less than or equal to total pax.");
@@ -147,6 +149,7 @@ export const TransactionMutation = extendType({
       async resolve(_, { data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        PAGE_PERMISSIONS.posTerminal.create(ctx)
         const { customer } = await transactionService.findOrCreateScPwdCustomer(
           ctx.prisma,
           ctx.user?.orgId ? Number(ctx.user.orgId) : 0,
@@ -165,6 +168,7 @@ export const TransactionMutation = extendType({
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        PAGE_PERMISSIONS.posTerminal.edit(ctx)
         const { customer } = await transactionService.findOrCreateScPwdCustomer(
           ctx.prisma,
           ctx.user?.orgId ? Number(ctx.user.orgId) : 0,
@@ -186,6 +190,7 @@ export const TransactionMutation = extendType({
       resolve: async (_, transactionData, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        PAGE_PERMISSIONS.posTerminal.create(ctx)
         const userId = ctx.user.userId;
         const fullTransactionData = {
           ...transactionData,
@@ -214,6 +219,7 @@ export const TransactionMutation = extendType({
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF"]);
+        PAGE_PERMISSIONS.posTerminal.edit(ctx)
         const userId = ctx.user.userId;
         const { itemsSold, ...transactionData } = args;
         const fullTransactionData = {

@@ -17,6 +17,7 @@ export const Organization = objectType({
         t.nullable.string('instagramLink');
         t.nullable.string('twitterLink');
         t.nullable.string('bio');
+        t.nonNull.list.nonNull.field('roles', { type: 'OrgRole' });
         t.nullable.field('subscription', {
             type: 'Subscription',
             resolve: (parent, _, ctx) => {

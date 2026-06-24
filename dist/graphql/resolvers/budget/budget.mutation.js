@@ -1,5 +1,6 @@
 import { arg, extendType, floatArg, intArg, stringArg } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 export const budgetMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -13,7 +14,8 @@ export const budgetMutation = extendType({
             },
             resolve: async (_, { year, account, begBal, months }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER', 'ADMIN']);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                PAGE_PERMISSIONS.finance.create(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.budget.create({
                     data: {
@@ -38,7 +40,8 @@ export const budgetMutation = extendType({
             },
             resolve: async (_, { id, year, account, begBal, months }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER', 'ADMIN']);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                PAGE_PERMISSIONS.finance.edit(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const existing = await ctx.prisma.budget.findFirst({
                     where: { id, orgId },
@@ -64,7 +67,8 @@ export const budgetMutation = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER', 'ADMIN']);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                PAGE_PERMISSIONS.finance.delete(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const existing = await ctx.prisma.budget.findFirst({
                     where: { id, orgId },

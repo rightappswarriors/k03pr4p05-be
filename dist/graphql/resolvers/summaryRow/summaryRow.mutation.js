@@ -1,4 +1,6 @@
 import { arg, extendType, intArg, stringArg, floatArg, booleanArg, nonNull } from 'nexus';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 export const summaryRowMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -22,6 +24,8 @@ export const summaryRowMutation = extendType({
                 itemCode: stringArg(),
             },
             resolve: async (_, { orgId, accountTitleId, vatTypeId, centerId, subCenterId, itemId, itemName, costLines, costInputAmount, costInputVatInclusive, sellingPriceInput, sellingPriceVatInclusive, opExPct, description, itemCode, }, ctx) => {
+                requireAuth(ctx);
+                PAGE_PERMISSIONS.finance.create(ctx);
                 const vatType = await ctx.prisma.vatType.findUnique({
                     where: { id: vatTypeId },
                 });
@@ -105,6 +109,8 @@ export const summaryRowMutation = extendType({
                 itemCode: stringArg(),
             },
             resolve: async (_, { id, accountTitleId, vatTypeId, centerId, subCenterId, itemId, itemName, costLines, costInputAmount, costInputVatInclusive, sellingPriceInput, sellingPriceVatInclusive, opExPct, description, itemCode, }, ctx) => {
+                requireAuth(ctx);
+                PAGE_PERMISSIONS.masterFile.edit(ctx);
                 const existing = await ctx.prisma.summaryRow.findUnique({ where: { id } });
                 if (!existing) {
                     throw new Error('SummaryRow not found');
@@ -180,10 +186,14 @@ export const summaryRowMutation = extendType({
         t.field('deleteSummaryRow', {
             type: 'SummaryRow',
             args: { id: nonNull(intArg()) },
-            resolve: async (_, { id }, ctx) => ctx.prisma.summaryRow.update({
-                where: { id: id },
-                data: { deletedAt: new Date() },
-            })
+            resolve: async (_, { id }, ctx) => {
+                requireAuth(ctx);
+                PAGE_PERMISSIONS.masterFile.edit(ctx);
+                ctx.prisma.summaryRow.update({
+                    where: { id: id },
+                    data: { deletedAt: new Date() },
+                });
+            }
         });
     }
 });

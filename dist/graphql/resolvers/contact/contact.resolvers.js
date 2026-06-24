@@ -1,6 +1,7 @@
 // graphql/types/contact/contactResolvers.ts
 import { extendType, intArg, nonNull, nullable, stringArg, booleanArg, list } from 'nexus';
-import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS, requireAny } from '../../../lib/permissions.map.js';
 // ─── Queries ─────────────────────────────────────────────────────────────────
 export const ContactQuery = extendType({
     type: 'Query',
@@ -17,6 +18,8 @@ export const ContactQuery = extendType({
             },
             resolve: async (_, { branchId, query }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                requireAny(ctx, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.restockScheduling.view);
                 const orgId = ctx.user?.orgId;
                 if (!orgId)
                     throw new Error('Organization ID is required');
@@ -57,6 +60,8 @@ export const ContactQuery = extendType({
             args: { id: nonNull(intArg()) },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                requireAny(ctx, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.restockScheduling.view);
                 const orgId = ctx.user?.orgId;
                 if (!orgId)
                     throw new Error('Organization ID is required');
@@ -83,6 +88,8 @@ export const ContactMutation = extendType({
             },
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.masterFile.create(ctx);
                 const { branchId, label, name, email, phone, position, department, notes } = args;
                 const orgId = ctx.user?.orgId;
                 if (!orgId)
@@ -118,6 +125,8 @@ export const ContactMutation = extendType({
             },
             resolve: async (_, { id, ...data }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.masterFile.edit(ctx);
                 // Strip undefined args so we do partial updates cleanly
                 const orgId = ctx.user?.orgId;
                 if (!orgId)
@@ -135,6 +144,8 @@ export const ContactMutation = extendType({
             args: { id: nonNull(intArg()) },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.masterFile.delete(ctx);
                 return ctx.prisma.contact.update({
                     where: { id },
                     data: { deletedAt: new Date() },
@@ -147,6 +158,8 @@ export const ContactMutation = extendType({
             args: { id: nonNull(intArg()) },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.masterFile.edit(ctx);
                 const current = await ctx.prisma.contact.findUniqueOrThrow({ where: { id } });
                 return ctx.prisma.contact.update({
                     where: { id },

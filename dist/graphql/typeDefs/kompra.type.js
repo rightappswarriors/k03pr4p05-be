@@ -5,6 +5,7 @@ import { objectType, enumType, inputObjectType, extendType, nonNull, nullable, l
 import { computeScPwdBreakdown, getWeeklyBnpcState } from '../../services/transaction.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.middleware.js';
 import { deductKompraOrderInventory } from '../../services/inventoryDeduction.service.js';
+import { PAGE_PERMISSIONS } from '../../lib/permissions.map.js';
 const LOG_PREFIX = '[KompraCTypes]';
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
 export const OrderStatusEnum = enumType({
@@ -580,8 +581,10 @@ export const KompraCMutation = extendType({
                 outletNote: nullable(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
-                console.log(`${LOG_PREFIX} confirmKompraOrder — orderId:`, args.orderId);
+                if (process.env.NODE_ENV === 'development')
+                    console.log(`${LOG_PREFIX} confirmKompraOrder — orderId:`, args.orderId);
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
                     const result = await ctx.prisma.$transaction(async (tx) => {
                         await tx.kompraCDeliveryTracking.create({
@@ -614,8 +617,10 @@ export const KompraCMutation = extendType({
                 outletNote: nullable(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
-                console.log(`${LOG_PREFIX} markKompraOrderPacked — orderId:`, args.orderId);
+                if (process.env.NODE_ENV === 'development')
+                    console.log(`${LOG_PREFIX} markKompraOrderPacked — orderId:`, args.orderId);
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
                     const existing = await ctx.prisma.kompraCOrder.findUnique({
                         where: { id: args.orderId },
@@ -661,6 +666,7 @@ export const KompraCMutation = extendType({
             resolve: async (_root, args, ctx) => {
                 console.log(`${LOG_PREFIX} assignKompraOrderRider — orderId:`, args.orderId, '| rider:', args.riderName);
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 const phone = args.riderPhone?.trim() || 'N/A';
                 try {
                     const existing = await ctx.prisma.kompraCOrder.findUnique({
@@ -712,6 +718,7 @@ export const KompraCMutation = extendType({
             },
             resolve: async (_root, args, ctx) => {
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
                     const result = await ctx.prisma.$transaction(async (tx) => {
                         const courier = await tx.courier.findFirst({ where: { phone: args.riderPhone } })
@@ -737,6 +744,8 @@ export const KompraCMutation = extendType({
             type: 'KompraCOrder',
             args: { orderId: nonNull(intArg()), customerId: nonNull(intArg()) },
             resolve: async (_root, { orderId, customerId }, ctx) => {
+                requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
                     const result = await ctx.prisma.$transaction(async (tx) => {
                         await tx.kompraCDeliveryTracking.create({
@@ -769,6 +778,7 @@ export const KompraCMutation = extendType({
             resolve: async (_root, { orderId }, ctx) => {
                 console.log(`${LOG_PREFIX} markKompraOrderDelivered — orderId:`, orderId);
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
                     const result = await ctx.prisma.$transaction(async (tx) => {
                         await tx.kompraCDeliveryTracking.create({
@@ -812,6 +822,7 @@ export const KompraCMutation = extendType({
             resolve: async (_root, args, ctx) => {
                 console.log(`${LOG_PREFIX} cancelKompraOrder — orderId:`, args.orderId, '| reason:', args.reason);
                 requireKompraManagementAccess(ctx);
+                PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 const order = await ctx.prisma.kompraCOrder.findUnique({ where: { id: args.orderId } });
                 if (!order)
                     throw new Error('Order not found');

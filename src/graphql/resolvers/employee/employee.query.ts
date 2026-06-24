@@ -1,5 +1,6 @@
 import { extendType, intArg } from 'nexus'
-import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
 
 export const employeeQuery = extendType({
   type: 'Query',
@@ -11,6 +12,8 @@ export const employeeQuery = extendType({
       },
       resolve: async (_, { orgId }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.hr.view(ctx)
         return ctx.prisma.employee.findMany({
           where: { orgId }
         })
@@ -23,6 +26,8 @@ export const employeeQuery = extendType({
       },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        requireRole(ctx, ['OWNER', 'STAFF'])
+        PAGE_PERMISSIONS.hr.view(ctx)
         return ctx.prisma.employee.findUnique({
           where: { id }
         })

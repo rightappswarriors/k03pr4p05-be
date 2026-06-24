@@ -1,5 +1,6 @@
 import { extendType, intArg } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS, requireAny } from '../../../lib/permissions.map.js';
 const ACCOUNT_TITLE_OPTIONS = [
     'Accounts In Litigation',
     'Accounts Payable',
@@ -32,7 +33,8 @@ export const accountTitleQuery = extendType({
             type: 'AccountTitle',
             resolve: async (_, {}, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER']);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                requireAny(ctx, PAGE_PERMISSIONS.dashboard.view, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.finance.view);
                 const orgId = Number(ctx.user.orgId);
                 try {
                     // ✅ Added await
@@ -69,7 +71,7 @@ export const accountTitleQuery = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER']);
+                requireRole(ctx, ['OWNER', 'STAFF']);
                 return ctx.prisma.accountTitle.findUnique({
                     where: { id }
                 });

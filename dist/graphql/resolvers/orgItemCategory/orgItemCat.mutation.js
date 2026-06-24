@@ -20,7 +20,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, args, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 const orgId = ctx.user.orgId;
                 // check duplicate name within org
                 const existing = await ctx.prisma.orgItemCategory.findUnique({
@@ -62,7 +62,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, { id, ...args }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 const orgId = ctx.user.orgId;
                 // make sure this org owns this category
                 const orgCategory = await ctx.prisma.orgItemCategory.findFirst({
@@ -102,7 +102,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
                 const orgId = ctx.user.orgId;
                 // make sure this org owns this category
                 const orgCategory = await ctx.prisma.orgItemCategory.findFirst({

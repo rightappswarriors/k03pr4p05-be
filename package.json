@@ -2,6 +2,9 @@
   "name": "backend_pos",
   "version": "1.0.3",
   "main": "./src/index.ts",
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/index.js",
@@ -52,6 +55,7 @@
     "nodemon": "^3.1.10",
     "prisma": "^6.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.2"
   }
 }

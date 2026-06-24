@@ -1,3 +1,4 @@
+// src/graphql/resolvers/permission/permission.resolver.ts
 import { requireAuth } from "../../../middleware/auth.middleware.js";
 export async function resolvePermission(userId, pageKey, ctx) {
     requireAuth(ctx);

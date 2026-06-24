@@ -60,7 +60,7 @@ export const OutletQuery = extendType({
             async resolve(_, { id }, ctx) {
                 // optional auth/role checks
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
                 await requireOwnership(ctx, "Outlet", id);
                 return await outletService.getOutletById(Number(id));
             },
@@ -89,7 +89,7 @@ export const OutletQuery = extendType({
             },
             async resolve(_, { branchId, search }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
                 await requireOwnership(ctx, "branch", branchId);
                 try {
                     return await outletService.getOutletsByBranchId(Number(branchId), search);
@@ -109,7 +109,7 @@ export const OutletQuery = extendType({
             },
             async resolve(_, { outletId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER", 'STAFF']);
                 try {
                     return await outletService.getOutletStaffs(Number(outletId));
                 }
@@ -145,7 +145,7 @@ export const OutletQuery = extendType({
             args: { id: nonNull(arg({ type: "ID" })) },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER", 'STAFF']);
                 return await outletService.getInventoryItemById(Number(id));
             },
         });
@@ -174,7 +174,7 @@ export const OutletQuery = extendType({
             type: "Outlet",
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER']);
+                requireRole(ctx, ['ADMIN', 'MANAGER', 'OWNER', 'STAFF']);
                 try {
                     return await outletService.getOutlets();
                 }

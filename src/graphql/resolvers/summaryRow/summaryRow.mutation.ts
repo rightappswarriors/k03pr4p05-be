@@ -1,4 +1,6 @@
 import { arg, extendType, intArg, stringArg, floatArg, booleanArg, nonNull } from 'nexus'
+import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 
 export const summaryRowMutation = extendType({
   type: 'Mutation',
@@ -43,6 +45,8 @@ export const summaryRowMutation = extendType({
         },
         ctx,
       ) => {
+        requireAuth(ctx)
+        PAGE_PERMISSIONS.finance.create(ctx)
         const vatType = await ctx.prisma.vatType.findUnique({
           where: { id: vatTypeId },
         });
@@ -52,9 +56,9 @@ export const summaryRowMutation = extendType({
         const costInput =
           costLinesArray.length > 0
             ? costLinesArray.reduce(
-                (sum, line) => sum + (Number(line?.amount) || 0),
-                0,
-              )
+              (sum, line) => sum + (Number(line?.amount) || 0),
+              0,
+            )
             : costInputAmount ?? 0;
         const baseCost = costInputVatInclusive
           ? costInput / (1 + rate)
@@ -155,6 +159,8 @@ export const summaryRowMutation = extendType({
         },
         ctx,
       ) => {
+        requireAuth(ctx)
+        PAGE_PERMISSIONS.masterFile.edit(ctx)
         const existing = await ctx.prisma.summaryRow.findUnique({ where: { id } });
         if (!existing) {
           throw new Error('SummaryRow not found');
@@ -175,10 +181,10 @@ export const summaryRowMutation = extendType({
         const costInput =
           incomingCostLines.length > 0
             ? incomingCostLines.reduce(
-                (sum: number, line: { amount?: number }) =>
-                  sum + (Number(line?.amount) || 0),
-                0,
-              )
+              (sum: number, line: { amount?: number }) =>
+                sum + (Number(line?.amount) || 0),
+              0,
+            )
             : costInputAmount !== undefined
               ? costInputAmount
               : existing.amount;
@@ -247,11 +253,15 @@ export const summaryRowMutation = extendType({
     t.field('deleteSummaryRow', {
       type: 'SummaryRow',
       args: { id: nonNull(intArg()) },
-      resolve: async (_, { id }, ctx) =>
+      resolve: async (_, { id }, ctx) => {
+
+        requireAuth(ctx)
+        PAGE_PERMISSIONS.masterFile.edit(ctx)
         ctx.prisma.summaryRow.update({
           where: { id: id! },
           data: { deletedAt: new Date() },
         })
+      }
     })
   }
 })

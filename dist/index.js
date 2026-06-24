@@ -95,15 +95,13 @@ async function startApolloServer() {
         credentials: true,
     }), expressMiddleware(server, {
         context: async ({ req, res }) => {
-            const authHeader = req.headers["authorization"];
-            //console.log("Auth Header:", authHeader);
-            const token = authHeader?.split(" ")[1];
             let user = null;
+            let userPermissions = {};
+            const token = req.headers["authorization"]?.split(" ")[1];
             if (token) {
                 try {
                     const decoded = jwt.verify(token, JWT_SECRET);
                     if (decoded.userId) {
-                        // Fetch current user data from database to ensure we have latest info
                         user = await prisma.user.findUnique({
                             where: { id: decoded.userId },
                             select: {
@@ -115,35 +113,72 @@ async function startApolloServer() {
                                 fullname: true,
                                 username: true,
                                 isOwner: true,
-                                position: true,
+                                position: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        // PositionPermission[] → Page
+                                        permissions: {
+                                            select: {
+                                                canView: true,
+                                                canCreate: true,
+                                                canEdit: true,
+                                                canDelete: true,
+                                                page: {
+                                                    select: {
+                                                        key: true, // ← this is what you index by
+                                                        label: true,
+                                                        access: true,
+                                                        parentKey: true,
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         });
-                        // Add userId for backward compatibility
                         if (user) {
                             user.userId = user.id;
+                            // Build lookup map — only for non-owners
+                            // Owners bypass permission checks entirely
+                            if (!user.isOwner) {
+                                for (const p of user.position?.permissions ?? []) {
+                                    userPermissions[p.page.key] = {
+                                        canView: p.canView,
+                                        canCreate: p.canCreate,
+                                        canEdit: p.canEdit,
+                                        canDelete: p.canDelete,
+                                    };
+                                }
+                                // TODO: when you're ready to add overrides, add this block:
+                                // const overrides = await prisma.userPermissionOverride.findMany({
+                                //   where: { userId: user.id },
+                                //   select: { canView: true, canCreate: true, canEdit: true, canDelete: true, page: { select: { key: true } } }
+                                // });
+                                // for (const o of overrides) {
+                                //   userPermissions[o.page.key] = {
+                                //     canView: o.canView ?? userPermissions[o.page.key]?.canView ?? false,
+                                //     canCreate: o.canCreate ?? userPermissions[o.page.key]?.canCreate ?? false,
+                                //     canEdit: o.canEdit ?? userPermissions[o.page.key]?.canEdit ?? false,
+                                //     canDelete: o.canDelete ?? userPermissions[o.page.key]?.canDelete ?? false,
+                                //   };
+                                // }
+                            }
                         }
                     }
                 }
                 catch (error) {
-                    if (process.env.NODE_ENV === "development") {
-                        if (error.name === "TokenExpiredError") {
-                            console.warn("Access token expired");
-                        }
-                        else {
-                            console.error("JWT verification failed:", error.message);
-                        }
+                    if (error.name === "TokenExpiredError") {
+                        console.warn("Access token expired");
+                    }
+                    else if (process.env.NODE_ENV === "development") {
+                        console.error("JWT error:", error.message);
                     }
                 }
             }
-            // Pass the Prisma Client to the context so it's available in your resolvers
-            return {
-                prisma,
-                redisClient,
-                user,
-                req,
-                res,
-            };
-        },
+            return { prisma, redisClient, user, userPermissions, req, res };
+        }
     }));
     const PORT = Number(process.env.PORT) || 4000;
     const httpServer = http.createServer(app);

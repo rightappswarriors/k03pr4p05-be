@@ -2,6 +2,12 @@
 ### Do not make changes to this file directly
 
 
+enum Access {
+  POSTERMINAL
+  SELLER
+  SUPPLIER
+}
+
 enum AccountLink {
   ACCOUNTS_PAYABLE_NON_TRADE
   ACCOUNTS_PAYABLE_TRADE
@@ -516,6 +522,19 @@ enum DateRangePreset {
 """ISO 8601 DateTime string"""
 scalar DateTime
 
+type Delivery {
+  createdAt: DateTime!
+  deliveredAt: DateTime
+  driverContact: String
+  driverName: String
+  id: String!
+  notes: String
+  po: PurchaseOrder!
+  scheduledDate: DateTime!
+  status: DeliveryStatus!
+  updatedAt: DateTime!
+}
+
 type DeliveryAddress {
   address: String!
   createdAt: String!
@@ -536,6 +555,13 @@ input DeliveryInput {
   estimatedDate: String
   notes: String
   trackingNumber: String
+}
+
+enum DeliveryStatus {
+  DELIVERED
+  FAILED
+  IN_TRANSIT
+  SCHEDULED
 }
 
 enum DeliveryStatusEvent {
@@ -1101,6 +1127,7 @@ enum MediaType {
 type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
+  acceptPO(driverContact: String, driverName: String, id: String!, scheduledDate: DateTime!): PurchaseOrder!
   addDeliveryAddress(customerId: Int!, input: AddDeliveryAddressInput!): DeliveryAddress!
   addExtraCharge(amount: Float!, label: String!, salesOrderId: String!): SalesOrder
   addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
@@ -1131,12 +1158,13 @@ type Mutation {
   createItemGroup(name: String): ItemGroup
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrgItemCategory(categoryId: Int, cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, name: String!, sales: String, stocks: String): OrgItemCategory!
-  createOrganization(name: String!): Organization
+  createOrganization(name: String!, roles: [OrgRole!]): Organization
   createOutlet(address: String!, bannerImage: String, bir: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String!, outletPromos: [OutletPromoInput!], outletType: OutletType!, phone: String, ptu: String, serviceCharge: Float!, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(input: PositionInput!): Position!
   createPromoType(data: CreatePromoTypeInput!): PromoType!
+  createPurchaseOrder(buyerOrgId: Int!, lineItems: [POLineItemInput!]!, notes: String, outletId: Int!, requestedDate: DateTime, supplierOrgId: Int!): PurchaseOrder!
   createRestockCycle(data: RestockCycleInput!): RestockCycle
   createRestockSchedule(data: RestockScheduleInput!): RestockSchedule
   createSalesOrder(branchId: Int, customer: String, customerContact: String, customerName: String, customerType: CustomerType, deliveryAddress: String, deliveryNotes: String, discountAmount: Float, discountRate: Float, discountType: DiscountType, extraCharges: [ExtraChargeInput!], items: [SalesOrderItemInput!]!, orderMode: OrderModeEnum!, outletId: Int, outletPromoId: Int, scPwdCustomerInput: ScPwdCustomerInput, scPwdPax: Int, subtotal: Float, total: Float, totalPax: Int, vatAmount: Float, vatRate: Float): SalesOrder
@@ -1146,6 +1174,7 @@ type Mutation {
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int!, centerId: Int!, costInputAmount: Float, costInputVatInclusive: Boolean!, costLines: Json, description: String, itemCode: String, itemId: Int, itemName: String, opExPct: Float!, orgId: Int!, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean!, subCenterId: Int!, vatTypeId: Int!): SummaryRow
+  createSupplierItem(availableQty: Int!, catalogId: String!, description: String, isVatExempt: Boolean!, moq: Int!, name: String!, priceTiers: [PriceTierInput!], sku: String, unit: String!, unitPrice: Float!, vatRate: Float!): SupplierItem!
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, customerType: CustomerType, discountAmount: Float, discountRate: Float, discountType: DiscountType, isVatExempt: Boolean, itemsSold: [CartItemInput!]!, outletId: Int!, outletPromoId: Int, paymentMethod: PaymentMethod!, paymentType: String, promoDiscountAmt: Float, scPwdCustomerInput: ScPwdCustomerInput, scPwdPax: Int, status: Status!, subtotal: Float!, total: Float!, totalPax: Int, vatAmount: Float!, vatExemptAmount: Float, vatExemptRefNo: String, vatExemptSale: Float, vatExemptType: VatExemptType): Transaction
   createVatType(name: String, rate: Float): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
@@ -1175,6 +1204,7 @@ type Mutation {
   deleteSubCenter(id: Int): SubCenter
   deleteSubscriptionAdmin(orgId: Int!): Subscription
   deleteSummaryRow(id: Int!): SummaryRow
+  deleteSupplierItem(id: String!): SupplierItem!
   deleteUser(id: ID!): User!
   deleteVatType(id: Int): VatType
   endBreak(noteBreakEnd: String!, photoBreakEnd: String!): Attendance
@@ -1182,6 +1212,8 @@ type Mutation {
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
   login(email: String!, password: String!): AuthPayload!
+  mapReceivedItem(buyerOrgId: Int!, itemId: Int!, outletId: Int, supplierItemId: String!): ReceivedItemMap!
+  markDelivered(notes: String, poId: String!): Delivery!
   markKompraOrderDelivered(orderId: Int!): KompraCOrder!
   markKompraOrderPacked(orderId: Int!, outletNote: String): KompraCOrder!
   markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): KompraCOrder!
@@ -1195,6 +1227,7 @@ type Mutation {
   registerAdmin(contactNumber: String, email: String!, fullname: String!, password: String!, role: String): User!
   registerKompraCustomer(input: RegisterCustomerInput!): KompraCustomer!
   registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
+  rejectPO(id: String!): PurchaseOrder!
   removeExtraCharge(extraChargeId: String!): SalesOrder
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
   resendOTP(email: String!): String!
@@ -1205,6 +1238,7 @@ type Mutation {
   shipSalesOrder(delivery: DeliveryInput!, id: String!): SalesOrder
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   startBreak(noteBreakStart: String!, photoBreakStart: String!): Attendance
+  startDelivery(poId: String!): Delivery!
   supplierAcknowledgeOrder(token: String!): SupplierOrder
   supplierSubmitOrder(action: String!, items: [SupplierOrderItemInput!]!, message: String, token: String!): SupplierOrder
   timeIn(noteIn: String!, photoIn: String!): Attendance
@@ -1212,6 +1246,7 @@ type Mutation {
   toggleContact(id: Int!): Contact
   toggleRestockCycle(id: Int!): RestockCycle
   toggleRestockSchedule(id: Int!): RestockSchedule
+  unmapReceivedItem(id: String!): ReceivedItemMap!
   updateAccountTitle(code: String, id: Int, label: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateBudgetEntry(account: String, begBal: Float, id: Int, months: Json, year: Int): Budget
@@ -1244,9 +1279,11 @@ type Mutation {
   updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, centerId: Int, costInputAmount: Float, costInputVatInclusive: Boolean, costLines: Json, description: String, id: Int!, itemCode: String, itemId: Int, itemName: String, opExPct: Float, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean, subCenterId: Int, vatTypeId: Int): SummaryRow
+  updateSupplierItem(availableQty: Int, description: String, id: String!, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
   updateUser(fullname: String, id: ID!, positionId: String, username: String): User!
   updateUserProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, userId: Int!, zipCode: String): User
   updateVatType(id: Int, name: String, rate: Float): VatType
+  upsertSupplierCatalog(organizationId: Int!): SupplierCatalog!
   verifyEmail(code: String!, email: String!): AuthPayload!
 }
 
@@ -1306,6 +1343,11 @@ type OrgItemCategory {
   stocks: String
 }
 
+enum OrgRole {
+  SELLER
+  SUPPLIER
+}
+
 type Organization {
   accountTitles: [AccountTitle!]!
   bannerImg: String
@@ -1335,6 +1377,7 @@ type Organization {
   profileImg: String
   profilePhoto: String
   promoTypes: [PromoType!]!
+  roles: [OrgRole!]!
   salesOrders: [SalesOrder!]!
   subCenters: [SubCenter!]!
   subscription: Subscription
@@ -1539,7 +1582,30 @@ type OutletsWithStaff {
   staff: [User!]!
 }
 
+type POLineItem {
+  id: String!
+  qty: Int!
+  subtotal: Float!
+  supplierItem: SupplierItem!
+  unitPrice: Float!
+}
+
+input POLineItemInput {
+  qty: Int!
+  supplierItemId: String!
+}
+
+enum POStatus {
+  ACCEPTED
+  CANCELLED
+  DELIVERED
+  IN_TRANSIT
+  PENDING
+  REJECTED
+}
+
 type Page {
+  access: Access!
   id: String!
   key: String!
   label: String!
@@ -1688,6 +1754,17 @@ type PositionPermission {
   positionId: String!
 }
 
+type PriceTier {
+  id: String!
+  minQty: Int!
+  price: Float!
+}
+
+input PriceTierInput {
+  minQty: Int!
+  price: Float!
+}
+
 type PromoType {
   createdAt: DateTime!
   description: String
@@ -1699,6 +1776,23 @@ type PromoType {
   outletPromos: [OutletPromo!]!
   user: User
   userId: Int
+}
+
+type PurchaseOrder {
+  buyerOrg: Organization!
+  createdAt: DateTime!
+  delivery: Delivery
+  id: String!
+  lineItems: [POLineItem!]!
+  notes: String
+  outlet: Outlet!
+  poNumber: String!
+  requestedDate: DateTime
+  status: POStatus!
+  supplierOrg: Organization!
+  totalAmount: Float!
+  updatedAt: DateTime!
+  vatAmount: Float!
 }
 
 type Query {
@@ -1811,6 +1905,10 @@ type Query {
   promoType(id: Int!): PromoType
   promoTypes: [PromoType!]!
   promoTypesByOrg: [PromoType!]!
+  purchaseOrder(id: String!): PurchaseOrder
+  purchaseOrdersForBuyer(buyerOrgId: Int!, status: POStatus): [PurchaseOrder!]!
+  purchaseOrdersForSupplier(status: POStatus, supplierOrgId: Int!): [PurchaseOrder!]!
+  receivedItemMaps(buyerOrgId: Int!, supplierItemId: String!): [ReceivedItemMap!]!
   salesOrder(id: String!): SalesOrder
   salesOrders(filter: SalesOrderFilterInput): [SalesOrder]
   salesOrdersByMode(orderMode: OrderModeEnum!): [SalesOrder]
@@ -1824,6 +1922,10 @@ type Query {
   summaryRow(id: Int): SummaryRow
   summaryRowExpenses(endDate: String, startDate: String): [SummaryRow]
   summaryRows(endDate: String, startDate: String): [SummaryRow]
+  supplierCatalog(organizationId: Int!): SupplierCatalog
+  supplierDashboard(supplierOrgId: Int!): SupplierDashboardStats
+  supplierItem(id: String!): SupplierItem
+  supplierItems(catalogId: String!): [SupplierItem!]!
   todayAttendanceByOrg(limit: Int = 20, page: Int = 1, role: String): PaginatedUserAttendance
   transactionsByDiscountType(discountType: DiscountType!): [Transaction!]!
   userAttendanceHistory(limit: Int = 20, page: Int = 1, userId: Int!): PaginatedAttendance
@@ -1835,6 +1937,14 @@ type Query {
 input ReceivePurchaseOrderItemInput {
   confirmedQty: Float!
   supplierOrderItemId: Int!
+}
+
+type ReceivedItemMap {
+  createdAt: DateTime!
+  id: String!
+  item: Item!
+  outlet: Outlet
+  supplierItem: SupplierItem!
 }
 
 enum RecurrenceType {
@@ -2263,6 +2373,37 @@ type SummaryRow {
   vatOutput: Float
   vatType: VatType!
   vatTypeId: Int!
+}
+
+type SupplierCatalog {
+  createdAt: DateTime!
+  id: String!
+  items: [SupplierItem!]!
+  organizationId: Int!
+}
+
+type SupplierDashboardStats {
+  duePayments: Float!
+  fulfilledToday: Int!
+  newPOs: Int!
+  pendingDeliveries: Int!
+}
+
+type SupplierItem {
+  availableQty: Int!
+  createdAt: DateTime!
+  description: String
+  id: String!
+  isActive: Boolean!
+  isVatExempt: Boolean!
+  moq: Int!
+  name: String!
+  priceTiers: [PriceTier!]!
+  sku: String
+  unit: String!
+  unitPrice: Float!
+  updatedAt: DateTime!
+  vatRate: Float!
 }
 
 type SupplierOrder {

@@ -1,12 +1,13 @@
 import { arg, extendType, nonNull, nullable, stringArg, intArg } from "nexus";
 import { requireAuth } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
 
 export const positionQuery = extendType({
   type: "Query",
   definition(t) {
     t.nonNull.list.nonNull.field("positions", {
       type: "Position",
-      resolve: async (parent, { }, ctx) => {
+      resolve: async (_, { }, ctx) => {
         requireAuth(ctx)
         const orgId = Number(ctx.user.orgId)
         return await ctx.prisma.position.findMany({
@@ -23,8 +24,11 @@ export const positionQuery = extendType({
       args: {
         id: nonNull(stringArg()),
       },
-      resolve: async (parent, { id }, ctx) => {
+      resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        requireAny(ctx, PAGE_PERMISSIONS.hr.view,
+          PAGE_PERMISSIONS.masterFile.view
+        )
         return await ctx.prisma.position.findUnique({
           where: { id },
           include: {
@@ -38,8 +42,11 @@ export const positionQuery = extendType({
     })
     t.nonNull.list.nonNull.field("pages", {
       type: "Page",
-      resolve: async (parent, args, ctx) => {
+      resolve: async (_, __, ctx) => {
         requireAuth(ctx)
+        requireAny(ctx, PAGE_PERMISSIONS.hr.view,
+          PAGE_PERMISSIONS.masterFile.view
+        )
         return await ctx.prisma.page.findMany({
           orderBy: { sortOrder: 'asc' }
         })

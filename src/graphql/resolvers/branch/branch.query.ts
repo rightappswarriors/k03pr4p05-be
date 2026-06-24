@@ -2,6 +2,7 @@
 import { arg, extendType, nonNull, nullable, stringArg } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as branchService from "../../../services/branch.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 export const branchQuery = extendType({
   type: "Query",
@@ -11,6 +12,7 @@ export const branchQuery = extendType({
       resolve: async (parent, { }, ctx) => {
         requireAuth(ctx)
         const orgId = Number(ctx.user.orgId)
+        PAGE_PERMISSIONS.branchAndOutlet.view(ctx)
         return await ctx.prisma.branch.findMany({
           where: { orgId },
           select: {
@@ -29,7 +31,8 @@ export const branchQuery = extendType({
       },
       resolve: async (parent, { search }, ctx) => {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.branchAndOutlet.view(ctx)
         try {
           return await branchService.getOwnedBranches(Number(ctx.user.orgId), search);
         } catch (error) {
@@ -45,7 +48,8 @@ export const branchQuery = extendType({
       },
       resolve: async (parent, { id }, ctx) => {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.branchAndOutlet.view(ctx)
         try {
           const branchId = parseInt(id);
           return await branchService.getBranchById(branchId);
@@ -64,7 +68,8 @@ export const branchQuery = extendType({
       },
       resolve: async (parent, { id, startDate, endDate }, ctx) => {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "OWNER",]);
+        requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.branch.view(ctx)
         try {
           const branchId = parseInt(id);
           return await branchService.getBranchTransactions(branchId, startDate, endDate)

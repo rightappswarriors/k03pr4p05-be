@@ -1,50 +1,66 @@
-export function requireAuth(ctx) {
+import { Context, PagePermission } from "../lib/types.js";
+
+export function requireAuth(ctx: Context) {
   if (!ctx.user) {
     console.error("Authentication required");
     throw new Error("Authentication required");
   }
 }
 
-export async function requirePermission(ctx, pageKey: string, action?: 'view' | 'create' | 'edit' | 'delete') {
-  requireAuth(ctx)
+// middleware/auth.middleware.ts
+export function requirePagePermission(
+  ctx: Context,
+  pageKey: string,
+  action: 'canView' | 'canCreate' | 'canEdit' | 'canDelete'
+) {
+  requireAuth(ctx);
 
-  // If owner, allow everything
-  if (ctx.user.isOwner) return
+  if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER") return; // bypass
 
-  // Import here to avoid circular dependency
-  const { resolvePermission } = await import('../graphql/resolvers/permission/permission.resolver.js')
+  const perm = ctx.userPermissions[pageKey]; // ← just a map lookup, no DB
 
-  const permission = await resolvePermission(ctx.user.id, pageKey, ctx)
-
-  if (action) {
-    const actionMap = {
-      view: 'canView',
-      create: 'canCreate',
-      edit: 'canEdit',
-      delete: 'canDelete'
-    }
-    if (!permission[actionMap[action]]) {
-      throw new Error(`Forbidden: No ${action} permission for ${pageKey}`)
-    }
-  } else {
-    // Default check canView
-    if (!permission.canView) {
-      throw new Error(`Forbidden: No view permission for ${pageKey}`)
-    }
+  if (!perm?.[action]) {
+    throw new Error(`Access denied: insufficient permission for ${pageKey}.${action}`);
   }
 
-  // Attach permission to context for resolvers to use
-  ctx.permission = permission
+  ctx.permission = perm; // attach for resolver use
 }
 
-export async function requireOwnership(ctx, modelName: string, resourceId: number | string) {
+// middleware/auth.middleware.ts
+export function requireAnyPagePermission(
+  ctx: Context,
+  pages: { pageKey: string; action: keyof PagePermission }[]
+) {
+  requireAuth(ctx);
+  if (ctx.user?.isOwner) return;
+
+  const hasAny = pages.some(({ pageKey, action }) => {
+    return ctx.userPermissions[pageKey]?.[action] === true;
+  });
+
+  if (!hasAny) {
+    const labels = pages.map(p => `${p.pageKey}.${p.action}`).join(' or ');
+    throw new Error(`Access denied: requires ${labels}`);
+  }
+}
+// middleware/auth.middleware.ts
+export function requireControlPermission(ctx: Context, controlKey: string) {
+  requireAuth(ctx);
+  if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER") return;
+
+  const isAllowed = ctx.controlPermissions?.[controlKey];
+  if (!isAllowed) {
+    throw new Error(`Access denied: insufficient control permission for '${controlKey}'`);
+  }
+}
+export async function requireOwnership(ctx: any, modelName: string, resourceId: number | string) {
 
   const userId = ctx.user?.userId;
 
   if (!userId || !resourceId) {
     throw new Error("Invalid request parameters or missing user information.");
   }
-  const delegate = ctx.prisma[modelName.charAt(0).toLowerCase()+ modelName.slice(1)]
+  const delegate = ctx.prisma[modelName.charAt(0).toLowerCase() + modelName.slice(1)]
   if (!delegate) {
     throw new Error(`Model ${modelName} not found in Prisma client`)
   }
@@ -63,7 +79,7 @@ export async function requireOwnership(ctx, modelName: string, resourceId: numbe
 }
 
 
-export function requireRole(ctx, requiredRoles) {
+export function requireRole(ctx: Context, requiredRoles: any) {
   const userRole = ctx.user?.role;
 
   const rolesArray = Array.isArray(requiredRoles)

@@ -1,9 +1,11 @@
 import { extendType, arg, nonNull, objectType, intArg } from "nexus";
 import * as userService from "../../../services/user.service.js";
 import {
+  requireAnyPagePermission,
   requireAuth,
   requireRole,
 } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const UserStaff = objectType({
   name: "UserStaff",
   definition(t) {
@@ -36,7 +38,7 @@ export const userQuery = extendType({
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         try {
           return await userService.getAllUsers();
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.error("Error getting all user data:", error);
           throw new Error("Error getting all user data:", error.message);
         }
@@ -49,14 +51,18 @@ export const userQuery = extendType({
       },
       async resolve(_, { orgId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+        requireAnyPagePermission(ctx, [
+          { pageKey: 'hrPage', action: 'canView' },
+          { pageKey: 'auditLogPage', action: 'canView' },
+        ]);
         const userOrgId = orgId || ctx.user.orgId;
         if (!userOrgId) {
           throw new Error("Organization ID is required");
         }
         try {
           return await userService.getAllStaffs(Number(userOrgId));
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.error("Error getting all staff data:", error);
           throw new Error("Error getting all staff data:", error.message);
         }
@@ -72,7 +78,7 @@ export const userQuery = extendType({
         try {
           const userId = parseInt(id);
           return await userService.getUserById(userId);
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.error("Error getting all user data:", error);
           throw new Error("Error getting all user data:", error.message);
         }
@@ -82,7 +88,7 @@ export const userQuery = extendType({
       type: "OutletsWithStaff",
       async resolve(_, __, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", ""]);
+        requireRole(ctx, ["ADMIN", "STAFF", 'OWNER']);
         const userId = ctx.user.userId;
         try {
           return await userService.getAllOutletStaffs(Number(userId));
@@ -100,7 +106,7 @@ export const userQuery = extendType({
         const userId = Number(ctx.user.userId);
         try {
           return await userService.getUserById(userId)
-        } catch (error) {
+        } catch (error: any) {
           if (process.env.NODE_ENV === "development") console.log("Error getting current user:", error)
           throw new Error("Error getting current user")
         }
@@ -113,7 +119,7 @@ export const userQuery = extendType({
       },
       async resolve(_, { outletId }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"])
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF'])
         try {
           return await userService.getStaffByOutletId(Number(outletId))
         } catch (error) {
@@ -134,7 +140,7 @@ export const userQuery = extendType({
             where: { userId: Number(userId) },
             select: { isPresent: true, logInTime: true }
           });
-          
+
           return {
             hasTimeIn: outletStaff?.isPresent ?? false,
             lastTimeIn: outletStaff?.logInTime || null,

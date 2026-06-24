@@ -1,6 +1,7 @@
 // rai-pos-backend/src/graphql/resolvers/restock/restock.query.ts
 import { extendType, nonNull, intArg } from "nexus";
 import { requireAuth } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 export const RestockQuery = extendType({
   type: "Query",
@@ -10,6 +11,7 @@ export const RestockQuery = extendType({
       type: "RestockSchedule",
       async resolve(_, __, ctx) {
         requireAuth(ctx);
+        PAGE_PERMISSIONS.restockScheduling.view(ctx)
         return ctx.prisma.restockSchedule.findMany({
           where: { orgId: ctx.user.orgId },
           orderBy: { createdAt: "desc" },
@@ -29,6 +31,7 @@ export const RestockQuery = extendType({
       args: { id: nonNull(intArg()) },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
+        PAGE_PERMISSIONS.restockScheduling.view(ctx)
         return ctx.prisma.restockSchedule.findFirst({
           where: { id, orgId: ctx.user.orgId },
           include: {
@@ -48,6 +51,7 @@ export const RestockQuery = extendType({
       args: { scheduleId: nonNull(intArg()) },
       async resolve(_, { scheduleId }, ctx) {
         requireAuth(ctx);
+        PAGE_PERMISSIONS.restockScheduling.view(ctx)
         return ctx.prisma.restockCycle.findMany({
           where: { scheduleId, orgId: ctx.user.orgId },
           orderBy: { scheduledAt: "asc" },

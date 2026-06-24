@@ -1,6 +1,7 @@
 // salesOrder.query.ts
 import { arg, extendType, intArg, nonNull, nullable, stringArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 
 const salesOrderInclude = {
   items: { include: { item: true } },
@@ -55,6 +56,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
 
         return ctx.prisma.salesOrder.findMany({
@@ -73,6 +75,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, args, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.salesOrder.findMany({
           where: buildSalesOrderWhere(orgId, args),
@@ -88,6 +91,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { status }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.salesOrder.findMany({
           where: { orgId, status },
@@ -103,6 +107,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { orderMode }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.salesOrder.findMany({
           where: { orgId, orderMode },
@@ -119,6 +124,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
@@ -133,6 +139,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.salesOrder.findFirst({
           where: { id, orgId },
@@ -147,6 +154,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, __, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.branch.findMany({
           where: { orgId, isActive: true },
@@ -162,6 +170,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { branchId }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
         return ctx.prisma.outlet.findMany({
           where: { orgId, branchId },
@@ -206,6 +215,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { outletId, branchId }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
 
         // ── Branch A: no outletId and no branchId → return every item across all org outlets ─
@@ -317,6 +327,7 @@ export const SalesOrderQuery = extendType({
       resolve: async (_, { outletId, branchId, search, skip, take }, ctx) => {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.salesOrder.view(ctx)
         const orgId = Number(ctx.user.orgId);
 
         const where: any = {
@@ -359,7 +370,7 @@ export const SalesOrderQuery = extendType({
         });
 
         let items = inventoryItems;
-        
+
         if (outletId == null && branchId == null) {
           const inventoryItemIds = inventoryItems
             .map((entry: any) => Number(entry.itemId))
@@ -371,11 +382,11 @@ export const SalesOrderQuery = extendType({
               id: { notIn: inventoryItemIds },
               ...(search?.trim()
                 ? {
-                    name: {
-                      contains: search.trim(),
-                      mode: "insensitive",
-                    },
-                  }
+                  name: {
+                    contains: search.trim(),
+                    mode: "insensitive",
+                  },
+                }
                 : {}),
             },
             orderBy: { name: "asc" },

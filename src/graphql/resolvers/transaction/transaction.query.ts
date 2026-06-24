@@ -1,6 +1,7 @@
 import { extendType, nonNull, intArg, stringArg, list, arg, nullable } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as transactionService from "../../../services/transaction.service.js";
+import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
 
 export const TransactionQuery = extendType({
   type: "Query",
@@ -16,6 +17,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { outletId, startDate, endDate }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "OWNER"]);
+        PAGE_PERMISSIONS.outlet.view(ctx)
         if (process.env.NODE_ENV === "development") {
           console.log(`Fetching transactions for outletId: ${outletId}, startDate: ${startDate}, endDate: ${endDate}`);
         }
@@ -39,6 +41,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { search }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        PAGE_PERMISSIONS.discount.view(ctx)
         return ctx.prisma.scPwdCustomer.findMany({
           where: {
             ...(ctx.user?.orgId ? { orgId: Number(ctx.user.orgId) } : {}),
@@ -62,6 +65,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        PAGE_PERMISSIONS.discount.view(ctx)
         return ctx.prisma.scPwdCustomer.findUnique({ where: { id } });
       },
     });
@@ -72,6 +76,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { discountType }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        PAGE_PERMISSIONS.discount.view(ctx)
         return transactionService.getTransactionsByDiscountType(
           discountType,
           ctx.user?.orgId ? Number(ctx.user.orgId) : undefined,
@@ -88,6 +93,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { customerId, oscaGovId }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        PAGE_PERMISSIONS.discount.view(ctx)
         if (!customerId && !oscaGovId) return null;
         const status = await transactionService.getWeeklyBnpcState(
           ctx.prisma,
@@ -117,6 +123,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { startDate, endDate }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        PAGE_PERMISSIONS.discount.view(ctx)
         return transactionService.getBirDiscountLogbook(
           startDate ?? undefined,
           endDate ?? undefined,
@@ -136,6 +143,7 @@ export const TransactionQuery = extendType({
       async resolve(_, { outletId, limit, offset, startDate, endDate }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "CASHIER", "STAFF", "OWNER"]);
+        PAGE_PERMISSIONS.outlet.view(ctx)
         try {
           return await transactionService.getOutletTransactions(
             Number(outletId),
@@ -158,7 +166,8 @@ export const TransactionQuery = extendType({
       args: { id: nonNull(intArg()) },
       async resolve(_root, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ['ADMIN', 'MANAGER', 'CASHIER', 'OWNER']);
+        requireRole(ctx, ['ADMIN', 'MANAGER', 'CASHIER', 'OWNER', "STAFF"]);
+        PAGE_PERMISSIONS.outlet.view(ctx)
         return ctx.prisma.transaction.findUnique({
           where: { id },                         // ← removed outlet.orgId filter;
           //    findUnique only accepts unique fields.
@@ -186,7 +195,8 @@ export const TransactionQuery = extendType({
       },
       async resolve(_, { startDate, endDate }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        requireAny(ctx, PAGE_PERMISSIONS.finance.view, PAGE_PERMISSIONS.salesAnalytics.view,PAGE_PERMISSIONS.dashboard.view)
         const orgId = Number(ctx.user?.orgId);
         if (process.env.NODE_ENV === "development") {
           console.log(`Fetching transactions for orgId: ${orgId}, startDate: ${startDate}, endDate: ${endDate}`);

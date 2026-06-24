@@ -1,5 +1,6 @@
 import { arg, extendType, intArg, nullable } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
 
 export const budgetQuery = extendType({
   type: 'Query',
@@ -12,7 +13,7 @@ export const budgetQuery = extendType({
       resolve: async (_, { year }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'ADMIN'])
-
+        PAGE_PERMISSIONS.finance.view(ctx)
         const orgId = Number(ctx.user?.orgId)
         return ctx.prisma.budget.findMany({
           where: {
@@ -34,7 +35,7 @@ export const budgetQuery = extendType({
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'ADMIN'])
-
+        PAGE_PERMISSIONS.finance.view(ctx)
         const orgId = Number(ctx.user?.orgId)
         return ctx.prisma.budget.findFirst({
           where: {

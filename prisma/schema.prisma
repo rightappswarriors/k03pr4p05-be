@@ -7,52 +7,64 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum OrgRole {
+  SELLER
+  SUPPLIER
+}
+
 model Organization {
-  id               Int               @id @default(autoincrement())
-  name             String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime?         @updatedAt
-  deletedAt        DateTime?
-  bannerImg        String?
-  profileImg       String?
-  contactNumber    String?
-  email            String?
-  location         String?
-  profilePhoto     String?
-  facebookLink     String?
-  instagramLink    String?
-  twitterLink      String?
-  bio              String?
-  accountTitles    AccountTitle[]
-  attendances      Attendance[]
-  branches         Branch[]
-  brands           Brand[]
-  budgets          Budget[]
-  centers          Center[]
-  contacts         Contact[]
-  departments      Department[]
-  employees        Employee[]
-  gisRows          GISRow[]
-  inventoryItems   InventoryItem[]
-  items            Item[]
-  itemGroups       ItemGroup[]
-  notifications    Notification[]
-  orgCategories    OrgItemCategory[]
-  outlets          Outlet[]
-  positions        Position[]
-  promoTypes       PromoType[]
-  restockCycles    RestockCycle[]
-  restockSchedules RestockSchedule[]
-  salesOrders      SalesOrder[]
-  scPwdCustomers   ScPwdCustomer[]
-  shifts           Shift[]
-  stockBatches     StockBatch[]
-  subCenters       SubCenter[]
-  subscription     Subscription?
-  summaryRows      SummaryRow[]
-  supplierOrders   SupplierOrder[]
-  users            User[]
-  vatTypes         VatType[]
+  id                    Int                  @id @default(autoincrement())
+  name                  String
+  roles                 OrgRole[]            @default([SELLER])
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime?            @updatedAt
+  deletedAt             DateTime?
+  bannerImg             String?
+  profileImg            String?
+  contactNumber         String?
+  email                 String?
+  location              String?
+  profilePhoto          String?
+  facebookLink          String?
+  instagramLink         String?
+  twitterLink           String?
+  bio                   String?
+  accountTitles         AccountTitle[]
+  attendances           Attendance[]
+  branches              Branch[]
+  brands                Brand[]
+  budgets               Budget[]
+  centers               Center[]
+  contacts              Contact[]
+  departments           Department[]
+  employees             Employee[]
+  gisRows               GISRow[]
+  inventoryItems        InventoryItem[]
+  items                 Item[]
+  itemGroups            ItemGroup[]
+  notifications         Notification[]
+  orgCategories         OrgItemCategory[]
+  outlets               Outlet[]
+  positions             Position[]
+  promoTypes            PromoType[]
+  restockCycles         RestockCycle[]
+  restockSchedules      RestockSchedule[]
+  salesOrders           SalesOrder[]
+  scPwdCustomers        ScPwdCustomer[]
+  shifts                Shift[]
+  stockBatches          StockBatch[]
+  subCenters            SubCenter[]
+  subscription          Subscription?
+  summaryRows           SummaryRow[]
+  supplierCatalog       SupplierCatalog?
+  sentPOs               PurchaseOrder[]      @relation("BuyerOrg")
+  receivedPOs           PurchaseOrder[]      @relation("SupplierOrg")
+  buyerReceivedItemMaps ReceivedItemMap[]    @relation("BuyerReceivedItemMaps")
+  supplierLinks         SupplierOutletLink[] @relation("SupplierLinks")
+
+  supplierOrders SupplierOrder[]
+  users          User[]
+  vatTypes       VatType[]
 }
 
 model Subscription {
@@ -234,6 +246,10 @@ model Outlet {
   restockSchedules      RestockSchedule[]
   Transaction           Transaction[]
   salesOrders           SalesOrder[]
+
+  purchaseOrders      PurchaseOrder[]
+  supplierOutletLinks SupplierOutletLink[]
+  receivedItemMaps    ReceivedItemMap[]
 
   @@unique([orgId, code])
 }
@@ -485,6 +501,8 @@ model Item {
   salesOrderItems            SalesOrderItem[]
   costHistory                ItemCostHistory[] // relation to track cost history
   priceHistory               ItemPriceHistory[] // relation to track price history
+
+  receivedItemMaps ReceivedItemMap[] @relation("ReceivedItemMaps")
 
   @@unique([orgId, name])
 }
@@ -1741,12 +1759,19 @@ model django_migrations {
   applied DateTime @db.Timestamptz(6)
 }
 
+enum Access {
+  SELLER
+  SUPPLIER
+  POSTERMINAL
+}
+
 model Page {
   id                  String                   @id @default(cuid())
   deletedAt           DateTime?
   key                 String                   @unique
   label               String
   parentKey           String?
+  access              Access                   @default(SELLER)
   sortOrder           Int                      @default(0)
   positionPermissions PositionPermission[]
   userOverrides       UserPermissionOverride[]
@@ -1851,6 +1876,7 @@ enum StockMovementType {
   CUSTOMER_RETURN
   WRITE_OFF
   ADJUSTMENT
+  SUPPLIER_DELIVERY
 }
 
 enum SupplierOrderStatus {
@@ -1996,4 +2022,137 @@ enum KompraCPaymentMethod {
   paymaya
   card
   qrph
+}
+
+// ─── Stage 3: Supplier Catalog ──────────────────────────────────────────────
+
+enum POStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+}
+
+model SupplierCatalog {
+  id             String         @id @default(cuid())
+  organizationId Int            @unique
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  items          SupplierItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model SupplierItem {
+  id        String          @id @default(cuid())
+  catalogId String
+  catalog   SupplierCatalog @relation(fields: [catalogId], references: [id])
+
+  name         String
+  description  String?
+  sku          String?
+  unit         String
+  unitPrice    Float
+  isVatExempt  Boolean @default(false)
+  vatRate      Float   @default(0.12)
+  moq          Int     @default(1)
+  availableQty Int     @default(0)
+  isActive     Boolean @default(true)
+
+  priceTiers      PriceTier[]
+  poLineItems     POLineItem[]
+  receivedItemMap ReceivedItemMap[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([catalogId, sku])
+}
+
+model PriceTier {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+  minQty         Int
+  price          Float
+}
+
+model ReceivedItemMap {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id])
+  buyerOrgId     Int
+  buyerOrg       Organization @relation("BuyerReceivedItemMaps", fields: [buyerOrgId], references: [id])
+  itemId         Int
+  item           Item         @relation("ReceivedItemMaps", fields: [itemId], references: [id])
+  outletId       Int?
+  outlet         Outlet?      @relation(fields: [outletId], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@unique([supplierItemId, buyerOrgId, outletId])
+}
+
+model PurchaseOrder {
+  id            String       @id @default(cuid())
+  poNumber      String       @unique
+  buyerOrgId    Int
+  buyerOrg      Organization @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
+  supplierOrgId Int
+  supplierOrg   Organization @relation("SupplierOrg", fields: [supplierOrgId], references: [id])
+  outletId      Int
+  outlet        Outlet       @relation(fields: [outletId], references: [id])
+  status        POStatus     @default(PENDING)
+  lineItems     POLineItem[]
+  delivery      Delivery?
+  notes         String?
+  requestedDate DateTime?
+  totalAmount   Float
+  vatAmount     Float        @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model POLineItem {
+  id             String        @id @default(cuid())
+  poId           String
+  po             PurchaseOrder @relation(fields: [poId], references: [id])
+  supplierItemId String
+  supplierItem   SupplierItem  @relation(fields: [supplierItemId], references: [id])
+  qty            Int
+  unitPrice      Float
+  subtotal       Float
+}
+
+model Delivery {
+  id            String         @id @default(cuid())
+  poId          String         @unique
+  po            PurchaseOrder  @relation(fields: [poId], references: [id])
+  scheduledDate DateTime
+  deliveredAt   DateTime?
+  status        DeliveryStatus @default(SCHEDULED)
+  driverName    String?
+  driverContact String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model SupplierOutletLink {
+  id            String       @id @default(cuid())
+  supplierOrgId Int
+  supplierOrg   Organization @relation("SupplierLinks", fields: [supplierOrgId], references: [id])
+  outletId      Int
+  outlet        Outlet       @relation(fields: [outletId], references: [id])
+  isApproved    Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+
+  @@unique([supplierOrgId, outletId])
 }

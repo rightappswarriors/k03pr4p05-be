@@ -4,6 +4,7 @@
 import { extendType, nonNull, intArg } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import { registerCycleJob, removeCycleJob, removeRestockJob } from "../../../utils/scheduler.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 export const RestockMutation = extendType({
   type: "Mutation",
@@ -17,6 +18,7 @@ export const RestockMutation = extendType({
       async resolve(_, { data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        PAGE_PERMISSIONS.restockScheduling.create(ctx)
         const { items, ...scheduleData } = data as any;
         const schedule = await ctx.prisma.restockSchedule.create({
           data: {
@@ -45,6 +47,7 @@ export const RestockMutation = extendType({
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        PAGE_PERMISSIONS.restockScheduling.edit(ctx)
         const { items, ...scheduleData } = data as any;
         const updated = await ctx.prisma.restockSchedule.update({
           where: { id },
@@ -74,13 +77,13 @@ export const RestockMutation = extendType({
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.restockScheduling.delete(ctx)
         // Remove all cycle jobs for this schedule first
         const cycles = await ctx.prisma.restockCycle.findMany({
           where: { scheduleId: id },
           select: { id: true },
         });
-        await Promise.all(cycles.map(c => removeCycleJob(c.id).catch(() => { })));
+        await Promise.all(cycles.map((c: any) => removeCycleJob(c.id).catch(() => { })));
 
         return ctx.prisma.restockSchedule.update({
           where: { id },
@@ -96,6 +99,7 @@ export const RestockMutation = extendType({
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        PAGE_PERMISSIONS.restockScheduling.edit(ctx)
         const existing = await ctx.prisma.restockSchedule.findUnique({ where: { id } });
         if (!existing) throw new Error("Schedule not found");
         const newActive = !existing.isActive;
@@ -105,7 +109,7 @@ export const RestockMutation = extendType({
             where: { scheduleId: id },
             select: { id: true },
           });
-          await Promise.all(cycles.map(c => removeCycleJob(c.id).catch(() => { })));
+          await Promise.all(cycles.map((c: any) => removeCycleJob(c.id).catch(() => { })));
         }
 
         const updated = await ctx.prisma.restockSchedule.update({
@@ -118,7 +122,7 @@ export const RestockMutation = extendType({
           const cycles = await ctx.prisma.restockCycle.findMany({
             where: { scheduleId: id, isActive: true },
           });
-          await Promise.all(cycles.map(c => registerCycleJob(c).catch(() => { })));
+          await Promise.all(cycles.map((c: any) => registerCycleJob(c).catch(() => { })));
         }
 
         return updated;
@@ -130,10 +134,11 @@ export const RestockMutation = extendType({
     t.field("createRestockCycle", {
       type: "RestockCycle",
       args: { data: nonNull("RestockCycleInput") },
+
       async resolve(_, { data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.restockScheduling.create(ctx)
         const { items, scheduleId, scheduledAt, emailRecipient, emailSubject, emailBody, branchId, outletId, address, latitude, longitude } = data as any;
 
         // Verify schedule belongs to this org
@@ -181,7 +186,7 @@ export const RestockMutation = extendType({
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.restockScheduling.edit(ctx)
         const { items, scheduledAt, emailRecipient, emailSubject, emailBody, branchId, outletId, address, latitude, longitude } = data as any;
 
         // Verify cycle belongs to this org
@@ -231,7 +236,7 @@ export const RestockMutation = extendType({
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.restockScheduling.delete(ctx)
         const existing = await ctx.prisma.restockCycle.findFirst({
           where: { id, orgId: ctx.user.orgId },
         });
@@ -253,7 +258,7 @@ export const RestockMutation = extendType({
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.restockScheduling.edit(ctx)
         const existing = await ctx.prisma.restockCycle.findFirst({
           where: { id, orgId: ctx.user.orgId },
         });

@@ -1,5 +1,6 @@
 import { extendType, intArg, stringArg, floatArg, nonNull } from 'nexus';
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 export const gisRowMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -18,7 +19,8 @@ export const gisRowMutation = extendType({
             },
             resolve: async (_, { main, group, code, description, centerId, subCenterId, accountTitleId, debit, credit }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER', 'ADMIN']);
+                requireRole(ctx, ['OWNER', 'STAFF', 'ADMIN']);
+                PAGE_PERMISSIONS.finance.create(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const userId = Number(ctx.user?.id);
                 const finalTotal = (credit ?? 0) - (debit ?? 0);
@@ -56,7 +58,8 @@ export const gisRowMutation = extendType({
             },
             resolve: async (_, { id, main, group, code, description, accountTitleId, centerId, subCenterId, debit, credit }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ['OWNER', 'ADMIN']);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                PAGE_PERMISSIONS.finance.edit(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const finalTotal = (debit ?? 0) - (credit ?? 0);
                 return ctx.prisma.gISRow.update({
@@ -82,6 +85,9 @@ export const gisRowMutation = extendType({
                 id: stringArg()
             },
             resolve: async (_, { id }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                PAGE_PERMISSIONS.finance.delete(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 return ctx.prisma.gISRow.update({
                     where: { id: Number(id), orgId },

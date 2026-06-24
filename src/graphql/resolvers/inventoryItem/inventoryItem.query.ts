@@ -1,4 +1,5 @@
 import { extendType, intArg } from 'nexus'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
 
 export const inventoryItemQuery = extendType({
   type: 'Query',
@@ -9,6 +10,7 @@ export const inventoryItemQuery = extendType({
         orgId: intArg()
       },
       resolve: async (_, { orgId }, ctx) => {
+        PAGE_PERMISSIONS.inventory.view(ctx)
         return ctx.prisma.inventoryItem.findMany({
           where: { orgId }
         })
@@ -20,6 +22,7 @@ export const inventoryItemQuery = extendType({
         id: intArg()
       },
       resolve: async (_, { id }, ctx) => {
+        PAGE_PERMISSIONS.inventory.view(ctx)
         return ctx.prisma.inventoryItem.findUnique({
           where: { id }
         })

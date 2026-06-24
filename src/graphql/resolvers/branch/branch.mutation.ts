@@ -6,6 +6,7 @@ import {
 } from "../../../middleware/auth.middleware.js";
 
 import * as branchService from "../../../services/branch.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 export const branchMutation = extendType({
   type: "Mutation",
@@ -20,8 +21,8 @@ export const branchMutation = extendType({
       },
       async resolve(_, { name, address, phone }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "OWNER"]);
-
+        requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
+        PAGE_PERMISSIONS.branch.create(ctx)
         if (!name || !address) {
           throw new Error("Missing required fields: name, address");
         }
@@ -58,9 +59,9 @@ export const branchMutation = extendType({
       },
       async resolve(_, { id, name, address, phone }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", 'OWNER'],);
+        requireRole(ctx, ["ADMIN", 'OWNER', 'STAFF'],);
         await requireOwnership(ctx, "branch", id);
-
+        PAGE_PERMISSIONS.branch.edit(ctx)
         const branchExists = await ctx.prisma.branch.findFirst({
           where: {
             OR: [
@@ -87,7 +88,8 @@ export const branchMutation = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
+        requireRole(ctx, ["ADMIN", 'STAFF', 'OWNER']);
+        PAGE_PERMISSIONS.branch.delete(ctx)
         await requireOwnership(ctx, "branch", id);
 
         return await branchService.deleteBranch(Number(id));

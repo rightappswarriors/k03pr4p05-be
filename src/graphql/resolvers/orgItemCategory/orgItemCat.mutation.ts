@@ -22,7 +22,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, args, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
 
                 const orgId = ctx.user.orgId;
 
@@ -66,7 +66,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, { id, ...args }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
 
                 const orgId = ctx.user.orgId;
 
@@ -109,7 +109,7 @@ export const orgItemCategoryMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
 
                 const orgId = ctx.user.orgId;
 

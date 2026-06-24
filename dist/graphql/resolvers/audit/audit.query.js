@@ -1,5 +1,6 @@
 import { arg, extendType, nonNull, nullable, intArg } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const auditQuery = extendType({
     type: "Query",
     definition(t) {
@@ -16,7 +17,8 @@ export const auditQuery = extendType({
             },
             resolve: async (parent, { orgId, filters, pagination }, ctx) => {
                 requireAuth(ctx);
-                requireRole(ctx, ["OWNER"]);
+                requireRole(ctx, ["OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.auditLog.view(ctx);
                 const where = {
                     orgId,
                     ...(filters?.userId && { userId: filters.userId }),
@@ -50,6 +52,7 @@ export const auditQuery = extendType({
             resolve: async (parent, { orgId, filters, pagination }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["OWNER", "ADMIN", "MANAGER", "STAFF"]);
+                PAGE_PERMISSIONS.auditLog.view(ctx);
                 const where = {
                     orgId,
                     ...(filters?.customerId && { customerId: filters.customerId }),

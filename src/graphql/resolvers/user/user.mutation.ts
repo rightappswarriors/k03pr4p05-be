@@ -16,6 +16,7 @@ export const AuthPayload = objectType({
   },
 });
 import { prisma } from "../../../lib/prisma.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 
 export const userMutation = extendType({
   type: "Mutation",
@@ -189,7 +190,7 @@ export const userMutation = extendType({
       async resolve(_, { fullname, email, password, departmentId, positionId }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+        PAGE_PERMISSIONS.hr.create(ctx)
         if (!fullname || !email || !password) {
           throw new Error(
             "Full name, email, and password cannot be empty."
@@ -297,7 +298,7 @@ export const userMutation = extendType({
           return user
         } catch (error: any) {
           if (process.env.NODE_ENV === "development") {
-            console.error("Error upon Sign in:", error);
+           if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
           }
           // ✅ Re-throw the original error message instead of wrapping it
           throw new Error(error?.message ?? "Sign in failed");

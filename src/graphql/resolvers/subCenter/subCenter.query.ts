@@ -1,4 +1,6 @@
 import { extendType, intArg } from 'nexus'
+import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS, requireAny } from '../../../lib/permissions.map.js'
 
 export const subCenterQuery = extendType({
   type: 'Query',
@@ -8,7 +10,11 @@ export const subCenterQuery = extendType({
       args: {
         orgId: intArg()
       },
+
       resolve: async (_, { orgId }, ctx) => {
+        requireAuth(ctx)
+        requireAny(ctx, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.dashboard.view)
+        
         return ctx.prisma.subCenter.findMany({
           where: { orgId }
         })
@@ -20,6 +26,8 @@ export const subCenterQuery = extendType({
         id: intArg()
       },
       resolve: async (_, { id }, ctx) => {
+        requireAuth(ctx)
+        PAGE_PERMISSIONS.masterFile.view(ctx)
         return ctx.prisma.subCenter.findUnique({
           where: { id }
         })

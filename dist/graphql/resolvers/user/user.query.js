@@ -1,6 +1,6 @@
 import { extendType, arg, nonNull, objectType, intArg } from "nexus";
 import * as userService from "../../../services/user.service.js";
-import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+import { requireAnyPagePermission, requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
 export const UserStaff = objectType({
     name: "UserStaff",
     definition(t) {
@@ -45,7 +45,11 @@ export const userQuery = extendType({
             },
             async resolve(_, { orgId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+                requireAnyPagePermission(ctx, [
+                    { pageKey: 'hrPage', action: 'canView' },
+                    { pageKey: 'auditLogPage', action: 'canView' },
+                ]);
                 const userOrgId = orgId || ctx.user.orgId;
                 if (!userOrgId) {
                     throw new Error("Organization ID is required");
@@ -82,7 +86,7 @@ export const userQuery = extendType({
             type: "OutletsWithStaff",
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", ""]);
+                requireRole(ctx, ["ADMIN", "STAFF", 'OWNER']);
                 const userId = ctx.user.userId;
                 try {
                     return await userService.getAllOutletStaffs(Number(userId));
@@ -116,7 +120,7 @@ export const userQuery = extendType({
             },
             async resolve(_, { outletId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 try {
                     return await userService.getStaffByOutletId(Number(outletId));
                 }

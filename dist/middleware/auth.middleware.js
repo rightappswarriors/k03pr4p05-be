@@ -4,33 +4,39 @@ export function requireAuth(ctx) {
         throw new Error("Authentication required");
     }
 }
-export async function requirePermission(ctx, pageKey, action) {
+// middleware/auth.middleware.ts
+export function requirePagePermission(ctx, pageKey, action) {
     requireAuth(ctx);
-    // If owner, allow everything
-    if (ctx.user.isOwner)
+    if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER")
+        return; // bypass
+    const perm = ctx.userPermissions[pageKey]; // ← just a map lookup, no DB
+    if (!perm?.[action]) {
+        throw new Error(`Access denied: insufficient permission for ${pageKey}.${action}`);
+    }
+    ctx.permission = perm; // attach for resolver use
+}
+// middleware/auth.middleware.ts
+export function requireAnyPagePermission(ctx, pages) {
+    requireAuth(ctx);
+    if (ctx.user?.isOwner)
         return;
-    // Import here to avoid circular dependency
-    const { resolvePermission } = await import('../graphql/resolvers/permission/permission.resolver.js');
-    const permission = await resolvePermission(ctx.user.id, pageKey, ctx);
-    if (action) {
-        const actionMap = {
-            view: 'canView',
-            create: 'canCreate',
-            edit: 'canEdit',
-            delete: 'canDelete'
-        };
-        if (!permission[actionMap[action]]) {
-            throw new Error(`Forbidden: No ${action} permission for ${pageKey}`);
-        }
+    const hasAny = pages.some(({ pageKey, action }) => {
+        return ctx.userPermissions[pageKey]?.[action] === true;
+    });
+    if (!hasAny) {
+        const labels = pages.map(p => `${p.pageKey}.${p.action}`).join(' or ');
+        throw new Error(`Access denied: requires ${labels}`);
     }
-    else {
-        // Default check canView
-        if (!permission.canView) {
-            throw new Error(`Forbidden: No view permission for ${pageKey}`);
-        }
+}
+// middleware/auth.middleware.ts
+export function requireControlPermission(ctx, controlKey) {
+    requireAuth(ctx);
+    if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER")
+        return;
+    const isAllowed = ctx.controlPermissions?.[controlKey];
+    if (!isAllowed) {
+        throw new Error(`Access denied: insufficient control permission for '${controlKey}'`);
     }
-    // Attach permission to context for resolvers to use
-    ctx.permission = permission;
 }
 export async function requireOwnership(ctx, modelName, resourceId) {
     const userId = ctx.user?.userId;

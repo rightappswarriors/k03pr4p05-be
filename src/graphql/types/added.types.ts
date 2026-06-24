@@ -5,6 +5,11 @@ export const AuditActionEnum = enumType({
   members: ['CREATE', 'EDIT', 'DELETE', 'VIEW', 'LOGIN', 'LOGOUT', 'PERMISSION_CHANGE', 'STATUS_CHANGE']
 })
 
+export const AccessEnum = enumType({
+  name: 'Access',
+  members: ['SELLER', 'SUPPLIER', 'POSTERMINAL']
+})
+
 export const PageType = objectType({
   name: 'Page',
   definition(t) {
@@ -13,6 +18,7 @@ export const PageType = objectType({
     t.nonNull.string('label')
     t.nullable.string('parentKey')
     t.nonNull.int('sortOrder')
+    t.nonNull.field('access', { type: 'Access' })
   }
 })
 

@@ -109,7 +109,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { outletId, users }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 await requireOwnership(ctx, "Outlet", outletId);
                 try {
                     if (Array.isArray(users)) {
@@ -142,7 +142,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { id, userIds }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 await requireOwnership(ctx, "Outlet", id);
                 if (!id ||
                     !userIds ||
@@ -187,7 +187,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { outletId, name, address, phone, code, governmentTax, serviceCharge, outletType, status, latitude, longitude, isActive, bannerImage, wifiSSID, tin, ptu, bir, isVatRegistered, vatZeroSale, vatTypeId, outletPromos }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
                 await requireOwnership(ctx, "Outlet", outletId);
                 // Ensure at least one field to update
                 if (name === undefined &&
@@ -290,7 +290,7 @@ export const outletMutation = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN"]);
+                requireRole(ctx, ["ADMIN", 'STAFF']);
                 await requireOwnership(ctx, "Outlet", id);
                 if (!id) {
                     throw new Error("Please select Outlet to delete");

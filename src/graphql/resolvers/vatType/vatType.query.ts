@@ -1,4 +1,5 @@
 import { extendType, intArg } from 'nexus'
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
 
 export const vatTypeQuery = extendType({
   type: 'Query',
@@ -7,6 +8,8 @@ export const vatTypeQuery = extendType({
       type: 'VatType',
 
       resolve: async (_, { }, ctx) => {
+        requireAuth(ctx)
+        requireRole(ctx, ["OWNER", "STAFF"])
         const orgId = ctx.user.orgId
         return ctx.prisma.vatType.findMany({
           where: { orgId }

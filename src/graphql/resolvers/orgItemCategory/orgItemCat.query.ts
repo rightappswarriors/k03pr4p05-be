@@ -16,8 +16,7 @@ export const OrgItemCategoryQuery = extendType({
             },
             async resolve(_, { pageSize, query, orderBy, groupId, isActive }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
-
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
                 const orgId = ctx.user.orgId;
                 orderBy = orderBy ?? "desc";
                 if (orderBy !== "asc" && orderBy !== "desc") {
@@ -57,7 +56,7 @@ export const OrgItemCategoryQuery = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
 
                 const orgId = ctx.user.orgId;
 
@@ -83,7 +82,7 @@ export const OrgItemCategoryQuery = extendType({
             },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
 
                 const orgId = ctx.user.orgId;
 

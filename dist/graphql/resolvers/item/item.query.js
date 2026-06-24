@@ -2,6 +2,7 @@
 import { extendType, nonNull, intArg, objectType, nullable, stringArg, enumType, arg, list } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as itemService from "../../../services/item.service.js";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 // Define custom type for grouped result
 export const ItemsByRack = objectType({
     name: "ItemsByRack",
@@ -47,6 +48,9 @@ export const ItemQuery = extendType({
             type: "Item",
             args: { name: nonNull(stringArg()) },
             async resolve(_, { name }, ctx) {
+                requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.inventory.view(ctx);
                 return ctx.prisma.item.findUnique({
                     where: { name },
                 });
@@ -63,7 +67,8 @@ export const ItemQuery = extendType({
                 size = size ? size : 20;
                 orderBy = orderBy ? orderBy : "asc";
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+                requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
+                PAGE_PERMISSIONS.inventory.view(ctx);
                 const orgId = Number(ctx.user.orgId);
                 try {
                     const items = await itemService.getItems(query, size, orderBy, orgId);
@@ -86,7 +91,8 @@ export const ItemQuery = extendType({
                 },
                 async resolve(_, { id }, ctx) {
                     requireAuth(ctx);
-                    requireRole(ctx, ["ADMIN", "MANAGER"]);
+                    requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF']);
+                    PAGE_PERMISSIONS.inventory.view(ctx);
                     try {
                         const item = await itemService.getItemById(Number(id));
                         if (!item) {
@@ -108,6 +114,8 @@ export const ItemQuery = extendType({
             },
             async resolve(_, { itemId }, ctx) {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.inventory.view(ctx);
                 return ctx.prisma.itemCostHistory.findMany({
                     where: { itemId },
                     orderBy: { effectiveAt: "desc" },
@@ -121,6 +129,8 @@ export const ItemQuery = extendType({
             },
             async resolve(_, { itemId }, ctx) {
                 requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'STAFF']);
+                PAGE_PERMISSIONS.inventory.view(ctx);
                 return ctx.prisma.itemPriceHistory.findMany({
                     where: { itemId },
                     orderBy: { effectiveAt: "desc" },
@@ -134,7 +144,8 @@ export const ItemQuery = extendType({
             },
             async resolve(_, { outletId }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "MANAGER"]);
+                requireRole(ctx, ["ADMIN", 'STAFF', "MANAGER"]);
+                PAGE_PERMISSIONS.inventory.view(ctx);
                 // Find the inventory by outletId
                 const inventory = await ctx.prisma.inventory.findUnique({
                     where: { outletId },

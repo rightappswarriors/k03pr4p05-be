@@ -1,5 +1,6 @@
 import { arg, extendType, intArg, nullable, stringArg } from 'nexus'
 import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 
 export const summaryRowQuery = extendType({
   type: 'Query',
@@ -12,7 +13,8 @@ export const summaryRowQuery = extendType({
       },
       resolve: async (_, { startDate, endDate }, ctx) => {
         requireAuth(ctx);
-        requireRole(ctx, ['OWNER', 'ADMIN']);
+        requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+        
         const orgId = Number(ctx.user?.orgId);
         return ctx.prisma.summaryRow.findMany({  // or summaryRow
           where: {
@@ -36,7 +38,7 @@ export const summaryRowQuery = extendType({
       resolve: async (_, { startDate, endDate }, ctx) => {
 
         requireAuth(ctx)
-        requireRole(ctx, ['OWNER', 'ADMIN'])
+        requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF'])
         const orgId = Number(ctx.user?.orgId)
         return ctx.prisma.summaryRow.findMany({
           where: {
@@ -64,7 +66,8 @@ export const summaryRowQuery = extendType({
         },
         resolve: async (_, { id }, ctx) => {
           requireAuth(ctx)
-          requireRole(ctx, ['OWNER', 'ADMIN'])
+          requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF'])
+          PAGE_PERMISSIONS.finance.view(ctx)
           const orgId = Number(ctx.user?.orgId)
           return ctx.prisma.summaryRow.findUnique({
             where: { id, orgId }

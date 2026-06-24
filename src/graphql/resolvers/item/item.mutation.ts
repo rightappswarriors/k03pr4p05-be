@@ -6,6 +6,7 @@ import {
 } from "../../../middleware/auth.middleware.js";
 import * as itemService from "../../../services/item.service.js";
 import { inputObjectType } from "nexus";
+import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
 export const LocationInput = inputObjectType({
   name: "LocationInput",
   definition(t) {
@@ -128,8 +129,8 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { items }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
-
+        requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF']);
+        PAGE_PERMISSIONS.inventory.create(ctx)
         if (items.length === 0) {
           throw new Error("Request body must be a non-empty array of items.");
         }
@@ -154,7 +155,8 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", "STAFF"]);
+        PAGE_PERMISSIONS.inventory.edit(ctx)
         // check if all fields are null/undefined
         const hasAtLeastOneField = Object.values(data).some(
           (value) => value !== null && value !== undefined
@@ -184,7 +186,8 @@ export const ItemMutation = extendType({
         },
         async resolve(_, { id }, ctx) {
           requireAuth(ctx);
-          requireRole(ctx, ["ADMIN", "MANAGER"]);
+          requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF']);
+          PAGE_PERMISSIONS.inventory.delete(ctx)
           try {
             const deletedItem = await itemService.deleteItem(Number(id));
             if (!deletedItem) {
@@ -213,8 +216,8 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { items }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
-
+        requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF']);
+        PAGE_PERMISSIONS.inventory.create(ctx)
         if (items.length === 0) {
           throw new Error("Request body must be a non-empty array of items.");
         }
@@ -241,8 +244,8 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { id, data }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN", "MANAGER"]);
-
+        requireRole(ctx, ["ADMIN", "MANAGER", 'STAFF']);
+        PAGE_PERMISSIONS.inventory.edit(ctx)
         try {
           return await itemService.updateInventoryItem(id, data);
         } catch (error) {
@@ -260,8 +263,8 @@ export const ItemMutation = extendType({
       },
       async resolve(_, { id }, ctx) {
         requireAuth(ctx);
-        requireRole(ctx, ["ADMIN"]);
-
+        requireRole(ctx, ["ADMIN", 'STAFF']);
+        PAGE_PERMISSIONS.inventory.delete(ctx)
         try {
           return await itemService.deleteInventoryItem(id);
         } catch (error) {
