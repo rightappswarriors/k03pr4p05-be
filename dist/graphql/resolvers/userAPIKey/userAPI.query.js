@@ -14,7 +14,8 @@ export const APIKeyQuery = extendType({
                     return await userAPIKey.getUserAPIKeyByUserId(Number(userId));
                 }
                 catch (error) {
-                    console.error("Error getting your API keys.");
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error getting your API keys.");
                     throw new Error("Error getting your api key");
                 }
             }

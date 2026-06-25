@@ -58,7 +58,8 @@ export const positionMutation = extendType({
                 const oldPosition = await ctx.prisma.position.findUnique({ where: { id } });
                 // Verify the position belongs to the user's organization
                 if (!oldPosition || oldPosition.orgId !== orgId) {
-                    console.log('organization id', orgId, 'old position id', oldPosition.orgId);
+                    if (process.env.NODE_ENV === "development")
+                        console.log('organization id', orgId, 'old position id', oldPosition.orgId);
                     throw new Error("Position not found or access denied");
                 }
                 const position = await ctx.prisma.position.update({
@@ -95,7 +96,8 @@ export const positionMutation = extendType({
                 requireRole(ctx, ["OWNER"]);
                 PAGE_PERMISSIONS.hr.delete(ctx);
                 const orgId = Number(ctx.user.orgId);
-                console.log("Attempting to delete position with ID:", id, "by user:", ctx.user.username);
+                if (process.env.NODE_ENV === "development")
+                    console.log("Attempting to delete position with ID:", id, "by user:", ctx.user.username);
                 try {
                     const position = await ctx.prisma.position.findUnique({ where: { id } });
                     // Verify the position belongs to the user's organization

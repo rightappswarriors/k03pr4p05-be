@@ -1,6 +1,7 @@
 export function requireAuth(ctx) {
     if (!ctx.user) {
-        console.error("Authentication required");
+        if (process.env.NODE_ENV === "development")
+            console.error("Authentication required");
         throw new Error("Authentication required");
     }
 }
@@ -64,7 +65,8 @@ export function requireRole(ctx, requiredRoles) {
         ? requiredRoles
         : [requiredRoles];
     if (!userRole || !rolesArray.includes(userRole)) {
-        console.error("Permission denied for role:", userRole);
+        if (process.env.NODE_ENV === "development")
+            console.error("Permission denied for role:", userRole);
         throw new Error("You do not have the necessary permissions.");
     }
 }

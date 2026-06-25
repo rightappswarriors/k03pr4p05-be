@@ -43,7 +43,8 @@ export const accountTitleQuery = extendType({
                     });
                     // ✅ Properly check if empty
                     if (accountTitles.length === 0) {
-                        console.log(`Seeding ${ACCOUNT_TITLE_OPTIONS.length} account titles for org ${orgId}...`);
+                        if (process.env.NODE_ENV === "development")
+                            console.log(`Seeding ${ACCOUNT_TITLE_OPTIONS.length} account titles for org ${orgId}...`);
                         // ✅ Seed the database
                         await ctx.prisma.accountTitle.createMany({
                             data: ACCOUNT_TITLE_OPTIONS.map((label) => ({
@@ -59,7 +60,8 @@ export const accountTitleQuery = extendType({
                     return accountTitles;
                 }
                 catch (error) {
-                    console.error("Error fetching account titles:", error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error("Error fetching account titles:", error);
                     throw error; // Let GraphQL handle the error response
                 }
             }

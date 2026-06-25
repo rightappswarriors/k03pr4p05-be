@@ -720,9 +720,11 @@ export const getInventoryByOutletId = async (outletId: number) => {
   });
 
   if (!outlet) return null;
-  console.log(outlet)
-  //console.log("Outlet Inventory:", outlet.inventory)
-  console.log("Inventory Items:", outlet.inventory.items)
+  if (process.env.NODE_ENV === "development") {
+    console.log(outlet)
+    //console.log("Outlet Inventory:", outlet.inventory)
+    console.log("Inventory Items:", outlet.inventory.items)
+  }
   return outlet;
 };
 /**

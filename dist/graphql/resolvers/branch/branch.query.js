@@ -2,7 +2,7 @@
 import { arg, extendType, nonNull, nullable, stringArg } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import * as branchService from "../../../services/branch.service.js";
-import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";
+import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
 export const branchQuery = extendType({
     type: "Query",
     definition(t) {
@@ -31,7 +31,7 @@ export const branchQuery = extendType({
             resolve: async (parent, { search }, ctx) => {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "OWNER", 'STAFF']);
-                PAGE_PERMISSIONS.branchAndOutlet.view(ctx);
+                requireAny(ctx, PAGE_PERMISSIONS.branchAndOutlet.view, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.dashboard.view, PAGE_PERMISSIONS.restockScheduling.view);
                 try {
                     return await branchService.getOwnedBranches(Number(ctx.user.orgId), search);
                 }

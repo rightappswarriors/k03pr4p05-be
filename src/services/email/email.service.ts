@@ -19,10 +19,10 @@ export async function sendEmail(data: EmailData): Promise<boolean> {
       html: data.html,
     });
 
-    console.log('Email sent successfully:', result);
+    if (process.env.NODE_ENV === "development") console.log('Email sent successfully:', result);
     return true;
   } catch (error) {
-    console.error('Failed to send email:', error);
+    if (process.env.NODE_ENV === "development") console.error('Failed to send email:', error);
     return false;
   }
 }

@@ -26,7 +26,8 @@ function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 export async function registerUser({ fullname, role, email, password, contactNumber }) {
-    console.log('[DEBUG] registerUser called with:', { fullname, email, contactNumber, role });
+    if (process.env.NODE_ENV === "development")
+        console.log('[DEBUG] registerUser called with:', { fullname, email, contactNumber, role });
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
         throw new Error('User with this email already exists');
@@ -47,15 +48,18 @@ export async function registerUser({ fullname, role, email, password, contactNum
             orgId: null,
         },
     });
-    console.log('Created user: ', user);
+    if (process.env.NODE_ENV === "development")
+        console.log('Created user: ', user);
     // Send OTP email
     const subject = 'Verify your account';
     const html = `<p>Welcome ${fullname},</p><p>Use the code <strong>${verificationCode}</strong> to verify your account.</p>`;
-    console.log('[DEBUG] Attempting to send OTP email to:', email);
-    console.log('[DEBUG] OTP code:', verificationCode);
-    console.log('[DEBUG] Email from:', EMAIL_FROM);
-    console.log('[DEBUG] RESEND_API_KEY exists:', !!RESEND_API_KEY);
-    console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    if (process.env.NODE_ENV === "development") {
+        console.log('[DEBUG] Attempting to send OTP email to:', email);
+        console.log('[DEBUG] OTP code:', verificationCode);
+        console.log('[DEBUG] Email from:', EMAIL_FROM);
+        console.log('[DEBUG] RESEND_API_KEY exists:', !!RESEND_API_KEY);
+        console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    }
     try {
         const emailResult = await resend.emails.send({
             from: EMAIL_FROM,
@@ -63,15 +67,19 @@ export async function registerUser({ fullname, role, email, password, contactNum
             subject,
             html,
         });
-        console.log('[DEBUG] Email send result:', JSON.stringify(emailResult, null, 2));
+        if (process.env.NODE_ENV === "development")
+            console.log('[DEBUG] Email send result:', JSON.stringify(emailResult, null, 2));
     }
     catch (error) {
-        console.error('[DEBUG] Failed to send verification email - Error type:', typeof error);
-        console.error('[DEBUG] Failed to send verification email - Error message:', error?.message || error);
-        console.error('[DEBUG] Failed to send verification email - Full error:', error);
+        if (process.env.NODE_ENV === "development") {
+            console.error('[DEBUG] Failed to send verification email - Error type:', typeof error);
+            console.error('[DEBUG] Failed to send verification email - Error message:', error?.message || error);
+            console.error('[DEBUG] Failed to send verification email - Full error:', error);
+        }
         throw new Error(`Failed to send verification email: ${error?.message || error}`);
     }
-    console.log('[DEBUG] OTP email sent successfully for registration');
+    if (process.env.NODE_ENV === "development")
+        console.log('[DEBUG] OTP email sent successfully for registration');
     return user;
 }
 export async function verifyEmail({ email, code, res }) {
@@ -145,11 +153,13 @@ export async function resendOTP({ email }) {
     // Send OTP email
     const subject = 'Verify your account';
     const html = `<p>Your verification code is: <strong>${verificationCode}</strong></p>`;
-    console.log('[DEBUG] Attempting to resend OTP email to:', email);
-    console.log('[DEBUG] New OTP code:', verificationCode);
-    console.log('[DEBUG] Email from:', EMAIL_FROM);
-    console.log('[DEBUG] RESEND_API_KEY exists:', !!RESEND_API_KEY);
-    console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    if (process.env.NODE_ENV === "development") {
+        console.log('[DEBUG] Attempting to resend OTP email to:', email);
+        console.log('[DEBUG] New OTP code:', verificationCode);
+        console.log('[DEBUG] Email from:', EMAIL_FROM);
+        console.log('[DEBUG] RESEND_API_KEY exists:', !!RESEND_API_KEY);
+        console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV);
+    }
     try {
         const emailResult = await resend.emails.send({
             from: EMAIL_FROM,
@@ -160,11 +170,14 @@ export async function resendOTP({ email }) {
         console.log('[DEBUG] Resend OTP email send result:', JSON.stringify(emailResult, null, 2));
     }
     catch (error) {
-        console.error('[DEBUG] Failed to resend OTP email - Error type:', typeof error);
-        console.error('[DEBUG] Failed to resend OTP email - Error message:', error?.message || error);
-        console.error('[DEBUG] Failed to resend OTP email - Full error:', error);
+        if (process.env.NODE_ENV === "development") {
+            console.error('[DEBUG] Failed to resend OTP email - Error type:', typeof error);
+            console.error('[DEBUG] Failed to resend OTP email - Error message:', error?.message || error);
+            console.error('[DEBUG] Failed to resend OTP email - Full error:', error);
+        }
         throw new Error(`Failed to send verification email: ${error?.message || error}`);
     }
-    console.log('[DEBUG] OTP email resent successfully');
+    if (process.env.NODE_ENV === "development")
+        console.log('[DEBUG] OTP email resent successfully');
     return { message: 'OTP sent successfully' };
 }

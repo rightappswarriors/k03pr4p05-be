@@ -312,7 +312,8 @@ export const InventoryMutation = extendType({
                 }
                 catch (error) {
                     if (process.env.NODE_ENV === "development")
-                        console.error("Error updating outlet item:", error);
+                        if (process.env.NODE_ENV === "development")
+                            console.error("Error updating outlet item:", error);
                     throw new Error("Failed to update outlet item.");
                 }
             },

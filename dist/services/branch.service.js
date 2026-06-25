@@ -102,7 +102,8 @@ export const deleteBranch = async (id) => {
     });
 };
 export const getBranchTransactions = async (branchId, startDate, endDate) => {
-    console.log(startDate, endDate);
+    if (process.env.NODE_ENV === "development")
+        console.log(startDate, endDate);
     return await prisma.transaction.findMany({
         where: {
             outlet: {

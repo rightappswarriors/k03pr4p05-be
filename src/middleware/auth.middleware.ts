@@ -2,7 +2,7 @@ import { Context, PagePermission } from "../lib/types.js";
 
 export function requireAuth(ctx: Context) {
   if (!ctx.user) {
-    console.error("Authentication required");
+    if (process.env.NODE_ENV === "development") console.error("Authentication required");
     throw new Error("Authentication required");
   }
 }
@@ -87,7 +87,7 @@ export function requireRole(ctx: Context, requiredRoles: any) {
     : [requiredRoles];
 
   if (!userRole || !rolesArray.includes(userRole)) {
-    console.error("Permission denied for role:", userRole);
+    if (process.env.NODE_ENV === "development") console.error("Permission denied for role:", userRole);
     throw new Error("You do not have the necessary permissions.");
   }
 }

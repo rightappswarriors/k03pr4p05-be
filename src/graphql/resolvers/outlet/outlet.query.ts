@@ -169,7 +169,7 @@ export const OutletQuery = extendType({
           return await outletService.getOutletTransactions(Number(outletId), startDate, endDate);
         } catch (error) {
           if (process.env.NODE_ENV === "development") {
-            console.error("Error getting outlet transactions:", error);
+            if (process.env.NODE_ENV === "development") console.error("Error getting outlet transactions:", error);
           }
           throw new Error("Error getting outlet transactions");
         }
@@ -184,7 +184,7 @@ export const OutletQuery = extendType({
         try {
           return await outletService.getOutlets()
         } catch (error) {
-          console.error("Error getting outlets:", error);
+          if (process.env.NODE_ENV === "development") console.error("Error getting outlets:", error);
 
           throw new Error("Error getting outlets");
         }

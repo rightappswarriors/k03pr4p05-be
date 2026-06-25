@@ -36,7 +36,7 @@ export const userMutation = extendType({
         { fullname, username, email, password, role },
         ctx
       ) {
-        console.log("Try Login")
+        if (process.env.NODE_ENV === "development") console.log("Try Login")
         // Validate that required fields are not empty strings
         if (!fullname || !username || !email || !password) {
           throw new Error(
@@ -298,7 +298,7 @@ export const userMutation = extendType({
           return user
         } catch (error: any) {
           if (process.env.NODE_ENV === "development") {
-           if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
+            if (process.env.NODE_ENV === "development") console.error("Error upon Sign in:", error);
           }
           // ✅ Re-throw the original error message instead of wrapping it
           throw new Error(error?.message ?? "Sign in failed");
@@ -330,7 +330,7 @@ export const userMutation = extendType({
             },
             data: { isPresent: false },
           });
-          console.log(data)
+          if (process.env.NODE_ENV === "development") console.log(data)
         }
         return true;
       },

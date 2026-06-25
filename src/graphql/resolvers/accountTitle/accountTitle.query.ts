@@ -33,22 +33,22 @@ export const accountTitleQuery = extendType({
   definition(t) {
     t.list.field('getAllAccountTitles', {
       type: 'AccountTitle',
-      resolve: async (_, {}, ctx) => {
+      resolve: async (_, { }, ctx) => {
         requireAuth(ctx)
         requireRole(ctx, ['OWNER', 'STAFF'])
         requireAny(ctx, PAGE_PERMISSIONS.dashboard.view, PAGE_PERMISSIONS.masterFile.view, PAGE_PERMISSIONS.finance.view)
         const orgId = Number(ctx.user.orgId)
-        
+
         try {
           // ✅ Added await
           const accountTitles = await ctx.prisma.accountTitle.findMany({
             where: { orgId }
           })
-          
+
           // ✅ Properly check if empty
           if (accountTitles.length === 0) {
-            console.log(`Seeding ${ACCOUNT_TITLE_OPTIONS.length} account titles for org ${orgId}...`)
-            
+            if (process.env.NODE_ENV === "development") console.log(`Seeding ${ACCOUNT_TITLE_OPTIONS.length} account titles for org ${orgId}...`)
+
             // ✅ Seed the database
             await ctx.prisma.accountTitle.createMany({
               data: ACCOUNT_TITLE_OPTIONS.map((label) => ({
@@ -56,21 +56,21 @@ export const accountTitleQuery = extendType({
                 orgId
               }))
             })
-            
+
             // ✅ Fetch and return the newly created records
             return await ctx.prisma.accountTitle.findMany({
               where: { orgId }
             })
           }
-          
+
           return accountTitles
         } catch (error: any) {
-          console.error("Error fetching account titles:", error)
+          if (process.env.NODE_ENV === "development")  console.error("Error fetching account titles:", error)
           throw error // Let GraphQL handle the error response
         }
       }
     })
-    
+
     t.field('accountTitle', {
       type: 'AccountTitle',
       args: {

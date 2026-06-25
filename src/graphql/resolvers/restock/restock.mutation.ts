@@ -173,7 +173,7 @@ export const RestockMutation = extendType({
         });
 
         await registerCycleJob(cycle).catch(err => {
-          console.error(`Failed to register cycle job for cycle ${cycle.id}:`, err);
+          if (process.env.NODE_ENV === "development") console.error(`Failed to register cycle job for cycle ${cycle.id}:`, err);
         });
 
         return cycle;
@@ -223,7 +223,7 @@ export const RestockMutation = extendType({
         });
 
         await registerCycleJob(updated).catch(err => {
-          console.error(`Failed to re-register cycle job for cycle ${id}:`, err);
+          if (process.env.NODE_ENV === "development") console.error(`Failed to re-register cycle job for cycle ${id}:`, err);
         });
 
         return updated;

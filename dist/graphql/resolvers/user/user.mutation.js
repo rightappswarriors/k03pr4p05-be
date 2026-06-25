@@ -25,7 +25,8 @@ export const userMutation = extendType({
                 role: arg({ type: "Role" }),
             },
             async resolve(_, { fullname, username, email, password, role }, ctx) {
-                console.log("Try Login");
+                if (process.env.NODE_ENV === "development")
+                    console.log("Try Login");
                 // Validate that required fields are not empty strings
                 if (!fullname || !username || !email || !password) {
                     throw new Error("Full name, username, email, and password cannot be empty.");
@@ -311,7 +312,8 @@ export const userMutation = extendType({
                         },
                         data: { isPresent: false },
                     });
-                    console.log(data);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(data);
                 }
                 return true;
             },

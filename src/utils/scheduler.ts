@@ -101,9 +101,9 @@ export async function removeScheduleCycleJobs(scheduleId: number): Promise<void>
           if (data?.scheduleId === scheduleId) await j.remove();
         }),
     );
-    console.log(`Removed all cycle jobs for schedule ${scheduleId}`);
+    if (process.env.NODE_ENV === "development") console.log(`Removed all cycle jobs for schedule ${scheduleId}`);
   } catch (error) {
-    console.error(`Failed to remove cycle jobs for schedule ${scheduleId}:`, error);
+    if (process.env.NODE_ENV === "development") console.error(`Failed to remove cycle jobs for schedule ${scheduleId}:`, error);
   }
 }
 
@@ -114,7 +114,7 @@ export async function removeScheduleCycleJobs(scheduleId: number): Promise<void>
 export async function registerRestockJob(schedule: RestockSchedule): Promise<void> {
   // No-op for new cycle-based flow.
   // Called from mutations but actual scheduling is now done per-cycle.
-  console.log(`registerRestockJob called for schedule ${schedule.id} — scheduling is now handled per-cycle`);
+  if (process.env.NODE_ENV === "development") console.log(`registerRestockJob called for schedule ${schedule.id} — scheduling is now handled per-cycle`);
 }
 
 export async function removeRestockJob(scheduleId: number): Promise<void> {

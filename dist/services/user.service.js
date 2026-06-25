@@ -75,24 +75,28 @@ export const loginUser = async (email, password, res) => {
         where: { email },
     });
     if (!user) {
-        console.log(`User not found for email: ${email}`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`User not found for email: ${email}`);
         throw new Error('Invalid email or password.');
         return null;
     }
     if (!user.password) {
-        console.log(`User ${email} has no password stored`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`User ${email} has no password stored`);
         throw new Error('Invalid email or password.');
         return null;
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-        console.log(`Invalid password for user: ${email}`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Invalid password for user: ${email}`);
         return null;
     }
     // Check if user has verified their email
     if (user.role !== "ADMIN") {
         if (!user.isVerified) {
-            console.log(`User ${email} has not verified their email`);
+            if (process.env.NODE_ENV === "development")
+                console.log(`User ${email} has not verified their email`);
             throw new Error('Please verify your email before logging in.');
         }
         if (process.env.NODE_ENV === "development") {

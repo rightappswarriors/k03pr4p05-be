@@ -600,11 +600,13 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
-                    console.log(`${LOG_PREFIX} confirmKompraOrder — success. status:`, result.status);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(`${LOG_PREFIX} confirmKompraOrder — success. status:`, result.status);
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} confirmKompraOrder — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} confirmKompraOrder — ERROR:`, error);
                     throw error;
                 }
             },
@@ -647,11 +649,13 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
-                    console.log(`${LOG_PREFIX} markKompraOrderPacked — success. status:`, result.status, '| packedAt:', result.packedAt);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(`${LOG_PREFIX} markKompraOrderPacked — success. status:`, result.status, '| packedAt:', result.packedAt);
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} markKompraOrderPacked — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} markKompraOrderPacked — ERROR:`, error);
                     throw error;
                 }
             },
@@ -664,7 +668,8 @@ export const KompraCMutation = extendType({
                 riderPhone: nullable(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
-                console.log(`${LOG_PREFIX} assignKompraOrderRider — orderId:`, args.orderId, '| rider:', args.riderName);
+                if (process.env.NODE_ENV === "development")
+                    console.log(`${LOG_PREFIX} assignKompraOrderRider — orderId:`, args.orderId, '| rider:', args.riderName);
                 requireKompraManagementAccess(ctx);
                 PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 const phone = args.riderPhone?.trim() || 'N/A';
@@ -700,11 +705,13 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
-                    console.log(`${LOG_PREFIX} assignKompraOrderRider — success. status:`, result.status, '| shippedAt:', result.shippedAt);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(`${LOG_PREFIX} assignKompraOrderRider — success. status:`, result.status, '| shippedAt:', result.shippedAt);
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} assignKompraOrderRider — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} assignKompraOrderRider — ERROR:`, error);
                     throw error;
                 }
             },
@@ -735,7 +742,8 @@ export const KompraCMutation = extendType({
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} markOrderInDelivery — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} markOrderInDelivery — ERROR:`, error);
                     throw error;
                 }
             },
@@ -767,7 +775,8 @@ export const KompraCMutation = extendType({
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} confirmOrderReceived — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} confirmOrderReceived — ERROR:`, error);
                     throw error;
                 }
             },
@@ -776,7 +785,8 @@ export const KompraCMutation = extendType({
             type: 'KompraCOrder',
             args: { orderId: nonNull(intArg()) },
             resolve: async (_root, { orderId }, ctx) => {
-                console.log(`${LOG_PREFIX} markKompraOrderDelivered — orderId:`, orderId);
+                if (process.env.NODE_ENV === "development")
+                    console.log(`${LOG_PREFIX} markKompraOrderDelivered — orderId:`, orderId);
                 requireKompraManagementAccess(ctx);
                 PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 try {
@@ -795,11 +805,13 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
-                    console.log(`${LOG_PREFIX} markKompraOrderDelivered — success.`);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(`${LOG_PREFIX} markKompraOrderDelivered — success.`);
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} markKompraOrderDelivered — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} markKompraOrderDelivered — ERROR:`, error);
                     throw error;
                 }
             },
@@ -820,7 +832,8 @@ export const KompraCMutation = extendType({
                 reason: nullable(stringArg()),
             },
             resolve: async (_root, args, ctx) => {
-                console.log(`${LOG_PREFIX} cancelKompraOrder — orderId:`, args.orderId, '| reason:', args.reason);
+                if (process.env.NODE_ENV === "development")
+                    console.log(`${LOG_PREFIX} cancelKompraOrder — orderId:`, args.orderId, '| reason:', args.reason);
                 requireKompraManagementAccess(ctx);
                 PAGE_PERMISSIONS.kompraOrder.edit(ctx);
                 const order = await ctx.prisma.kompraCOrder.findUnique({ where: { id: args.orderId } });
@@ -850,11 +863,13 @@ export const KompraCMutation = extendType({
                             include: kompraOrderManagementInclude,
                         });
                     });
-                    console.log(`${LOG_PREFIX} cancelKompraOrder — success. cancelledAt:`, result.cancelledAt);
+                    if (process.env.NODE_ENV === "development")
+                        console.log(`${LOG_PREFIX} cancelKompraOrder — success. cancelledAt:`, result.cancelledAt);
                     return result;
                 }
                 catch (error) {
-                    console.error(`${LOG_PREFIX} cancelKompraOrder — ERROR:`, error);
+                    if (process.env.NODE_ENV === "development")
+                        console.error(`${LOG_PREFIX} cancelKompraOrder — ERROR:`, error);
                     throw error;
                 }
             },

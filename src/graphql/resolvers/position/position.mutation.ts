@@ -15,27 +15,28 @@ export const positionMutation = extendType({
         requireRole(ctx, ["OWNER"])
         PAGE_PERMISSIONS.hr.create(ctx)
         const orgId = Number(ctx.user.orgId)
-        try{
-        const position = await ctx.prisma.position.create({
-          data: {
-            orgId,
-            name: input.name,
-            description: input.description,
-          }
-        })
-        // Log to AuditLog
-        await ctx.prisma.auditLog.create({
-          data: {
-            orgId,
-            userId: ctx.user.id,
-            pageKey: 'positions',
-            action: 'CREATE',
-            recordId: position.id,
-            recordType: 'Position',
-            newValue: { name: input.name, description: input.description },
-          }
-        })
-        return position} catch(error) {
+        try {
+          const position = await ctx.prisma.position.create({
+            data: {
+              orgId,
+              name: input.name,
+              description: input.description,
+            }
+          })
+          // Log to AuditLog
+          await ctx.prisma.auditLog.create({
+            data: {
+              orgId,
+              userId: ctx.user.id,
+              pageKey: 'positions',
+              action: 'CREATE',
+              recordId: position.id,
+              recordType: 'Position',
+              newValue: { name: input.name, description: input.description },
+            }
+          })
+          return position
+        } catch (error) {
           if (process.env.NODE_ENV === "development") {
             console.error("Error creating position:", error);
           }
@@ -54,15 +55,15 @@ export const positionMutation = extendType({
         requireRole(ctx, ["OWNER", 'STAFF'])
         PAGE_PERMISSIONS.hr.edit(ctx)
         const orgId = Number(ctx.user.orgId)
-        
+
         const oldPosition = await ctx.prisma.position.findUnique({ where: { id } })
-        
+
         // Verify the position belongs to the user's organization
         if (!oldPosition || oldPosition.orgId !== orgId) {
-          console.log('organization id', orgId, 'old position id', oldPosition.orgId)
+          if (process.env.NODE_ENV === "development") console.log('organization id', orgId, 'old position id', oldPosition.orgId)
           throw new Error("Position not found or access denied")
         }
-        
+
         const position = await ctx.prisma.position.update({
           where: { id },
           data: {
@@ -97,19 +98,19 @@ export const positionMutation = extendType({
         requireRole(ctx, ["OWNER"])
         PAGE_PERMISSIONS.hr.delete(ctx)
         const orgId = Number(ctx.user.orgId)
-        console.log("Attempting to delete position with ID:", id, "by user:", ctx.user.username);
+        if (process.env.NODE_ENV === "development") console.log("Attempting to delete position with ID:", id, "by user:", ctx.user.username);
         try {
           const position = await ctx.prisma.position.findUnique({ where: { id } })
-          
+
           // Verify the position belongs to the user's organization
           if (!position) {
             throw new Error("Position not found")
           }
-          
+
           if (position.orgId !== orgId) {
             throw new Error("Position belongs to a different organization")
           }
-          
+
           await ctx.prisma.position.update({
             where: { id },
             data: { deletedAt: new Date() },
@@ -146,13 +147,13 @@ export const positionMutation = extendType({
         requireRole(ctx, ["OWNER"])
         PAGE_PERMISSIONS.hr.edit(ctx)
         const orgId = Number(ctx.user.orgId)
-        
+
         // Verify the position exists and belongs to this organization
         const position = await ctx.prisma.position.findUnique({ where: { id: positionId } })
         if (!position || position.orgId !== orgId) {
           throw new Error("Position not found or access denied")
         }
-        
+
         // Delete existing
         await ctx.prisma.positionPermission.deleteMany({ where: { positionId } })
         // Create new

@@ -861,10 +861,10 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
         }
         for (const item of itemsSold) {
             // Find the specific InventoryItems record for this item and store.
-            if (process.env.NODE_ENV === "development")
+            if (process.env.NODE_ENV === "development") {
                 console.log("Inventory Id:", inventory.id);
-            if (process.env.NODE_ENV === "development")
                 console.log("Item:", item.itemId);
+            }
             const inventoryItem = await tx.inventoryItems.findUnique({
                 where: {
                     inventoryId_itemId: {

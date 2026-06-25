@@ -114,17 +114,17 @@ export const findOrCreateScPwdCustomer = async (
   const existing = input.id
     ? await tx.scPwdCustomer.findUnique({ where: { id: input.id } })
     : await tx.scPwdCustomer.findFirst({
-        where: {
-          OR: [
-            ...idSearchConditions,
-            {
-              fullName: customerData.fullName,
-              contactNumber: customerData.contactNumber,
-              dateOfBirth: customerData.dateOfBirth,
-            },
-          ],
-        },
-      });
+      where: {
+        OR: [
+          ...idSearchConditions,
+          {
+            fullName: customerData.fullName,
+            contactNumber: customerData.contactNumber,
+            dateOfBirth: customerData.dateOfBirth,
+          },
+        ],
+      },
+    });
 
   // If an existing record is found, update it. Otherwise create a new record.
   const customer = existing
@@ -887,7 +887,7 @@ export const getOutletTransactions = async (
       vatAmount: true,
       syncedAt: true,
       change: true,
-      
+
       paymentMethod: true,
       cashReceived: true,
       customerType: true,
@@ -1008,8 +1008,10 @@ export const finalizeTransaction = async (transactionDatas, itemsSold) => {
 
     for (const item of itemsSold) {
       // Find the specific InventoryItems record for this item and store.
-      if (process.env.NODE_ENV === "development") console.log("Inventory Id:", inventory.id);
-      if (process.env.NODE_ENV === "development") console.log("Item:", item.itemId);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Inventory Id:", inventory.id);
+        console.log("Item:", item.itemId);
+      }
       const inventoryItem = await tx.inventoryItems.findUnique({
         where: {
           inventoryId_itemId: {

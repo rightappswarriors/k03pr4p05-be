@@ -12,7 +12,8 @@ const worker = new Worker('restock', async (job) => {
     if (!cycleId) {
         throw new Error(`Job ${job.id} is missing cycleId`);
     }
-    console.log(`Processing restock cycle job for cycle ${cycleId}`);
+    if (process.env.NODE_ENV === "development")
+        console.log(`Processing restock cycle job for cycle ${cycleId}`);
     // ── 1. Fetch cycle with items and parent schedule ──────────────────────────
     const cycle = await prisma.restockCycle.findUnique({
         where: { id: cycleId },
@@ -27,18 +28,21 @@ const worker = new Worker('restock', async (job) => {
         throw new Error(`Cycle ${cycleId} not found`);
     }
     if (!cycle.isActive) {
-        console.log(`Cycle ${cycleId} is inactive, skipping`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Cycle ${cycleId} is inactive, skipping`);
         return;
     }
     if (cycle.cycleItems.length === 0) {
-        console.log(`Cycle ${cycleId} has no items, skipping`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Cycle ${cycleId} has no items, skipping`);
         return;
     }
     // ── 2. Deduplicate: skip if already fired ──────────────────────────────────
     if (cycle.firedAt) {
         const diffMinutes = (new Date().getTime() - cycle.firedAt.getTime()) / 60000;
         if (diffMinutes < 1) {
-            console.log(`Cycle ${cycleId} already fired ${diffMinutes.toFixed(2)}m ago, skipping`);
+            if (process.env.NODE_ENV === "development")
+                console.log(`Cycle ${cycleId} already fired ${diffMinutes.toFixed(2)}m ago, skipping`);
             return;
         }
     }
@@ -98,7 +102,8 @@ const worker = new Worker('restock', async (job) => {
         html: emailHtml,
     });
     if (!emailSent) {
-        console.error(`Email failed for cycle ${cycleId}, order ${order.id} — SupplierOrder still created`);
+        if (process.env.NODE_ENV === "development")
+            console.error(`Email failed for cycle ${cycleId}, order ${order.id} — SupplierOrder still created`);
     }
     // ── 6. Mark cycle as fired ────────────────────────────────────────────────
     await prisma.restockCycle.update({
@@ -110,14 +115,17 @@ const worker = new Worker('restock', async (job) => {
         where: { id: cycle.scheduleId },
         data: { lastTriggeredAt: new Date() },
     });
-    console.log(`Cycle ${cycleId} complete → SupplierOrder ${order.id} (${order.items.length} items) → ${cycle.emailRecipient}`);
+    if (process.env.NODE_ENV === "development")
+        console.log(`Cycle ${cycleId} complete → SupplierOrder ${order.id} (${order.items.length} items) → ${cycle.emailRecipient}`);
 }, {
     connection: restockQueue.opts.connection,
 });
 worker.on('completed', (job) => {
-    console.log(`Restock cycle job ${job.id} completed`);
+    if (process.env.NODE_ENV === "development")
+        console.log(`Restock cycle job ${job.id} completed`);
 });
 worker.on('failed', (job, err) => {
-    console.error(`Restock cycle job ${job?.id} failed:`, err);
+    if (process.env.NODE_ENV === "development")
+        console.error(`Restock cycle job ${job?.id} failed:`, err);
 });
 export default worker;

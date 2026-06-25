@@ -60,10 +60,12 @@ export async function removeScheduleCycleJobs(scheduleId) {
             if (data?.scheduleId === scheduleId)
                 await j.remove();
         }));
-        console.log(`Removed all cycle jobs for schedule ${scheduleId}`);
+        if (process.env.NODE_ENV === "development")
+            console.log(`Removed all cycle jobs for schedule ${scheduleId}`);
     }
     catch (error) {
-        console.error(`Failed to remove cycle jobs for schedule ${scheduleId}:`, error);
+        if (process.env.NODE_ENV === "development")
+            console.error(`Failed to remove cycle jobs for schedule ${scheduleId}:`, error);
     }
 }
 // ─── Legacy schedule-level helpers (kept for backwards compat) ────────────────
@@ -72,7 +74,8 @@ export async function removeScheduleCycleJobs(scheduleId) {
 export async function registerRestockJob(schedule) {
     // No-op for new cycle-based flow.
     // Called from mutations but actual scheduling is now done per-cycle.
-    console.log(`registerRestockJob called for schedule ${schedule.id} — scheduling is now handled per-cycle`);
+    if (process.env.NODE_ENV === "development")
+        console.log(`registerRestockJob called for schedule ${schedule.id} — scheduling is now handled per-cycle`);
 }
 export async function removeRestockJob(scheduleId) {
     await removeScheduleCycleJobs(scheduleId);
