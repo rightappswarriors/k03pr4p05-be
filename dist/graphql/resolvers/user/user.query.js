@@ -1,6 +1,7 @@
 import { extendType, arg, nonNull, objectType, intArg } from "nexus";
 import * as userService from "../../../services/user.service.js";
-import { requireAnyPagePermission, requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+import { requireAuth, requireRole, } from "../../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
 export const UserStaff = objectType({
     name: "UserStaff",
     definition(t) {
@@ -46,10 +47,7 @@ export const userQuery = extendType({
             async resolve(_, { orgId }, ctx) {
                 requireAuth(ctx);
                 requireRole(ctx, ["ADMIN", "MANAGER", "OWNER", 'STAFF']);
-                requireAnyPagePermission(ctx, [
-                    { pageKey: 'hrPage', action: 'canView' },
-                    { pageKey: 'auditLogPage', action: 'canView' },
-                ]);
+                requireAny(ctx, PAGE_PERMISSIONS.hr.view, PAGE_PERMISSIONS.auditLog.view);
                 const userOrgId = orgId || ctx.user.orgId;
                 if (!userOrgId) {
                     throw new Error("Organization ID is required");
