@@ -23,6 +23,7 @@ export const User = objectType({
           t.nonNull.string('fullname')
           t.nonNull.string('username')
           t.nonNull.string('email')
+          t.nullable.boolean('isActive')
           t.nonNull.field('role', { type: 'Role' })
           t.nonNull.string('password')
           // backend onboarding status

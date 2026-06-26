@@ -110,6 +110,12 @@ export const PAGE_PERMISSIONS = {
         edit: (ctx) => requirePagePermission(ctx, 'posTerminalPage', 'canEdit'),
         delete: (ctx) => requirePagePermission(ctx, 'posTerminalPage', 'canDelete'),
     },
+    admin: {
+        view: (ctx) => requirePagePermission(ctx, 'adminPage', 'canView'),
+        create: (ctx) => requirePagePermission(ctx, 'adminPage', 'canCreate'),
+        edit: (ctx) => requirePagePermission(ctx, 'adminPage', 'canEdit'),
+        delete: (ctx) => requirePagePermission(ctx, 'adminPage', 'canDelete'),
+    },
 };
 // Control permissions map
 export const CONTROL_PERMISSIONS = {

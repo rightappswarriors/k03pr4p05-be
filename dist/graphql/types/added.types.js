@@ -5,7 +5,7 @@ export const AuditActionEnum = enumType({
 });
 export const AccessEnum = enumType({
     name: 'Access',
-    members: ['SELLER', 'SUPPLIER', 'POSTERMINAL']
+    members: ['SELLER', 'SUPPLIER', 'POSTERMINAL', 'ADMIN']
 });
 export const PageType = objectType({
     name: 'Page',

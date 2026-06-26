@@ -92,6 +92,7 @@ model User {
   password             String
   createdAt            DateTime                 @default(now())
   profilePhoto         String?
+  isActive             Boolean                  @default(true)
   managerId            Int?
   enabledPaymentMethod Boolean                  @default(false)
   contactNumber        String?
@@ -99,7 +100,7 @@ model User {
   isVerified           Boolean                  @default(false)
   verificationCode     String?
   country              String?
-  zipCode              String?
+  zipCode              String?  
   city                 String?
   address              String?
   dateOfBirth          DateTime?
@@ -1241,14 +1242,14 @@ model Notification {
 
 model Position {
   id                 String                      @id @default(cuid())
-  orgId              Int
+  orgId              Int?
   createdAt          DateTime                    @default(now())
   description        String?
   name               String
   permissionsVersion DateTime                    @default(now())
   updatedAt          DateTime                    @updatedAt
   deletedAt          DateTime?
-  org                Organization                @relation(fields: [orgId], references: [id])
+  org                Organization?               @relation(fields: [orgId], references: [id])
   controlPermissions PositionControlPermission[]
   permissions        PositionPermission[]
   users              User[]
@@ -1763,6 +1764,7 @@ enum Access {
   SELLER
   SUPPLIER
   POSTERMINAL
+  ADMIN
 }
 
 model Page {

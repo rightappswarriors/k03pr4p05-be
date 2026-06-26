@@ -3,6 +3,7 @@
 
 
 enum Access {
+  ADMIN
   POSTERMINAL
   SELLER
   SUPPLIER
@@ -116,6 +117,23 @@ type AddedOutletStaffs {
   id: Int!
   name: String!
   staff: [User!]!
+}
+
+type AdminDashboardResult {
+  appliedEndDate: String!
+  appliedStartDate: String!
+  recentEcommerceOrders: [DashboardRecentEcommerceOrder!]!
+  recentOrganizations: [DashboardRecentOrganization!]!
+  recentPOSOrders: [DashboardRecentPOSOrder!]!
+  recentUsers: [DashboardRecentUser!]!
+  stats: DashboardStats!
+}
+
+type AdminUsersResult {
+  items: [User!]!
+  page: Int!
+  pageSize: Int!
+  total: Int!
 }
 
 type AnalyticsSummary {
@@ -509,6 +527,55 @@ type DashboardOrderStatusBreakdown {
 type DashboardOrderTrendPoint {
   period: String!
   total: Float!
+}
+
+type DashboardRecentEcommerceOrder {
+  createdAt: String!
+  grandTotal: Float
+  id: Int!
+  paymentStatus: String!
+  status: String!
+  transactionNumber: String!
+}
+
+type DashboardRecentOrganization {
+  createdAt: String!
+  id: Int!
+  name: String!
+  roles: [String!]!
+}
+
+type DashboardRecentPOSOrder {
+  customerName: String
+  date: String!
+  grandTotal: Float!
+  id: String!
+  orderNumber: String!
+  status: String!
+}
+
+type DashboardRecentUser {
+  createdAt: String!
+  email: String!
+  fullname: String!
+  id: Int!
+  isActive: Boolean!
+  isVerified: Boolean!
+}
+
+type DashboardStats {
+  activeOrganizations: Int!
+  activeUsers: Int!
+  newOrganizationsInRange: Int!
+  newUsersInRange: Int!
+  totalEcommerceOrdersInRange: Int!
+  totalEcommerceSalesInRange: Float!
+  totalOrganizations: Int!
+  totalOutlets: Int!
+  totalPOSOrdersInRange: Int!
+  totalPOSSalesInRange: Float!
+  totalProducts: Int!
+  totalUsers: Int!
 }
 
 enum DateRangePreset {
@@ -1135,10 +1202,12 @@ type Mutation {
   addItemToInventoryWithUnits(data: AddItemToInventoryWithUnitsInput!, outletId: ID!): InventoryItems
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
   assignKompraOrderRider(orderId: Int!, riderName: String!, riderPhone: String): KompraCOrder!
+  banUser(userId: Int!): User!
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
   cancelKompraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): KompraCOrder!
   cancelSalesOrder(id: String!, reason: String): SalesOrder
   changePassword(newPassword: String!, oldPassword: String!): Boolean!
+  changeUserPassword(password: String!, userId: Int!): Boolean!
   confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
   confirmKompraOrder(estimatedDeliveryAt: String, orderId: Int!, outletNote: String): KompraCOrder!
   confirmOrderReceived(customerId: Int!, orderId: Int!): KompraCOrder!
@@ -1246,7 +1315,9 @@ type Mutation {
   toggleContact(id: Int!): Contact
   toggleRestockCycle(id: Int!): RestockCycle
   toggleRestockSchedule(id: Int!): RestockSchedule
+  unbanUser(userId: Int!): User!
   unmapReceivedItem(id: String!): ReceivedItemMap!
+  unverifyUser(userId: Int!): User!
   updateAccountTitle(code: String, id: Int, label: String): AccountTitle
   updateBranch(address: String, id: ID!, name: String, phone: String): Branch!
   updateBudgetEntry(account: String, begBal: Float, id: Int, months: Json, year: Int): Budget
@@ -1285,6 +1356,7 @@ type Mutation {
   updateVatType(id: Int, name: String, rate: Float): VatType
   upsertSupplierCatalog(organizationId: Int!): SupplierCatalog!
   verifyEmail(code: String!, email: String!): AuthPayload!
+  verifyUser(userId: Int!): User!
 }
 
 type MyOutletAssignment {
@@ -1798,6 +1870,12 @@ type PurchaseOrder {
 type Query {
   ME: User!
   accountTitle(id: Int): AccountTitle
+
+  """
+  Returns aggregated KPIs and recent records for the System Admin Dashboard. startDate / endDate are ISO strings that scope the order and sales stats.
+  """
+  adminDashboard(endDate: String, startDate: String): AdminDashboardResult!
+  adminUsers(active: Boolean, page: Int, pageSize: Int, search: String, sortDirection: String, verified: Boolean): AdminUsersResult
   auditLogs(filters: AuditLogFiltersInput, orgId: Int!, pagination: PaginationInput): [AuditLogType!]!
   birDiscountLogbook(endDate: String, startDate: String): [BirDiscountLogbookEntry!]!
   bnpcDiscountStatus(customerId: String, oscaGovId: String): DiscountStatus
@@ -1897,7 +1975,7 @@ type Query {
   outletPromos: [OutletPromo!]!
   outletPromosByOutlet(outletId: Int!): [OutletPromo!]!
   outletPromosByPromoType(promoTypeId: Int!): [OutletPromo!]!
-  pages: [Page!]!
+  pages(access: [Access!]!): [Page!]!
   placeLocation(id: Int): PlaceLocation
   placeLocations(orgId: Int): [PlaceLocation]
   position(id: String!): Position
@@ -1929,6 +2007,7 @@ type Query {
   todayAttendanceByOrg(limit: Int = 20, page: Int = 1, role: String): PaginatedUserAttendance
   transactionsByDiscountType(discountType: DiscountType!): [Transaction!]!
   userAttendanceHistory(limit: Int = 20, page: Int = 1, userId: Int!): PaginatedAttendance
+  userManagementStats: UserManagementStats!
   userPerformanceSummary(from: String!, to: String!, userId: Int!): PerformanceSummary
   vatType(id: Int): VatType
   vatTypes: [VatType]
@@ -2577,6 +2656,7 @@ type User {
   gisRows: [GISRow]!
   id: Int!
   inventoryItems: [InventoryItem]!
+  isActive: Boolean
   isVerified: Boolean!
   manager: User
   managerId: Int
@@ -2605,6 +2685,18 @@ type UserAttendanceEntry {
   attendance: Attendance
   status: String!
   user: User!
+}
+
+type UserManagementStats {
+  activeRate: Float!
+  activeUsers: Int!
+  inactiveUsers: Int!
+  newUsersThisMonth: Int!
+  newUsersToday: Int!
+  totalUsers: Int!
+  unverifiedUsers: Int!
+  verificationRate: Float!
+  verifiedUsers: Int!
 }
 
 type UserPermissionOverride {

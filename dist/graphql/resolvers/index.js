@@ -1,3 +1,8 @@
+// export Admin
+export * from './admin/admin.mutation.js';
+export * from './admin/admin.query.js';
+export * from './admin/adminStat.query.js';
+export * from './admin/admin.dashboard.js';
 // AccountTitle
 export * from './accountTitle/accountTitle.mutation.js';
 export * from './accountTitle/accountTitle.query.js';

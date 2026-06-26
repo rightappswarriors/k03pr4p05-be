@@ -110,6 +110,12 @@ export const PAGE_PERMISSIONS = {
     create: (ctx: Context) => requirePagePermission(ctx, 'posTerminalPage',  'canCreate'),
     edit:   (ctx: Context) => requirePagePermission(ctx, 'posTerminalPage',  'canEdit'),
     delete: (ctx: Context) => requirePagePermission(ctx, 'posTerminalPage',  'canDelete'),
+  }, 
+  admin: {
+    view:   (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canView'),
+    create: (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canCreate'),
+    edit:   (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canEdit'),
+    delete: (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canDelete'),
   },
 } as const;
 

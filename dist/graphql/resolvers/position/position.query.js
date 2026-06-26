@@ -1,6 +1,7 @@
-import { extendType, nonNull, stringArg } from "nexus";
+import { extendType, nonNull, stringArg, list } from "nexus";
 import { requireAuth } from "../../../middleware/auth.middleware.js";
 import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
+import { AccessEnum } from "../../types/added.types.js";
 export const positionQuery = extendType({
     type: "Query",
     definition(t) {
@@ -39,10 +40,17 @@ export const positionQuery = extendType({
         });
         t.nonNull.list.nonNull.field("pages", {
             type: "Page",
-            resolve: async (_, __, ctx) => {
+            args: {
+                access: nonNull(list(nonNull(AccessEnum))),
+            },
+            resolve: async (_, { access }, ctx) => {
                 requireAuth(ctx);
                 requireAny(ctx, PAGE_PERMISSIONS.hr.view, PAGE_PERMISSIONS.masterFile.view);
+                if (access === "ADMIN") {
+                    PAGE_PERMISSIONS.admin.view(ctx);
+                }
                 return await ctx.prisma.page.findMany({
+                    where: access ? access : undefined,
                     orderBy: { sortOrder: 'asc' }
                 });
             }

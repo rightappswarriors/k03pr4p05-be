@@ -1,8 +1,19 @@
-import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
+import { PrismaClient, Role } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const pages = [
+type Access = "SELLER" | "SUPPLIER" | "POSTERMINAL" | "ADMIN";
+
+interface PageType {
+    key: string;
+    label: string;
+    sortOrder: number;
+    parentKey?: string;
+    access?: Access;
+}
+
+const pages: PageType[] = [
     { key: 'dashboardPage', label: 'Dashboard', sortOrder: 0 },
     { key: 'salesOrderPage', label: 'Sales Order', sortOrder: 1 },
     { key: 'kompraOrderPage', label: 'Kompra Order', sortOrder: 2 },
@@ -30,55 +41,134 @@ const pages = [
     {
         key: 'outletInventoryPage',
         label: 'Outlet Inventory',
-        parentKey: 'BranchAndOutletPage',
+        parentKey: 'branchAndOutletPage',
         sortOrder: 14,
     },
     {
         key: 'posTerminalPage',
         label: 'POS Terminal',
         parentKey: 'inventoryPage',
-        sortOrder: 14,
+        sortOrder: 15,
+        access: 'POSTERMINAL',
+    },
+    {
+        key: 'adminPage',
+        label: 'Admin Page',
+        sortOrder: 16,
+        access: 'ADMIN',
     },
 ];
 
 async function main() {
+    console.log('🚀 Starting RBAC Seed...');
+
     // Seed pages
     for (const page of pages) {
         await prisma.page.upsert({
             where: { key: page.key },
-            update: page,
-            create: page,
+            update: {
+                label: page.label,
+                parentKey: page.parentKey,
+                access: page.access ?? 'SELLER',
+                sortOrder: page.sortOrder,
+            },
+            create: {
+                key: page.key,
+                label: page.label,
+                parentKey: page.parentKey,
+                access: page.access ?? 'SELLER',
+                sortOrder: page.sortOrder,
+            },
         });
+
+        console.log(`✅ Page: ${page.key}`);
     }
 
-    // Get positions
-    const positions = await prisma.position.findMany();
+    // Create Admin Position
+    console.log('🔍 Checking Admin Position...');
 
-    // Get pages
+    let adminPosition = await prisma.position.findFirst({
+        where: {
+            name: 'System Administrator',
+            orgId: null,
+        },
+    });
+
+    if (!adminPosition) {
+        adminPosition = await prisma.position.create({
+            data: {
+                name: 'System Administrator',
+                description: 'System-wide administrator',
+            },
+        });
+
+        console.log(`✅ Created Position: ${adminPosition.name}`);
+    } else {
+        console.log(`ℹ️ Position exists: ${adminPosition.name}`);
+    }
+
+    // Create Admin User
+    console.log('🔍 Checking Admin User...');
+
+    const adminEmail = 'raidevs.admin@kompra.com';
+    const adminPassword = '#Rightech777#';
+
+    let adminUser = await prisma.user.findUnique({
+        where: {
+            email: adminEmail,
+        },
+    });
+
+    if (!adminUser) {
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+        adminUser = await prisma.user.create({
+            data: {
+                fullname: 'System Administrator',
+                username: 'admin',
+                email: adminEmail,
+                password: hashedPassword,
+                role: Role.ADMIN,
+                isVerified: true,
+                isOwner: true,
+                positionId: adminPosition.id,
+            },
+        });
+
+        console.log('✅ Admin User Created');
+        console.log(`   Email: ${adminEmail}`);
+        console.log(`   Username: admin`);
+        console.log(`   Password: ${adminPassword}`);
+    } else {
+        console.log(`ℹ️ Admin User exists: ${adminEmail}`);
+    }
+
     const dbPages = await prisma.page.findMany();
 
-    // Give all permissions to all positions (customize as needed)
-    for (const position of positions) {
-        for (const page of dbPages) {
-            const existing = await prisma.positionPermission.findFirst({
-                where: {
-                    positionId: position.id,
+    // Grant all page permissions to Admin Position
+    console.log('🔐 Assigning page permissions...');
+
+    for (const page of dbPages) {
+        const existing = await prisma.positionPermission.findFirst({
+            where: {
+                positionId: adminPosition.id,
+                pageId: page.id,
+            },
+        });
+
+        if (!existing) {
+            await prisma.positionPermission.create({
+                data: {
+                    positionId: adminPosition.id,
                     pageId: page.id,
+                    canView: true,
+                    canCreate: true,
+                    canEdit: true,
+                    canDelete: true,
                 },
             });
 
-            if (!existing) {
-                await prisma.positionPermission.create({
-                    data: {
-                        positionId: position.id,
-                        pageId: page.id,
-                        canView: true,
-                        canCreate: true,
-                        canEdit: true,
-                        canDelete: true,
-                    },
-                });
-            }
+            console.log(`✅ Permission granted: ${page.key}`);
         }
     }
 
@@ -92,33 +182,37 @@ async function main() {
         'managePermissions',
     ];
 
-    for (const position of positions) {
-        for (const controlKey of controlKeys) {
-            const existing =
-                await prisma.positionControlPermission.findFirst({
-                    where: {
-                        positionId: position.id,
-                        controlKey,
-                    },
-                });
+    console.log('🔐 Assigning control permissions...');
 
-            if (!existing) {
-                await prisma.positionControlPermission.create({
-                    data: {
-                        positionId: position.id,
-                        controlKey,
-                        isAllowed: true,
-                    },
-                });
-            }
+    for (const controlKey of controlKeys) {
+        const existing =
+            await prisma.positionControlPermission.findFirst({
+                where: {
+                    positionId: adminPosition.id,
+                    controlKey,
+                },
+            });
+
+        if (!existing) {
+            await prisma.positionControlPermission.create({
+                data: {
+                    positionId: adminPosition.id,
+                    controlKey,
+                    isAllowed: true,
+                },
+            });
+
+            console.log(`✅ Control granted: ${controlKey}`);
         }
     }
 
-    console.log('RBAC seeded successfully.');
+    console.log('🎉 RBAC + Admin seed completed successfully.');
 }
 
 main()
-    .catch(console.error)
+    .catch((error) => {
+        console.error('❌ Seed failed:', error);
+    })
     .finally(async () => {
         await prisma.$disconnect();
     });
