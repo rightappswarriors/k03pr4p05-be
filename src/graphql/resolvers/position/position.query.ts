@@ -52,8 +52,12 @@ export const positionQuery = extendType({
         if (access === "ADMIN") {
           PAGE_PERMISSIONS.admin.view(ctx)
         }
+        // Expand SELLER to also include POSTERMINAL
+        const resolvedAccess = access?.includes("SELLER")
+          ? [...new Set([...access, "POSTERMINAL"])]
+          : access
         return await ctx.prisma.page.findMany({
-          where: access ? access : undefined,
+          where: access?.length ? { access: { in: resolvedAccess } } : undefined,
           orderBy: { sortOrder: 'asc' }
         })
       }

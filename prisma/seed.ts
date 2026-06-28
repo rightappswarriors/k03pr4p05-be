@@ -47,7 +47,6 @@ const pages: PageType[] = [
     {
         key: 'posTerminalPage',
         label: 'POS Terminal',
-        parentKey: 'inventoryPage',
         sortOrder: 15,
         access: 'POSTERMINAL',
     },
