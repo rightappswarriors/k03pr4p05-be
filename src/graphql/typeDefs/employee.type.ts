@@ -13,6 +13,12 @@ export const Employee = objectType({
         t.nonNull.string('email')
         t.nonNull.int('orgId')
         t.nullable.int('userId')
+        t.nonNull.list.field('salaryHistory', {
+            type: 'SalaryHistory',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.user.findUnique({ where: { id: parent.id } }).salaryHistory()
+            }
+        })
         t.nonNull.field('org', {
             type: 'Organization',
             resolve: (parent, _, ctx) => {

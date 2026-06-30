@@ -97,10 +97,12 @@ model User {
   enabledPaymentMethod Boolean                  @default(false)
   contactNumber        String?
   orgId                Int?
+  salary               Float?
+  salaryHistory        SalaryHistory[]         
   isVerified           Boolean                  @default(false)
   verificationCode     String?
   country              String?
-  zipCode              String?  
+  zipCode              String?
   city                 String?
   address              String?
   dateOfBirth          DateTime?
@@ -1310,6 +1312,16 @@ model Employee {
   @@unique([orgId, email])
   @@index([orgId])
   @@index([department])
+}
+
+// For history tracking
+model SalaryHistory {
+  id          String    @id
+  ammount     Float
+  effectiveAt DateTime
+  deletedAt   DateTime?
+  userId      Int // ← add this
+  user        User      @relation(fields: [userId], references: [id])
 }
 
 model Shift {

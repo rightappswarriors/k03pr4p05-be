@@ -114,7 +114,7 @@ export interface NexusGenInputs {
     brandId?: number | null; // Int
     categoryId?: number | null; // Int
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
-    description?: string | null; // String
+    description: string; // String!
     hasSeniorDiscountVATExempt?: boolean | null; // Boolean
     image?: string | null; // String
     isBNPC?: boolean | null; // Boolean
@@ -395,14 +395,14 @@ export interface NexusGenInputs {
     brandId?: number | null; // Int
     categoryId?: number | null; // Int
     costLines?: Array<NexusGenInputs['CostLineInput'] | null> | null; // [CostLineInput]
-    description?: string | null; // String
+    description: string; // String!
     hasSeniorDiscountVATExempt?: boolean | null; // Boolean
-    image?: string | null; // String
+    image: string; // String!
     isBNPC?: boolean | null; // Boolean
     isVatExempt?: boolean | null; // Boolean
     itemCode?: string | null; // String
     minQuantity?: number | null; // Int
-    name?: string | null; // String
+    name: string; // String!
     opExPct?: number | null; // Float
     orgCategoryId?: number | null; // Int
     priceB?: number | null; // Float
@@ -1522,6 +1522,13 @@ export interface NexusGenObjects {
     success: boolean; // Boolean!
     transactionId: number; // Int!
   }
+  SalaryHistory: { // root type
+    ammount: number; // Float!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    userId: string; // String!
+  }
   SalesAnalyticsPayload: { // root type
     bottomItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
     branches: NexusGenRootTypes['BranchPerformance'][]; // [BranchPerformance!]!
@@ -1793,6 +1800,7 @@ export interface NexusGenObjects {
     positionId?: string | null; // String
     profilePhoto?: string | null; // String
     role: NexusGenEnums['Role']; // Role!
+    salary?: number | null; // Float
     updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     username: string; // String!
     verificationCode?: string | null; // String
@@ -2244,6 +2252,8 @@ export interface NexusGenFieldTypes {
     orgId: number; // Int!
     role: string; // String!
     salary: number; // Float!
+    salaryHistories: NexusGenRootTypes['SalaryHistory'][]; // [SalaryHistory!]!
+    salaryHistory: Array<NexusGenRootTypes['SalaryHistory'] | null>; // [SalaryHistory]!
     status: NexusGenEnums['EmployeeStatus']; // EmployeeStatus!
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
@@ -2684,6 +2694,7 @@ export interface NexusGenFieldTypes {
     deletePromoType: NexusGenRootTypes['PromoType']; // PromoType!
     deleteRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     deleteRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
+    deleteSalarySnapshot: NexusGenRootTypes['SalaryHistory']; // SalaryHistory!
     deleteSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     deleteSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     deleteSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
@@ -2706,6 +2717,7 @@ export interface NexusGenFieldTypes {
     processSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     receivePurchaseOrder: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     receiveSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    recordSalarySnapshot: NexusGenRootTypes['SalaryHistory']; // SalaryHistory!
     refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     registerAdmin: NexusGenRootTypes['User']; // User!
     registerKompraCustomer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
@@ -3172,6 +3184,7 @@ export interface NexusGenFieldTypes {
     getItemsByOutlet: Array<NexusGenRootTypes['InventoryItems'] | null> | null; // [InventoryItems]
     getKompraCOrdersForManagement: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
     getKompraCOrdersSummary: NexusGenRootTypes['KompraCOrderSummary'][]; // [KompraCOrderSummary!]!
+    getLatestSalary: NexusGenRootTypes['SalaryHistory'] | null; // SalaryHistory
     getMyProfile: NexusGenRootTypes['User'] | null; // User
     getMySubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     getOrgBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
@@ -3193,6 +3206,7 @@ export interface NexusGenFieldTypes {
     getRestockCycles: NexusGenRootTypes['RestockCycle'][]; // [RestockCycle!]!
     getRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
     getRestockSchedules: NexusGenRootTypes['RestockSchedule'][]; // [RestockSchedule!]!
+    getSalaryHistory: NexusGenRootTypes['SalaryHistory'][]; // [SalaryHistory!]!
     getSalesAnalytics: NexusGenRootTypes['SalesAnalyticsPayload']; // SalesAnalyticsPayload!
     getSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     getSalesOrders: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
@@ -3350,6 +3364,14 @@ export interface NexusGenFieldTypes {
   ReturnResult: { // field return type
     success: boolean; // Boolean!
     transactionId: number; // Int!
+  }
+  SalaryHistory: { // field return type
+    ammount: number; // Float!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    user: NexusGenRootTypes['User']; // User!
+    userId: string; // String!
   }
   SalesAnalyticsPayload: { // field return type
     bottomItems: NexusGenRootTypes['ItemPerformance'][]; // [ItemPerformance!]!
@@ -3662,6 +3684,7 @@ export interface NexusGenFieldTypes {
     profilePhoto: string | null; // String
     promoType: Array<NexusGenRootTypes['PromoType'] | null>; // [PromoType]!
     role: NexusGenEnums['Role']; // Role!
+    salary: number | null; // Float
     salesOrders: Array<NexusGenRootTypes['SalesOrder'] | null>; // [SalesOrder]!
     staff: Array<NexusGenRootTypes['OutletStaff'] | null>; // [OutletStaff]!
     summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null>; // [SummaryRow]!
@@ -4110,6 +4133,8 @@ export interface NexusGenFieldTypeNames {
     orgId: 'Int'
     role: 'String'
     salary: 'Float'
+    salaryHistories: 'SalaryHistory'
+    salaryHistory: 'SalaryHistory'
     status: 'EmployeeStatus'
     user: 'User'
     userId: 'Int'
@@ -4550,6 +4575,7 @@ export interface NexusGenFieldTypeNames {
     deletePromoType: 'PromoType'
     deleteRestockCycle: 'RestockCycle'
     deleteRestockSchedule: 'RestockSchedule'
+    deleteSalarySnapshot: 'SalaryHistory'
     deleteSubCenter: 'SubCenter'
     deleteSubscriptionAdmin: 'Subscription'
     deleteSummaryRow: 'SummaryRow'
@@ -4572,6 +4598,7 @@ export interface NexusGenFieldTypeNames {
     processSalesOrder: 'SalesOrder'
     receivePurchaseOrder: 'SupplierOrder'
     receiveSalesOrder: 'SalesOrder'
+    recordSalarySnapshot: 'SalaryHistory'
     refreshToken: 'AuthPayload'
     registerAdmin: 'User'
     registerKompraCustomer: 'KompraCustomer'
@@ -5038,6 +5065,7 @@ export interface NexusGenFieldTypeNames {
     getItemsByOutlet: 'InventoryItems'
     getKompraCOrdersForManagement: 'KompraCOrder'
     getKompraCOrdersSummary: 'KompraCOrderSummary'
+    getLatestSalary: 'SalaryHistory'
     getMyProfile: 'User'
     getMySubscription: 'Subscription'
     getOrgBranches: 'Branch'
@@ -5059,6 +5087,7 @@ export interface NexusGenFieldTypeNames {
     getRestockCycles: 'RestockCycle'
     getRestockSchedule: 'RestockSchedule'
     getRestockSchedules: 'RestockSchedule'
+    getSalaryHistory: 'SalaryHistory'
     getSalesAnalytics: 'SalesAnalyticsPayload'
     getSalesOrder: 'SalesOrder'
     getSalesOrders: 'SalesOrder'
@@ -5216,6 +5245,14 @@ export interface NexusGenFieldTypeNames {
   ReturnResult: { // field return type name
     success: 'Boolean'
     transactionId: 'Int'
+  }
+  SalaryHistory: { // field return type name
+    ammount: 'Float'
+    deletedAt: 'DateTime'
+    effectiveAt: 'DateTime'
+    id: 'String'
+    user: 'User'
+    userId: 'String'
   }
   SalesAnalyticsPayload: { // field return type name
     bottomItems: 'ItemPerformance'
@@ -5528,6 +5565,7 @@ export interface NexusGenFieldTypeNames {
     profilePhoto: 'String'
     promoType: 'PromoType'
     role: 'Role'
+    salary: 'Float'
     salesOrders: 'SalesOrder'
     staff: 'OutletStaff'
     summaryRows: 'SummaryRow'
@@ -5727,6 +5765,8 @@ export interface NexusGenArgTypes {
       fullname: string; // String!
       password: string; // String!
       positionId?: string | null; // String
+      role?: NexusGenEnums['Role'] | null; // Role
+      salary?: number | null; // Float
     }
     createInventory: { // args
       name?: string | null; // String
@@ -5998,6 +6038,9 @@ export interface NexusGenArgTypes {
     deleteRestockSchedule: { // args
       id: number; // Int!
     }
+    deleteSalarySnapshot: { // args
+      id: string; // ID!
+    }
     deleteSubCenter: { // args
       id?: number | null; // Int
     }
@@ -6084,6 +6127,11 @@ export interface NexusGenArgTypes {
     }
     receiveSalesOrder: { // args
       id: string; // String!
+    }
+    recordSalarySnapshot: { // args
+      ammount: number; // Float!
+      effectiveAt?: string | null; // String
+      employeeId: string; // ID!
     }
     refreshToken: { // args
       refresh_token: string; // String!
@@ -6422,6 +6470,8 @@ export interface NexusGenArgTypes {
       fullname?: string | null; // String
       id: string; // ID!
       positionId?: string | null; // String
+      role?: NexusGenEnums['Role'] | null; // Role
+      salary?: number | null; // Float
       username?: string | null; // String
     }
     updateUserProfile: { // args
@@ -6601,6 +6651,9 @@ export interface NexusGenArgTypes {
       startDate?: string | null; // String
       take?: number | null; // Int
     }
+    getLatestSalary: { // args
+      employeeId: string; // ID!
+    }
     getOrgCategories: { // args
       groupId?: number | null; // Int
       isActive?: boolean | null; // Boolean
@@ -6654,6 +6707,9 @@ export interface NexusGenArgTypes {
     }
     getRestockSchedule: { // args
       id: number; // Int!
+    }
+    getSalaryHistory: { // args
+      employeeId: string; // ID!
     }
     getSalesAnalytics: { // args
       endDate?: string | null; // String

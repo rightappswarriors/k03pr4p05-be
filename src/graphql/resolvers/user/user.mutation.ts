@@ -1,4 +1,4 @@
-import { extendType, arg, nonNull, nullable, stringArg, objectType, intArg } from "nexus";
+import { extendType, arg, nonNull, nullable, stringArg, objectType, intArg, floatArg } from "nexus";
 import { requireRole, requireAuth } from "../../../middleware/auth.middleware.js";
 import {
   createUser,
@@ -186,8 +186,10 @@ export const userMutation = extendType({
         password: nonNull(arg({ type: "String" })),
         departmentId: nullable(intArg()),
         positionId: nullable(arg({ type: "String" })),
+        role: nullable(arg({ type: "Role" })),
+        salary: nullable(floatArg()),
       },
-      async resolve(_, { fullname, email, password, departmentId, positionId }, ctx) {
+      async resolve(_, { fullname, email, password, departmentId, positionId, role, salary }, ctx) {
         requireAuth(ctx);
         requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
         PAGE_PERMISSIONS.hr.create(ctx)
@@ -197,7 +199,9 @@ export const userMutation = extendType({
           );
         }
         const orgId = Number(ctx.user.orgId);
-        let role = "STAFF";
+        if (!role) {
+          role = "STAFF";
+        }
 
         const usernameBase = email.split("@")[0].replace(/[^a-zA-Z0-9._-]/g, "").toLowerCase() || fullname.split(" ")[0].toLowerCase();
         let username = usernameBase;
@@ -218,6 +222,7 @@ export const userMutation = extendType({
             departmentId,
             positionId,
             role,
+            salary,
           });
           return newStaff;
         } catch (error: any) {
@@ -235,19 +240,32 @@ export const userMutation = extendType({
         fullname: nullable(arg({ type: "String" })),
         username: nullable(arg({ type: "String" })),
         positionId: nullable(arg({ type: "String" })),
+        role: nullable(arg({ type: "Role" })),
+        salary: nullable(floatArg()),
       },
-      async resolve(_, { id, fullname, username, positionId }, ctx) {
+      async resolve(_, { id, fullname, username, positionId, role, salary }, ctx) {
         if (!ctx.user) {
           if (process.env.NODE_ENV === "development") console.error("Authentication required");
           throw new Error("Authentication required");
         }
 
         const userId = parseInt(id);
-        if (!fullname && !username && typeof positionId === 'undefined') {
+
+        const hasUpdate =
+          fullname || username || typeof positionId !== "undefined" ||
+          typeof role !== "undefined" || typeof salary !== "undefined";
+        if (!hasUpdate) {
           throw new Error(
-            "At least one field (fullname, username, or positionId) must be provided."
+            "At least one field (fullname, username, positionId, role, or salary) must be provided."
           );
         }
+
+        // Role changes are privileged — only admins/managers/owners can reassign roles or salary
+        if (typeof role !== "undefined" || typeof salary !== "undefined") {
+          requireAuth(ctx);
+          requireRole(ctx, ["ADMIN", "MANAGER", "OWNER"]);
+        }
+
         if (username) {
           const userExists = await ctx.prisma.user.findUnique({
             where: { username: username },
@@ -256,8 +274,16 @@ export const userMutation = extendType({
             throw new Error(`User with username: ${username} already exists`);
           }
         }
-        const updatedUser = await updateUser(userId, { fullname, username, positionId });
-        return updatedUser;
+        try {
+
+          const updatedUser = await updateUser(userId, { fullname, username, positionId, role, salary });
+          return updatedUser;
+        } catch (error) {
+          if (process.env.NODE_ENV === "development")
+            console.error(error)
+
+          throw new Error(`Error on updating user:  ${error}`)
+        }
       },
     });
     t.nonNull.field("deleteUser", {

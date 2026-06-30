@@ -42,6 +42,7 @@ export const User = objectType({
           t.nonNull.boolean('enabledPaymentMethod')
           t.nullable.string('contactNumber');
           t.nullable.string('positionId')
+          t.nullable.float('salary')
           t.nullable.field('position', {
                type: 'Position',
                resolve: (parent, _, ctx) => {
@@ -98,6 +99,8 @@ export const User = objectType({
                          .employees()
                }
           })
+          // In user.type.ts — add inside the User objectType definition(t) block
+
           t.nonNull.list.field('gisRows', { // Added for ERP data
                type: 'GISRow',
                resolve: (parent, _, ctx) => {

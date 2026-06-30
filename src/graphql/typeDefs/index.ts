@@ -5,6 +5,7 @@ export * from './cartItem.type.js';
 export * from './center.type.js';
 export * from './color.type.js';
 export * from './department.type.js';
+export * from './salary.history.types.js'
 export * from './kompra.type.js';
 export * from './employee.type.js';
 export * from './enum.js';

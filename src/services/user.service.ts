@@ -162,10 +162,8 @@ export const loginUser = async (email: any, password: any, res: any) => {
  * @returns {Promise<array>} An array of user objects without password
  */
 export const getAllStaffs = async (orgId: number) => {
-  const users = await prisma.user.findMany({
-    where: {
-      orgId: orgId,
-    },
+  return prisma.user.findMany({
+    where: { orgId },
     select: {
       id: true,
       email: true,
@@ -176,11 +174,15 @@ export const getAllStaffs = async (orgId: number) => {
       createdAt: true,
       positionId: true,
       departmentId: true,
+      salary: true,   
+      department: {
+        select: { label: true },
+      },
+      position: {
+        select: { id: true, name: true },
+      },
     },
   });
-  if (process.env.NODE_ENV === "development") console.log("Org Id:", orgId)
-  if (process.env.NODE_ENV === "development") console.log("Users:", users)
-  return users;
 };
 
 /**
@@ -263,21 +265,58 @@ export const getUserById = async (id: number) => {
  * @param {object} userData - The updated user's data.
  * @returns {Promise<object>} The updated user object without the password.
  */
+export const updateUser = async (id: any, userData: any) => {
+  const { positionId, salary, ...restUserData } = userData;
 
-export const updateUser = async (id, userData) => {
-  const userToUpdate = { ...userData };
+  const userToUpdate: any = { ...restUserData };
+
   if (userData.password) {
     userToUpdate.password = await bcrypt.hash(userData.password, 10);
   }
+
+  if (typeof positionId !== 'undefined') {
+    userToUpdate.position = positionId
+      ? { connect: { id: positionId } }
+      : { disconnect: true };
+  }
+
+  if (typeof salary !== 'undefined') {
+    userToUpdate.salary = salary;
+  }
+
+  // Get previous salary for comparison before updating
+  let previousSalary: number | null = null;
+  if (typeof salary !== 'undefined') {
+    const current = await prisma.user.findUnique({
+      where: { id },
+      select: { salary: true },
+    });
+    previousSalary = current?.salary ?? null;
+  }
+
   const updatedUser = await prisma.user.update({
     where: { id },
     data: userToUpdate,
   });
 
+  // Snapshot salary history only when the value actually changed
+  if (
+    typeof salary !== 'undefined' &&
+    salary !== previousSalary
+  ) {
+    await prisma.salaryHistory.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: id,
+        ammount: salary,
+        effectiveAt: new Date(),
+      },
+    });
+  }
+
   const { password, ...userWithoutPassword } = updatedUser;
   return userWithoutPassword;
 };
-
 /**
  * @description
  * Deletes a user from the database.

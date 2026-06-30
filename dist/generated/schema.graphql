@@ -409,7 +409,7 @@ input CreateItemInput {
   brandId: Int
   categoryId: Int
   costLines: [CostLineInput]
-  description: String
+  description: String!
   hasSeniorDiscountVATExempt: Boolean
   image: String
   isBNPC: Boolean
@@ -719,6 +719,8 @@ type Employee {
   orgId: Int!
   role: String!
   salary: Float!
+  salaryHistories: [SalaryHistory!]!
+  salaryHistory: [SalaryHistory]!
   status: EmployeeStatus!
   user: User
   userId: Int
@@ -1220,7 +1222,7 @@ type Mutation {
   createDepartment(name: String, orgId: Int): Department
   createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
   createGISRow(accountTitleId: Int!, centerId: Int!, code: String, credit: Float, debit: Float, description: String, group: String, main: String, subCenterId: Int!): GISRow
-  createHRUser(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String): User!
+  createHRUser(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String, role: Role, salary: Float): User!
   createInventory(name: String, outletId: Int!): Inventory
   createInventoryItem(itemGroupId: Int, name: String, orgId: Int, price: Float, quantity: Int): InventoryItem
   createItem(data: CreateItemInput!): Item
@@ -1270,6 +1272,7 @@ type Mutation {
   deletePromoType(id: Int!): PromoType!
   deleteRestockCycle(id: Int!): RestockCycle
   deleteRestockSchedule(id: Int!): RestockSchedule
+  deleteSalarySnapshot(id: ID!): SalaryHistory!
   deleteSubCenter(id: Int): SubCenter
   deleteSubscriptionAdmin(orgId: Int!): Subscription
   deleteSummaryRow(id: Int!): SummaryRow
@@ -1292,6 +1295,7 @@ type Mutation {
   processSalesOrder(id: String!): SalesOrder
   receivePurchaseOrder(items: [ReceivePurchaseOrderItemInput!]!, supplierOrderId: Int!): SupplierOrder
   receiveSalesOrder(id: String!): SalesOrder
+  recordSalarySnapshot(ammount: Float!, effectiveAt: String, employeeId: ID!): SalaryHistory!
   refreshToken(refresh_token: String!): AuthPayload!
   registerAdmin(contactNumber: String, email: String!, fullname: String!, password: String!, role: String): User!
   registerKompraCustomer(input: RegisterCustomerInput!): KompraCustomer!
@@ -1351,7 +1355,7 @@ type Mutation {
   updateSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, centerId: Int, costInputAmount: Float, costInputVatInclusive: Boolean, costLines: Json, description: String, id: Int!, itemCode: String, itemId: Int, itemName: String, opExPct: Float, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean, subCenterId: Int, vatTypeId: Int): SummaryRow
   updateSupplierItem(availableQty: Int, description: String, id: String!, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
-  updateUser(fullname: String, id: ID!, positionId: String, username: String): User!
+  updateUser(fullname: String, id: ID!, positionId: String, role: Role, salary: Float, username: String): User!
   updateUserProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, userId: Int!, zipCode: String): User
   updateVatType(id: Int, name: String, rate: Float): VatType
   upsertSupplierCatalog(organizationId: Int!): SupplierCatalog!
@@ -1915,6 +1919,7 @@ type Query {
   getItemsByOutlet(outletId: ID!): [InventoryItems]
   getKompraCOrdersForManagement(outletId: Int, skip: Int, status: String, take: Int): [KompraCOrder!]!
   getKompraCOrdersSummary(endDate: String, organizationId: Int, skip: Int, startDate: String, take: Int): [KompraCOrderSummary!]!
+  getLatestSalary(employeeId: ID!): SalaryHistory
   getMyProfile: User
   getMySubscription: Subscription
   getOrgBranches: [Branch!]!
@@ -1936,6 +1941,7 @@ type Query {
   getRestockCycles(scheduleId: Int!): [RestockCycle!]!
   getRestockSchedule(id: Int!): RestockSchedule
   getRestockSchedules: [RestockSchedule!]!
+  getSalaryHistory(employeeId: ID!): [SalaryHistory!]!
   getSalesAnalytics(endDate: String, preset: DateRangePreset!, startDate: String): SalesAnalyticsPayload!
   getSalesOrder(id: String!): SalesOrder
   getSalesOrders(branchId: Int, customerName: String, discountType: DiscountType, endDate: String, filter: SalesOrderFilterInput, orderMode: OrderModeEnum, outletId: Int, startDate: String, status: SalesOrderStatusEnum): [SalesOrder]
@@ -2182,6 +2188,15 @@ enum Role {
   MANAGER
   OWNER
   STAFF
+}
+
+type SalaryHistory {
+  ammount: Float!
+  deletedAt: DateTime
+  effectiveAt: DateTime!
+  id: String!
+  user: User!
+  userId: String!
 }
 
 type SalesAnalyticsPayload {
@@ -2598,14 +2613,14 @@ input UpdateItemInput {
   brandId: Int
   categoryId: Int
   costLines: [CostLineInput]
-  description: String
+  description: String!
   hasSeniorDiscountVATExempt: Boolean
-  image: String
+  image: String!
   isBNPC: Boolean
   isVatExempt: Boolean
   itemCode: String
   minQuantity: Int
-  name: String
+  name: String!
   opExPct: Float
   orgCategoryId: Int
   priceB: Float
@@ -2671,6 +2686,7 @@ type User {
   profilePhoto: String
   promoType: [PromoType]!
   role: Role!
+  salary: Float
   salesOrders: [SalesOrder]!
   staff: [OutletStaff]!
   summaryRows: [SummaryRow]!

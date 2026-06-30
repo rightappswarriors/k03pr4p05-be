@@ -25,7 +25,7 @@ export const CreateItemInput = inputObjectType({
         t.nonNull.string("name");
         t.nonNull.string("barcode");
         t.nullable.string("image");
-        t.nullable.string("description");
+        t.nonNull.string("description");
         t.nullable.string("itemCode");
         t.nullable.string("brand");
         t.nullable.int("categoryId");
@@ -81,9 +81,9 @@ export const InventoryItemUpdateInput = inputObjectType({
 export const UpdateItemInput = inputObjectType({
     name: "UpdateItemInput",
     definition(t) {
-        t.nullable.string("name");
-        t.nullable.string("image");
-        t.nullable.string("description");
+        t.nonNull.string("name");
+        t.nonNull.string("image");
+        t.nonNull.string("description");
         t.nullable.string("barcode");
         t.nullable.string("brand");
         t.nullable.string("stockLabel");
