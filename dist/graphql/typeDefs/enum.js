@@ -70,3 +70,129 @@ export const EmployeeStatus = enumType({
     name: 'EmployeeStatus',
     members: ['Active', 'On_Leave', 'Contract'],
 });
+export const Environment = enumType({
+    name: 'Environment',
+    members: ['SANDBOX', 'PRODUCTION'],
+});
+export const DocumentType = enumType({
+    name: 'DocumentType',
+    members: [
+        "BUSINESS_PERMIT",
+        "DTI_SEC_REGISTRATION",
+        "BIR_2303",
+        "VALID_ID",
+        "PROOF_OF_ADDRESS",
+        "OTHER"
+    ]
+});
+export const VerificationStatus = enumType({
+    name: 'VerificationStatus',
+    members: [
+        "PENDING", "APPROVED",
+        "REJECTED",
+        "BYPASSED_DEV" // auto-set when environment = SANDBOX and KYC enforcement is off
+    ],
+});
+export const AgentType = enumType({
+    name: 'AgentType',
+    members: ['ORG_LINKED', 'STANDALONE'],
+});
+const MandateStatus = [
+    'DRAFT',
+    'SEARCHING',
+    'SENT',
+    'OFFERED',
+    'ACCEPTED',
+    'FUNDED',
+    'SETTLED',
+    'COMPLETED',
+    'DISPUTED',
+    'CANCELLED'
+];
+export const MandateStatusEnum = enumType({
+    name: 'MandateStatus',
+    members: MandateStatus,
+});
+export const MandateOfferStatusEnum = enumType({
+    name: 'MandateOfferStatus',
+    members: ['PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'WITHDRAWN'],
+});
+export const LedgerEntryType = enumType({
+    name: 'LedgerEntryType',
+    members: ['CREDIT', 'DEBIT'],
+});
+export const LedgerSourceType = enumType({
+    name: 'LedgerSourceType',
+    members: [
+        'RETAIL_ORDER',
+        'MANDATE_TRANSACTION',
+        'WITHDRAWAL',
+        'SUBSCRIPTION_FEE',
+        'PLATFORM_FEE',
+        "ADJUSTMENT", "ESCROW_HOLD",
+        "ESCROW_RELEASE"
+    ]
+});
+export const WithdrawalStatus = enumType({
+    name: 'WithdrawalStatus',
+    members: [
+        'PENDING',
+        'APPROVED',
+        'PROCESSING',
+        'COMPLETED',
+        'REJECTED'
+    ]
+});
+export const PaymentGatewayProvider = enumType({
+    name: 'PaymentGatewayProvider',
+    members: ['PAYMONGO', 'GCASH', 'PAYMAYA', 'BANK_API']
+});
+export const PayoutMethodType = enumType({
+    name: 'PayoutMethodType',
+    members: ['BANK_TRANSFER', 'GCASH', 'PAYMAYA', 'CHECK']
+});
+export const LedgerEntryStatus = enumType({
+    name: 'LedgerEntryStatus',
+    members: [
+        'HELD', // Phase 2 escrow: posted but not withdrawable yet
+        'AVAILABLE',
+        'RELEASED',
+        'REVERSED'
+    ]
+});
+export const PaymentTransactionStatus = enumType({
+    name: 'PaymentTransactionStatus',
+    members: ['PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED']
+});
+export const PaymentRelatedType = enumType({
+    name: 'PaymentRelatedType',
+    members: ['KOMPRA_C_ORDER', 'SALES_ORDER', 'MANDATE_TRANSACTION', 'SUBSCRIPTION']
+});
+export const SettlementType = enumType({
+    name: 'SettlementType',
+    members: ['INSTANT', 'ESCROW']
+});
+export const MandateTransactionStatus = enumType({
+    name: 'MandateTransactionStatus',
+    members: [
+        'PENDING',
+        'FUNDED',
+        'SETTLED',
+        'COMPLETED',
+        'DISPUTED',
+        'CANCELLED',
+        'REFUNDED'
+    ]
+});
+export const DisputeStatus = enumType({
+    name: 'DisputeStatus',
+    members: ['NONE', 'RAISED', 'UNDER_REVIEW', 'RESOLVED']
+});
+export const FeeApplication = enumType({
+    name: 'FeeApplication',
+    members: ['MANDATE_TRANSACTION', 'RETAIL_ORDER']
+});
+export const FeeRateType = enumType({
+    name: 'FeeRateType',
+    members: ['PERCENTAGE', 'PER_UNIT', 'FLAT']
+});

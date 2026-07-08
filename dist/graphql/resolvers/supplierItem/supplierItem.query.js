@@ -1,13 +1,11 @@
 import { extendType, nonNull, stringArg, intArg } from 'nexus';
-export const SupplierItemQuery = extendType({
+export const SupplierItemsQuery = extendType({
     type: 'Query',
     definition(t) {
         t.nullable.field('supplierCatalog', {
             type: 'SupplierCatalog',
-            args: {
-                organizationId: nonNull(intArg()),
-            },
-            resolve: async (_, { organizationId }, ctx) => {
+            resolve: async (_, __, ctx) => {
+                const organizationId = ctx.user?.orgId;
                 return ctx.prisma.supplierCatalog.findUnique({
                     where: { organizationId },
                     include: { items: { where: { isActive: true }, include: { priceTiers: true } } },
@@ -47,7 +45,15 @@ export const SupplierItemQuery = extendType({
             resolve: async (_, { supplierOrgId }, ctx) => {
                 const now = new Date();
                 const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const [newPOs, pendingDeliveries, fulfilledToday, deliveredPOs] = await Promise.all([
+                // Pull the supplier's active catalog units first — used to scope which
+                // open mandates are actually relevant to them (a fuel supplier shouldn't
+                // see mandates for, say, office supplies).
+                const catalog = await ctx.prisma.supplierCatalog.findUnique({
+                    where: { organizationId: supplierOrgId },
+                    include: { items: { where: { isActive: true }, select: { unit: true } } },
+                });
+                const activeUnits = [...new Set((catalog?.items ?? []).map((i) => i.unit))];
+                const [newPOs, pendingDeliveries, fulfilledToday, pipelinePOs, openMandatesCount, myPendingMandateOffers, myAcceptedMandateOffers, wallet,] = await Promise.all([
                     ctx.prisma.purchaseOrder.count({
                         where: { supplierOrgId, status: 'PENDING' },
                     }),
@@ -71,9 +77,32 @@ export const SupplierItemQuery = extendType({
                         },
                         select: { totalAmount: true },
                     }),
+                    activeUnits.length > 0
+                        ? ctx.prisma.mandate.count({
+                            where: { status: 'SEARCHING', unitType: { in: activeUnits }, deletedAt: null },
+                        })
+                        : Promise.resolve(0),
+                    ctx.prisma.mandateOffer.count({
+                        where: { supplierOrgId, status: 'PENDING', deletedAt: null },
+                    }),
+                    ctx.prisma.mandateOffer.count({
+                        where: { supplierOrgId, status: 'ACCEPTED', deletedAt: null },
+                    }),
+                    ctx.prisma.wallet.findUnique({ where: { orgId: supplierOrgId } }),
                 ]);
-                const duePayments = deliveredPOs.reduce((sum, po) => sum + po.totalAmount, 0);
-                return { newPOs, pendingDeliveries, fulfilledToday, duePayments };
+                const duePayments = pipelinePOs.reduce((sum, po) => sum + po.totalAmount, 0);
+                return {
+                    newPOs,
+                    pendingDeliveries,
+                    fulfilledToday,
+                    duePayments,
+                    openMandatesCount,
+                    myPendingMandateOffers,
+                    myAcceptedMandateOffers,
+                    catalogItemCount: catalog?.items.length ?? 0,
+                    walletBalance: wallet?.balance ?? 0,
+                    walletHeldBalance: wallet?.heldBalance ?? 0,
+                };
             },
         });
     },

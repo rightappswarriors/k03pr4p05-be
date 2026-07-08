@@ -18,6 +18,193 @@ export const Organization = objectType({
         t.nullable.string('twitterLink');
         t.nullable.string('bio');
         t.nonNull.list.nonNull.field('roles', { type: 'OrgRole' });
+        t.nonNull.boolean('isDevSeed');
+        t.nonNull.float('averageRating', {
+            resolve: async (parent, _, ctx) => {
+                const aggregate = await ctx.prisma.organizationReview.aggregate({
+                    where: { organizationId: parent.id, deletedAt: null },
+                    _avg: { rating: true },
+                });
+                return Number((aggregate._avg.rating ?? 0).toFixed(2));
+            },
+        });
+        t.nonNull.int('reviewCount', {
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.count({
+                where: { organizationId: parent.id, deletedAt: null },
+            }),
+        });
+        t.nonNull.int('totalReviews', {
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.count({
+                where: { organizationId: parent.id, deletedAt: null },
+            }),
+        });
+        t.nonNull.int('verifiedReviewsCount', {
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.count({
+                where: { organizationId: parent.id, deletedAt: null, isVerifiedTransaction: true },
+            }),
+        });
+        t.nonNull.list.nonNull.field('reviewsReceived', {
+            type: 'OrganizationReview',
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.findMany({
+                where: { organizationId: parent.id, deletedAt: null },
+                include: { reviewer: true },
+                orderBy: { createdAt: 'desc' },
+            }),
+        });
+        t.nonNull.list.nonNull.field('reviews', {
+            type: 'OrganizationReview',
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.findMany({
+                where: { organizationId: parent.id, deletedAt: null },
+                include: { reviewer: true },
+                orderBy: { createdAt: 'desc' },
+            }),
+        });
+        t.nonNull.list.nonNull.field('reviewsWritten', {
+            type: 'OrganizationReview',
+            resolve: (parent, _, ctx) => ctx.prisma.organizationReview.findMany({
+                where: { reviewerOrgId: parent.id, deletedAt: null },
+                include: { reviewer: true },
+                orderBy: { createdAt: 'desc' },
+            }),
+        });
+        t.nullable.field('wallet', {
+            type: 'Wallet',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).wallet();
+            },
+        });
+        t.nonNull.list.nonNull.field('payoutMethods', {
+            type: 'PayoutMethod',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).payoutMethods();
+            },
+        });
+        t.nonNull.list.nonNull.field('businessVerifications', {
+            type: 'BusinessVerification',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).businessVerifications();
+            },
+        });
+        t.nonNull.list.nonNull.field('paymentGatewayCreds', {
+            type: 'PaymentGatewayCredential',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).paymentGatewayCreds();
+            },
+        });
+        t.nonNull.list.nonNull.field('linkedAgents', {
+            type: 'Agent',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).linkedAgents();
+            },
+        });
+        t.nonNull.list.nonNull.field('mandateOffersReceived', {
+            type: 'MandateOffer',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).mandateOffersReceived();
+            },
+        });
+        t.nonNull.list.nonNull.field('mandateTransactions', {
+            type: 'MandateTransaction',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).mandateTransactions();
+            },
+        });
+        t.nonNull.list.nonNull.field('attendances', {
+            type: 'Attendance',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).attendances();
+            },
+        });
+        t.nonNull.list.nonNull.field('budgets', {
+            type: 'Budget',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).budgets();
+            },
+        });
+        t.nonNull.list.nonNull.field('contacts', {
+            type: 'Contact',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).contacts();
+            },
+        });
+        t.nonNull.list.nonNull.field('notifications', {
+            type: 'Notification',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).notifications();
+            },
+        });
+        t.nonNull.list.nonNull.field('orgCategories', {
+            type: 'OrgItemCategory',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).orgCategories();
+            },
+        });
+        t.nonNull.list.nonNull.field('restockCycles', {
+            type: 'RestockCycle',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).restockCycles();
+            },
+        });
+        t.nonNull.list.nonNull.field('restockSchedules', {
+            type: 'RestockSchedule',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).restockSchedules();
+            },
+        });
+        t.nonNull.list.nonNull.field('scPwdCustomers', {
+            type: 'ScPwdCustomer',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).scPwdCustomers();
+            },
+        });
+        t.nonNull.list.nonNull.field('shifts', {
+            type: 'Shift',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).shifts();
+            },
+        });
+        t.nonNull.list.nonNull.field('stockBatches', {
+            type: 'StockBatch',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).stockBatches();
+            },
+        });
+        t.nullable.field('supplierCatalog', {
+            type: 'SupplierCatalog',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).supplierCatalog();
+            },
+        });
+        t.nonNull.list.nonNull.field('sentPOs', {
+            type: 'PurchaseOrder',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).sentPOs();
+            },
+        });
+        t.nonNull.list.nonNull.field('receivedPOs', {
+            type: 'PurchaseOrder',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).receivedPOs();
+            },
+        });
+        t.nonNull.list.nonNull.field('buyerReceivedItemMaps', {
+            type: 'ReceivedItemMap',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).buyerReceivedItemMaps();
+            },
+        });
+        t.nonNull.list.nonNull.field('supplierLinks', {
+            type: 'SupplierOutletLink',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).supplierLinks();
+            },
+        });
+        t.nonNull.list.nonNull.field('supplierOrders', {
+            type: 'SupplierOrder',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).supplierOrders();
+            },
+        });
         t.nullable.field('subscription', {
             type: 'Subscription',
             resolve: (parent, _, ctx) => {
@@ -153,6 +340,18 @@ export const Organization = objectType({
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).brands();
             }
+        });
+        t.nonNull.list.nonNull.field('supplierWarehouses', {
+            type: 'SupplierWarehouse',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.organization
+                    .findUnique({ where: { id: parent.id } })
+                    .supplierWarehouses({
+                    orderBy: {
+                        name: 'asc',
+                    },
+                });
+            },
         });
     }
 });

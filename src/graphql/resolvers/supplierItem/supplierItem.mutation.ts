@@ -30,6 +30,7 @@ export const SupplierItemMutation = extendType({
         isVatExempt: nonNull(booleanArg()),
         vatRate: nonNull(floatArg()),
         moq: nonNull(intArg()),
+        image: nonNull(stringArg()),
         availableQty: nonNull(intArg()),
         priceTiers: nullable(list(nonNull(arg({ type: 'PriceTierInput' })))),
       },
@@ -47,7 +48,7 @@ export const SupplierItemMutation = extendType({
             moq,
             availableQty,
             priceTiers: priceTiers?.length
-              ? { create: priceTiers.map((t) => ({ minQty: t.minQty, price: t.price })) }
+              ? { create: priceTiers.map((t: any) => ({ minQty: t.minQty, price: t.price })) }
               : undefined,
           },
           include: { priceTiers: true },
@@ -67,6 +68,7 @@ export const SupplierItemMutation = extendType({
         isVatExempt: nullable(booleanArg()),
         vatRate: nullable(floatArg()),
         moq: nullable(intArg()),
+        image: nonNull(stringArg()),
         availableQty: nullable(intArg()),
         isActive: nullable(booleanArg()),
         priceTiers: nullable(list(nonNull(arg({ type: 'PriceTierInput' })))),
@@ -78,7 +80,7 @@ export const SupplierItemMutation = extendType({
         }
         if (priceTiers !== null && priceTiers !== undefined) {
           await ctx.prisma.priceTier.deleteMany({ where: { supplierItemId: id } })
-          data.priceTiers = { create: priceTiers.map((t) => ({ minQty: t.minQty, price: t.price })) }
+          data.priceTiers = { create: priceTiers.map((t: any) => ({ minQty: t.minQty, price: t.price })) }
         }
         return ctx.prisma.supplierItem.update({
           where: { id },

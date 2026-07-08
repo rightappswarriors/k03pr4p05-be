@@ -206,6 +206,175 @@ async function main() {
     }
 
     console.log('🎉 RBAC + Admin seed completed successfully.');
+    // ==============================
+    // DEV SANDBOX DATA
+    // ==============================
+    if (process.env.NODE_ENV === 'development') {
+        // 1. Supplier Organization
+
+        const supplierOrganization = await prisma.organization.findFirst({
+            where: {
+                name: "Dev Supplier"
+            }
+        })
+        if (!supplierOrganization) {
+            const newSupplierOrganization = await prisma.organization.create({
+                data: {
+                    name: "Dev Supplier",
+                    roles: ["SUPPLIER"],
+                    isDevSeed: true,
+                    subscription: {
+                        create: {
+                            plan: "GOLD",
+                        }
+                    },
+                    // depends on your schema
+                    wallet: {
+                        create: {
+                            // ...
+                        },
+                    },
+
+                    supplierCatalog: {
+                        create: {
+                            items: {
+                                create: [
+                                    {
+                                        name: "Rice",
+                                        unit: 'kg',
+                                        unitPrice: 45,
+                                        // ...
+                                    },
+                                    {
+                                        name: "Coffee",
+                                        unit: 'piece',
+                                        unitPrice: 120,
+                                    },
+                                    {
+                                        name: "Sugar",
+                                        unit: 'kg',
+                                        unitPrice: 60,
+                                    },
+                                    {
+                                        name: "Cooking Oil",
+                                        unit: 'liter',
+                                        unitPrice: 180,
+                                    },
+                                    {
+                                        name: "Soy Sauce",
+                                        unit: 'bottle',
+                                        unitPrice: 80,
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            });
+            console.log("Created a supplier organization with sample catalog items for dev sandbox.");
+            const supplierPass = await bcrypt.hash("supplier123", 10);
+            await prisma.user.upsert({
+                where: {
+                    email: "supplier@supplier.dev.com"
+                },
+                update: {
+                    fullname: "Dev Supplier User",
+                    username: "devsupplier",
+                    password: supplierPass
+                },
+                create: {
+                    fullname: "Dev Supplier User",
+                    username: "devsupplier",
+                    email: "supplier@supplier.dev.com",
+                    password: supplierPass,
+                    role: 'OWNER',
+                    isVerified: true,
+                    isOwner: true,
+                    orgId: newSupplierOrganization.id   
+                }
+            })
+            console.log('Supplier organization and user created for dev sandbox.', 'Email:', "supplier@supplier.dev.com", 'Password:', "supplier123");
+        } else {
+            await prisma.organization.update({
+                where: {
+                    id: supplierOrganization.id
+                },
+                data: {
+                    isDevSeed: true,
+                    roles: ["SUPPLIER"],
+                }
+            })
+            console.log('Supplier organization already exists for dev sandbox. Marked as dev seed.');
+        } 
+        const seller = await prisma.organization.findFirst({
+            where: {
+                name: "Dev Seller"
+            }
+        })
+        if (!seller) {
+            const sellerOrg = await prisma.organization.create({
+                data: {
+                    name: "Dev Seller",
+                    roles: ["SELLER"],
+                    isDevSeed: true,
+                    subscription: {
+                        create: {
+                            plan: "GOLD",
+                        }
+                    },
+                },
+            });
+            const sellerPass = await bcrypt.hash("seller123", 10);
+            const sellerUser = await prisma.user.create({
+                data: {
+                    fullname: "Dev Seller User",
+                    username: "devseller",
+                    email: "seller@seller.dev.com",
+                    password: sellerPass,
+                    role: 'OWNER',
+                    isVerified: true,
+                    isOwner: true,
+                    orgId: sellerOrg.id
+                }
+            })
+            console.log("Seller user created:", sellerUser.email, "with password:", "seller123");
+
+            await prisma.agent.create({
+                data: {
+                    fullname: "Seller Linked Agent",
+                    email: "agentSeller@seller.dev.com",
+                    agentType: "ORG_LINKED",
+                    organizationId: sellerOrg.id,
+
+                    verificationStatus: "APPROVED",
+                    environment: "SANDBOX",
+                    passwordHash: sellerPass,
+                    isDevSeed: true,
+                },
+            });
+        }
+
+        const existingStandaloneAgent = await prisma.agent.findFirst({
+            where: {
+                email: "agentStandalone@standalone.dev.com"
+            }
+        });
+        if (!existingStandaloneAgent) {
+            await prisma.agent.create({
+                data: {
+                    fullname: "Standalone Agent",
+                    email: "agentStandalone@standalone.dev.com",
+                    agentType: "STANDALONE",
+                    isDevSeed: true,
+                    environment: "SANDBOX",
+                    verificationStatus: "APPROVED",
+                    passwordHash: await bcrypt.hash("standalone123", 10),
+                },
+            });
+        }
+        console.log('Agents created for dev sandbox: Seller Linked Agent and Standalone Agent');
+        console.log('🎉 Dev sandbox data seeded successfully.');
+    }
 }
 
 main()

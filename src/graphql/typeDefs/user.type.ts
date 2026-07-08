@@ -1,5 +1,4 @@
 // src/graphql/typeDefs/user.type.ts    
-import { DateTime } from 'graphql-scalars/typings/typeDefs'
 import { objectType, enumType } from 'nexus'
 
 export const Role = enumType({

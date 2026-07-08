@@ -1,4 +1,4 @@
-import { extendType, nonNull, stringArg, intArg, nullable, list, arg } from 'nexus'
+import { extendType, nonNull, stringArg, intArg, nullable, list, arg, objectType } from 'nexus'
 
 export const PurchaseOrderQuery = extendType({
   type: 'Query',
@@ -64,6 +64,38 @@ export const PurchaseOrderQuery = extendType({
             supplierOrg: true,
             outlet: true,
           },
+        })
+      },
+    })
+  },
+})
+
+export const AuditLogEntryType = objectType({
+  name: 'AuditLogEntry',
+  definition(t) {
+    t.nonNull.string('id')
+    t.nonNull.field('action', { type: 'AuditAction' })
+    t.nonNull.field('createdAt', { type: 'DateTime' })
+    t.nullable.field('userFullname', {
+      type: 'String',
+      resolve: async (log, _args, ctx) => {
+        const user = await ctx.prisma.user.findUnique({ where: { id: log.userId } })
+        return user?.fullname ?? null
+      },
+    })
+  },
+})
+
+export const PurchaseOrderActivityQuery = extendType({
+  type: 'Query',
+  definition(t) {
+    t.nonNull.list.nonNull.field('purchaseOrderActivity', {
+      type: 'AuditLogEntry',
+      args: { poId: nonNull(stringArg()) },
+      resolve: async (_, { poId }, ctx) => {
+        return ctx.prisma.auditLog.findMany({
+          where: { recordType: 'PurchaseOrder', recordId: poId, deletedAt: null },
+          orderBy: { createdAt: 'desc' },
         })
       },
     })

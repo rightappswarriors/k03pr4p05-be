@@ -1,3 +1,4 @@
+// src/graphql/typeDefs/user.type.ts    
 import { objectType, enumType } from 'nexus';
 export const Role = enumType({
     name: 'Role',

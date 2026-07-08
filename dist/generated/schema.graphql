@@ -136,6 +136,46 @@ type AdminUsersResult {
   total: Int!
 }
 
+type Agent {
+  agentType: AgentType!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  email: String!
+  environment: Environment!
+  fullname: String!
+  id: String!
+  isDevSeed: Boolean!
+  isVerified: Boolean!
+  mandates: [Mandate!]!
+  organization: Organization
+  organizationId: Int
+  passwordHash: String!
+  phone: String
+  trustTier: String!
+  updatedAt: DateTime!
+  verificationStatus: VerificationStatus!
+  verifications: [AgentVerification!]!
+}
+
+enum AgentType {
+  ORG_LINKED
+  STANDALONE
+}
+
+type AgentVerification {
+  agent: Agent!
+  agentId: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  documentType: DocumentType!
+  environment: Environment!
+  fileUrl: String!
+  id: String!
+  reviewedAt: DateTime
+  reviewedById: Int
+  status: VerificationStatus!
+}
+
 type AnalyticsSummary {
   grossProfit: Float!
   profitChange: Float!
@@ -189,6 +229,13 @@ enum AuditAction {
   VIEW
 }
 
+type AuditLogEntry {
+  action: AuditAction!
+  createdAt: DateTime!
+  id: String!
+  userFullname: String
+}
+
 input AuditLogFiltersInput {
   action: AuditAction
   dateFrom: DateTime
@@ -217,6 +264,13 @@ type AuthPayload {
   refresh_token: String!
   token: String!
   user: User!
+}
+
+type BatchDistributionEntry {
+  batchId: String!
+  batchNumber: String
+  remainingQty: Float!
+  unitCost: Float!
 }
 
 type BatchPayload {
@@ -293,6 +347,27 @@ type Budget {
   user: User
   userId: Int
   year: Int!
+}
+
+input BulkPriceUpdateItemInput {
+  price: Float!
+  supplierItemId: String!
+}
+
+type BusinessVerification {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  documentType: DocumentType!
+  environment: Environment!
+  fileUrl: String!
+  id: String!
+  notes: String
+  orgId: Int!
+  organization: Organization!
+  reviewedAt: DateTime
+  reviewedById: Int
+  status: VerificationStatus!
+  updatedAt: DateTime!
 }
 
 type CartItem {
@@ -709,6 +784,22 @@ enum DiscountType {
   SENIOR_CITIZEN
 }
 
+enum DisputeStatus {
+  NONE
+  RAISED
+  RESOLVED
+  UNDER_REVIEW
+}
+
+enum DocumentType {
+  BIR_2303
+  BUSINESS_PERMIT
+  DTI_SEC_REGISTRATION
+  OTHER
+  PROOF_OF_ADDRESS
+  VALID_ID
+}
+
 type Employee {
   department: String!
   email: String!
@@ -732,6 +823,28 @@ enum EmployeeStatus {
   On_Leave
 }
 
+enum Environment {
+  PRODUCTION
+  SANDBOX
+}
+
+type EscrowRelease {
+  autoReleaseAt: DateTime
+  buyerConfirmedAt: DateTime
+  buyerProofUrl: String
+  createdAt: DateTime!
+  disputeReason: String
+  disputeStatus: DisputeStatus!
+  id: String!
+  mandateTransaction: MandateTransaction!
+  mandateTransactionId: String!
+  releasedAt: DateTime
+  resolvedById: Int
+  sellerConfirmedAt: DateTime
+  sellerProofUrl: String
+  updatedAt: DateTime!
+}
+
 type ExtraCharge {
   amount: Float!
   createdAt: DateTime!
@@ -743,6 +856,33 @@ type ExtraCharge {
 input ExtraChargeInput {
   amount: Float!
   label: String!
+}
+
+enum FeeApplication {
+  MANDATE_TRANSACTION
+  RETAIL_ORDER
+}
+
+enum FeeRateType {
+  FLAT
+  PERCENTAGE
+  PER_UNIT
+}
+
+type FeeRule {
+  appliesTo: FeeApplication!
+  category: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  effectiveFrom: DateTime!
+  effectiveTo: DateTime
+  id: String!
+  isActive: Boolean!
+  rate: Float!
+  rateType: FeeRateType!
+  tierModifier: Float
+  unitType: String
+  updatedAt: DateTime!
 }
 
 enum FeeType {
@@ -783,6 +923,19 @@ type Inventory {
   outletId: Int!
 }
 
+type InventoryAnalytics {
+  averageCost: Float!
+  avgDaysInStock: Float
+  batchDistribution: [BatchDistributionEntry!]!
+  estimatedProfit: Float
+  highestCost: Float
+  inventoryTurnover: Float
+  inventoryValue: Float!
+  lowestCost: Float
+  marginPct: Float
+  stockAging: StockAgingBuckets!
+}
+
 type InventoryCategoryBreakdown {
   name: String!
   totalStock: Float!
@@ -791,6 +944,16 @@ type InventoryCategoryBreakdown {
 type InventoryForItem {
   id: Int!
   outlet: InventoryOutletSummary
+}
+
+type InventoryForecast {
+  avgDailyConsumption: Float
+  daysRemaining: Float
+  expectedStockoutDate: DateTime
+  hasData: Boolean!
+  isLowStockPredicted: Boolean
+  suggestedReorderDate: DateTime
+  suggestedReorderQty: Float
 }
 
 type InventoryItem {
@@ -869,6 +1032,27 @@ type InventoryOutletSummary {
   code: String!
   id: Int!
   name: String!
+}
+
+type InventoryReconcileResult {
+  after: InventoryRollupSnapshot!
+  before: InventoryRollupSnapshot!
+  driftDetected: Boolean!
+}
+
+type InventoryRollupSnapshot {
+  availableQty: Float!
+  damagedQty: Float!
+  incomingQty: Float!
+  reservedQty: Float!
+  returnedQty: Float!
+}
+
+type InventoryValuation {
+  averageCost: Float!
+  batchCount: Int!
+  totalQty: Float!
+  totalValue: Float!
 }
 
 type Item {
@@ -1161,6 +1345,29 @@ type KompraItemGroup {
   name: String!
 }
 
+enum LedgerEntryStatus {
+  AVAILABLE
+  HELD
+  RELEASED
+  REVERSED
+}
+
+enum LedgerEntryType {
+  CREDIT
+  DEBIT
+}
+
+enum LedgerSourceType {
+  ADJUSTMENT
+  ESCROW_HOLD
+  ESCROW_RELEASE
+  MANDATE_TRANSACTION
+  PLATFORM_FEE
+  RETAIL_ORDER
+  SUBSCRIPTION_FEE
+  WITHDRAWAL
+}
+
 type Location {
   aisle: String!
   id: Int!
@@ -1173,6 +1380,95 @@ input LocationInput {
   aisle: String
   rack: String
   shelf: String
+}
+
+type Mandate {
+  agent: Agent!
+  agentId: String!
+  category: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: String!
+  latitude: Float
+  longitude: Float
+  notes: String
+  offers: [MandateOffer!]!
+  quantity: Float!
+  radiusKm: Float
+  status: MandateStatus!
+  targetPrice: Float
+  transaction: MandateTransaction
+  unitType: String!
+  updatedAt: DateTime!
+}
+
+type MandateOffer {
+  availableQty: Float!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  expiresAt: DateTime
+  id: String!
+  mandate: Mandate!
+  mandateId: String!
+  price: Float!
+  status: MandateOfferStatus!
+  supplierOrg: Organization!
+  supplierOrgId: Int!
+  terms: String
+  updatedAt: DateTime!
+}
+
+enum MandateOfferStatus {
+  ACCEPTED
+  EXPIRED
+  PENDING
+  REJECTED
+  WITHDRAWN
+}
+
+enum MandateStatus {
+  ACCEPTED
+  CANCELLED
+  COMPLETED
+  DISPUTED
+  DRAFT
+  FUNDED
+  OFFERED
+  SEARCHING
+  SENT
+  SETTLED
+}
+
+type MandateTransaction {
+  agentId: String!
+  amount: Float!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  environment: Environment!
+  escrow: EscrowRelease
+  feeAmount: Float!
+  id: String!
+  linkedPoId: String
+  mandate: Mandate!
+  mandateId: String!
+  netAmount: Float!
+  offerId: String!
+  paymentTransactionId: String
+  settlementType: SettlementType!
+  status: MandateTransactionStatus!
+  supplierOrg: Organization!
+  supplierOrgId: Int!
+  updatedAt: DateTime!
+}
+
+enum MandateTransactionStatus {
+  CANCELLED
+  COMPLETED
+  DISPUTED
+  FUNDED
+  PENDING
+  REFUNDED
+  SETTLED
 }
 
 type Media {
@@ -1203,11 +1499,15 @@ type Mutation {
   addItemMedia(itemId: Int!, media: [AddMediaInput!]!): [Media!]!
   addItemToInventoryWithUnits(data: AddItemToInventoryWithUnitsInput!, outletId: ID!): InventoryItems
   addItemsToInventory(inventoryId: ID!, items: [AddItemToInventoryInput!]!): BatchPayload
+  adjustStock(delta: Float!, reason: String!, supplierItemId: String!, unitCost: Float, warehouseId: String): SupplierInventoryMovement
   assignKompraOrderRider(orderId: Int!, riderName: String!, riderPhone: String): KompraCOrder!
   banUser(userId: Int!): User!
   bulkCreateInventoryItems(items: [InventoryItemInput!]!): [InventoryItems!]!
+  bulkUpdatePrices(changedById: Int, items: [BulkPriceUpdateItemInput!]!, reason: String): [SupplierItem!]
+  cancelIncomingStock(incomingStockId: String!): Boolean
   cancelKompraOrder(actorId: Int!, actorType: String!, orderId: Int!, reason: String): KompraCOrder!
   cancelSalesOrder(id: String!, reason: String): SalesOrder
+  cancelScheduledPrice(id: String): SupplierScheduledPrice
   changePassword(newPassword: String!, oldPassword: String!): Boolean!
   changeUserPassword(password: String!, userId: Int!): Boolean!
   confirmDelivery(items: [SupplierOrderItemInput!]!, orderId: Int!): SupplierOrder
@@ -1230,6 +1530,7 @@ type Mutation {
   createItems(items: [CreateItemInput!]!): BatchPayload!
   createOrgItemCategory(categoryId: Int, cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, name: String!, sales: String, stocks: String): OrgItemCategory!
   createOrganization(name: String!, roles: [OrgRole!]): Organization
+  createOrganizationReview(comment: String, organizationId: Int!, rating: Int!, reviewerCustomerId: Int, reviewerName: String, title: String): OrganizationReview!
   createOutlet(address: String!, bannerImage: String, bir: String, branchId: ID!, code: String!, governmentTax: Float!, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String!, outletPromos: [OutletPromoInput!], outletType: OutletType!, phone: String, ptu: String, serviceCharge: Float!, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   createOutletPromo(data: CreateOutletPromoInput!): OutletPromo!
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
@@ -1240,12 +1541,15 @@ type Mutation {
   createRestockSchedule(data: RestockScheduleInput!): RestockSchedule
   createSalesOrder(branchId: Int, customer: String, customerContact: String, customerName: String, customerType: CustomerType, deliveryAddress: String, deliveryNotes: String, discountAmount: Float, discountRate: Float, discountType: DiscountType, extraCharges: [ExtraChargeInput!], items: [SalesOrderItemInput!]!, orderMode: OrderModeEnum!, outletId: Int, outletPromoId: Int, scPwdCustomerInput: ScPwdCustomerInput, scPwdPax: Int, subtotal: Float, total: Float, totalPax: Int, vatAmount: Float, vatRate: Float): SalesOrder
   createScPwdCustomer(data: ScPwdCustomerInput!): ScPwdCustomer
+  createScheduledPrice(createdById: Int, effectiveAt: DateTime, expiresAt: DateTime, price: Float, reason: String, supplierItemId: String): SupplierScheduledPrice
   createStaff(departmentId: Int, email: String!, fullname: String!, password: String!, positionId: String, role: Role, username: String!): User!
   createSubCenter(label: String): SubCenter
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int!, centerId: Int!, costInputAmount: Float, costInputVatInclusive: Boolean!, costLines: Json, description: String, itemCode: String, itemId: Int, itemName: String, opExPct: Float!, orgId: Int!, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean!, subCenterId: Int!, vatTypeId: Int!): SummaryRow
-  createSupplierItem(availableQty: Int!, catalogId: String!, description: String, isVatExempt: Boolean!, moq: Int!, name: String!, priceTiers: [PriceTierInput!], sku: String, unit: String!, unitPrice: Float!, vatRate: Float!): SupplierItem!
+  createSupplierItem(availableQty: Int!, catalogId: String!, description: String, image: String!, isVatExempt: Boolean!, moq: Int!, name: String!, priceTiers: [PriceTierInput!], sku: String, unit: String!, unitPrice: Float!, vatRate: Float!): SupplierItem!
+  createSupplierItemReview(comment: String, rating: Int!, supplierItemId: String!, title: String): SupplierItemReview!
+  createSupplierPayoutMethod(accountName: String!, bankName: String, isDefault: Boolean, maskedAccountNumber: String!, type: PayoutMethodType!): PayoutMethod
   createTransaction(cashReceived: Float, cashierId: Int!, change: Float, createdAt: String!, customerType: CustomerType, discountAmount: Float, discountRate: Float, discountType: DiscountType, isVatExempt: Boolean, itemsSold: [CartItemInput!]!, outletId: Int!, outletPromoId: Int, paymentMethod: PaymentMethod!, paymentType: String, promoDiscountAmt: Float, scPwdCustomerInput: ScPwdCustomerInput, scPwdPax: Int, status: Status!, subtotal: Float!, total: Float!, totalPax: Int, vatAmount: Float!, vatExemptAmount: Float, vatExemptRefNo: String, vatExemptSale: Float, vatExemptType: VatExemptType): Transaction
   createVatType(name: String, rate: Float): VatType
   deactivateInventoryItemUnit(id: Int!): InventoryItemUnit!
@@ -1264,6 +1568,7 @@ type Mutation {
   deleteItemGroup(id: Int): ItemGroup
   deleteItemMedia(id: Int!): Media!
   deleteOrgItemCategory(id: Int!): OrgItemCategory!
+  deleteOrganizationReview(id: String!): OrganizationReview!
   deleteOutlet(id: ID!): Outlet!
   deleteOutletPromo(id: Int!): OutletPromo!
   deleteOutletStaffs(id: ID!, userIds: [ID!]!): OutletStaff!
@@ -1273,38 +1578,53 @@ type Mutation {
   deleteRestockCycle(id: Int!): RestockCycle
   deleteRestockSchedule(id: Int!): RestockSchedule
   deleteSalarySnapshot(id: ID!): SalaryHistory!
+  deleteScheduledPrice(id: String): SupplierScheduledPrice
   deleteSubCenter(id: Int): SubCenter
   deleteSubscriptionAdmin(orgId: Int!): Subscription
   deleteSummaryRow(id: Int!): SummaryRow
   deleteSupplierItem(id: String!): SupplierItem!
+  deleteSupplierItemReview(id: String!): SupplierItemReview!
   deleteUser(id: ID!): User!
   deleteVatType(id: Int): VatType
+  editScheduledPrice(effectiveAt: DateTime, expiresAt: DateTime, id: String, price: Float, reason: String): SupplierScheduledPrice
   endBreak(noteBreakEnd: String!, photoBreakEnd: String!): Attendance
   extendSubscriptionAdmin(days: Int!, orgId: Int!): Subscription
   finalizeTransaction(customerDetails: CustomerDetailsInput, itemsSold: [CartItemInput!]!, outletId: Int!, paymentMethod: PaymentMethod!, subtotal: Float!, total: Float!, vatAmount: Float!): Transaction
   initiatePayment(customerDetails: CustomerDetailsInput, outletId: Int!, paymentMethod: PaymentMethod!, paymentType: PaymentTypeEnum!, total: Float!): PaymentInitiation
+  logIncomingStock(expectedDate: DateTime, expectedQty: Float!, notes: String, sourceLabel: String, supplierItemId: String!, warehouseId: String): SupplierIncomingStock
   login(email: String!, password: String!): AuthPayload!
   mapReceivedItem(buyerOrgId: Int!, itemId: Int!, outletId: Int, supplierItemId: String!): ReceivedItemMap!
+  markAllNotificationsRead: Boolean!
+  markDamagedStock(quantity: Float!, reason: String!, supplierItemId: String!, warehouseId: String): SupplierInventoryMovement
   markDelivered(notes: String, poId: String!): Delivery!
   markKompraOrderDelivered(orderId: Int!): KompraCOrder!
   markKompraOrderPacked(orderId: Int!, outletNote: String): KompraCOrder!
+  markNotificationRead(id: Int!): Notification!
   markOrderInDelivery(orderId: Int!, riderName: String!, riderPhone: String!): KompraCOrder!
+  markReturnedStock(quantity: Float!, reason: String, supplierItemId: String!): SupplierInventoryMovement
   me: User!
   placeKompraOrder(customerId: Int!, input: PlaceOrderInput!): KompraCOrder!
   processCustomerReturn(items: [ReturnItemInput!]!, outletId: Int!, transactionId: Int!): ReturnResult
   processSalesOrder(id: String!): SalesOrder
+  receiveIncomingStock(batchNumber: String, expiryDate: DateTime, incomingStockId: String!, unitCost: Float!): SupplierStockBatch
   receivePurchaseOrder(items: [ReceivePurchaseOrderItemInput!]!, supplierOrderId: Int!): SupplierOrder
   receiveSalesOrder(id: String!): SalesOrder
+  receiveStock(batchNumber: String, expiryDate: DateTime, quantity: Float!, supplierItemId: String!, unitCost: Float!, warehouseId: String): SupplierStockBatch
+  reconcileInventoryRollups(supplierItemId: String!): InventoryReconcileResult
   recordSalarySnapshot(ammount: Float!, effectiveAt: String, employeeId: ID!): SalaryHistory!
   refreshToken(refresh_token: String!): AuthPayload!
   registerAdmin(contactNumber: String, email: String!, fullname: String!, password: String!, role: String): User!
   registerKompraCustomer(input: RegisterCustomerInput!): KompraCustomer!
   registerUser(contactNumber: String, email: String!, fullname: String!, password: String!): User!
   rejectPO(id: String!): PurchaseOrder!
+  releaseReservation(quantity: Float!, reason: String, supplierItemId: String!): SupplierInventoryMovement
   removeExtraCharge(extraChargeId: String!): SalesOrder
   reorderItemMedia(itemId: Int!, order: [MediaSortOrderInput!]!): [Media!]!
+  requestSupplierWithdrawal(amount: Float!, payoutMethodId: Int!): Withdrawal
   resendOTP(email: String!): String!
+  reserveStock(quantity: Float!, referenceId: String, referenceType: String, supplierItemId: String!): SupplierInventoryMovement
   restockOutlet: RestockOutletPayload
+  restockReturnedItem(quantity: Float!, supplierItemId: String!, unitCost: Float!, warehouseId: String): SupplierInventoryMovement
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   setPositionPermissions(permissions: [PermissionInput!]!, positionId: String!): [PositionPermission!]!
   setUserPermissionOverride(canCreate: Boolean, canDelete: Boolean, canEdit: Boolean, canView: Boolean, pageId: String!, userId: Int!): UserPermissionOverride!
@@ -1319,6 +1639,7 @@ type Mutation {
   toggleContact(id: Int!): Contact
   toggleRestockCycle(id: Int!): RestockCycle
   toggleRestockSchedule(id: Int!): RestockSchedule
+  transferStock(fromWarehouseId: String!, quantity: Float!, reason: String, supplierItemId: String!, toWarehouseId: String!): [SupplierStockBatch!]!
   unbanUser(userId: Int!): User!
   unmapReceivedItem(id: String!): ReceivedItemMap!
   unverifyUser(userId: Int!): User!
@@ -1339,11 +1660,13 @@ type Mutation {
   updateMyProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, zipCode: String): User
   updateOrgItemCategory(cost_of_sale: String, description: String, groupId: Int, groupType: String, icon: String, id: Int!, isActive: Boolean, name: String, sales: String, stocks: String): OrgItemCategory!
   updateOrganization(bannerImg: String, bio: String, contactNumber: String, email: String, facebookLink: String, id: Int!, instagramLink: String, location: String, name: String, profileImg: String, twitterLink: String): Organization
+  updateOrganizationReview(comment: String, id: String!, rating: Int, reviewerName: String, title: String): OrganizationReview!
   updateOutlet(address: String, bannerImage: String, bir: String, code: String, governmentTax: Float, isActive: Boolean, isVatRegistered: Boolean, latitude: Float, longitude: Float, name: String, outletId: ID!, outletPromos: [OutletPromoInput!], outletType: OutletType, phone: String, ptu: String, serviceCharge: Float, status: OutletStatus, tin: String, vatTypeId: Int, vatZeroSale: Float, wifiSSID: String): Outlet!
   updateOutletItem(data: UpdateOutletItemInput!): InventoryItems
   updateOutletPromo(data: UpdateOutletPromoInput!, id: Int!): OutletPromo!
   updatePlaceLocation(address: String, id: Int, name: String): PlaceLocation
   updatePosition(id: String!, input: PositionInput!): Position!
+  updatePrice(changedById: Int, effectiveAt: DateTime, moq: Int, price: Float, priceTiers: [PriceTierInput], reason: String, supplierItemId: String, vatRate: Float): SupplierItem
   updatePromoType(data: UpdatePromoTypeInput!, id: Int!): PromoType!
   updateRestockCycle(data: RestockCycleInput!, id: Int!): RestockCycle
   updateRestockSchedule(data: RestockScheduleInput!, id: Int!): RestockSchedule
@@ -1354,11 +1677,13 @@ type Mutation {
   updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, centerId: Int, costInputAmount: Float, costInputVatInclusive: Boolean, costLines: Json, description: String, id: Int!, itemCode: String, itemId: Int, itemName: String, opExPct: Float, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean, subCenterId: Int, vatTypeId: Int): SummaryRow
-  updateSupplierItem(availableQty: Int, description: String, id: String!, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
+  updateSupplierItem(availableQty: Int, description: String, id: String!, image: String!, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
+  updateSupplierItemReview(comment: String, id: String!, rating: Int, title: String): SupplierItemReview!
   updateUser(fullname: String, id: ID!, positionId: String, role: Role, salary: Float, username: String): User!
   updateUserProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, userId: Int!, zipCode: String): User
   updateVatType(id: Int, name: String, rate: Float): VatType
   upsertSupplierCatalog(organizationId: Int!): SupplierCatalog!
+  upsertSupplierWarehouse(address: String, id: String, isDefault: Boolean, latitude: Float, longitude: Float, name: String!, organizationId: Int!): SupplierWarehouse
   verifyEmail(code: String!, email: String!): AuthPayload!
   verifyUser(userId: Int!): User!
 }
@@ -1367,6 +1692,20 @@ type MyOutletAssignment {
   outletId: Int!
   outletName: String!
   role: String!
+}
+
+type Notification {
+  createdAt: String!
+  id: Int!
+  isRead: Boolean!
+  item: Item
+  itemId: Int
+  message: String!
+  orgId: Int!
+  outlet: Outlet
+  outletId: Int
+  title: String!
+  type: String!
 }
 
 input OrderItemInput {
@@ -1426,12 +1765,18 @@ enum OrgRole {
 
 type Organization {
   accountTitles: [AccountTitle!]!
+  attendances: [Attendance!]!
+  averageRating: Float!
   bannerImg: String
   bio: String
   branches: [Branch!]!
   brands: [Brand!]!
+  budgets: [Budget!]!
+  businessVerifications: [BusinessVerification!]!
+  buyerReceivedItemMaps: [ReceivedItemMap!]!
   centers: [Center!]!
   contactNumber: String
+  contacts: [Contact!]!
   createdAt: DateTime!
   deletedAt: DateTime
   departments: [Department!]!
@@ -1442,26 +1787,73 @@ type Organization {
   id: Int!
   instagramLink: String
   inventoryItems: [InventoryItem!]!
+  isDevSeed: Boolean!
   itemCategories: [ItemCategory!]!
   itemGroups: [ItemGroup!]!
   items: [Item!]!
   kompraCOrders: [KompraCOrder!]!
+  linkedAgents: [Agent!]!
   location: String
+  mandateOffersReceived: [MandateOffer!]!
+  mandateTransactions: [MandateTransaction!]!
   name: String!
+  notifications: [Notification!]!
+  orgCategories: [OrgItemCategory!]!
   outlets: [Outlet!]!
+  paymentGatewayCreds: [PaymentGatewayCredential!]!
+  payoutMethods: [PayoutMethod!]!
   positions: [Position!]!
   profileImg: String
   profilePhoto: String
   promoTypes: [PromoType!]!
+  receivedPOs: [PurchaseOrder!]!
+  restockCycles: [RestockCycle!]!
+  restockSchedules: [RestockSchedule!]!
+  reviewCount: Int!
+  reviews: [OrganizationReview!]!
+  reviewsReceived: [OrganizationReview!]!
+  reviewsWritten: [OrganizationReview!]!
   roles: [OrgRole!]!
   salesOrders: [SalesOrder!]!
+  scPwdCustomers: [ScPwdCustomer!]!
+  sentPOs: [PurchaseOrder!]!
+  shifts: [Shift!]!
+  stockBatches: [StockBatch!]!
   subCenters: [SubCenter!]!
   subscription: Subscription
   summaryRows: [SummaryRow!]!
+  supplierCatalog: SupplierCatalog
+  supplierLinks: [SupplierOutletLink!]!
+  supplierOrders: [SupplierOrder!]!
+  supplierWarehouses: [SupplierWarehouse!]!
+  totalReviews: Int!
   twitterLink: String
   updatedAt: DateTime
   users: [User!]!
   vatTypes: [VatType!]!
+  verifiedReviewsCount: Int!
+  wallet: Wallet
+}
+
+type OrganizationReview {
+  comment: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: String!
+  isVerifiedTransaction: Boolean!
+  organizationId: Int!
+  rating: Int!
+  reviewer: Organization
+  reviewerCustomerId: Int
+  reviewerName: String
+  reviewerOrgId: Int
+  title: String
+  updatedAt: DateTime!
+}
+
+type OrganizationReviewPayload {
+  aggregate: ReviewAggregate!
+  reviews: [OrganizationReview!]!
 }
 
 type Outlet {
@@ -1718,6 +2110,26 @@ input PaginationInput {
   pageSize: Int
 }
 
+type PaymentGatewayCredential {
+  createdAt: DateTime!
+  deletedAt: DateTime
+  environment: Environment!
+  id: Int!
+  isActive: Boolean!
+  orgId: Int
+  organization: Organization
+  provider: PaymentGatewayProvider!
+  publicKey: String
+  updatedAt: DateTime!
+}
+
+enum PaymentGatewayProvider {
+  BANK_API
+  GCASH
+  PAYMAYA
+  PAYMONGO
+}
+
 type PaymentInitiation {
   client_key: String!
   paymentIntentId: String!
@@ -1731,6 +2143,37 @@ enum PaymentMethod {
   CARD
   CASH
   E_WALLET
+}
+
+enum PaymentRelatedType {
+  KOMPRA_C_ORDER
+  MANDATE_TRANSACTION
+  SALES_ORDER
+  SUBSCRIPTION
+}
+
+type PaymentTransaction {
+  amount: Float!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  environment: Environment!
+  feeAmount: Float!
+  gatewayReference: String
+  id: String!
+  payerAgentId: String
+  payerOrgId: Int
+  provider: PaymentGatewayProvider!
+  relatedId: String!
+  relatedType: PaymentRelatedType!
+  status: PaymentTransactionStatus!
+  updatedAt: DateTime!
+}
+
+enum PaymentTransactionStatus {
+  FAILED
+  PENDING
+  REFUNDED
+  SUCCEEDED
 }
 
 enum PaymentType {
@@ -1752,6 +2195,30 @@ type PaymongoAPIKeys {
   outlets: [Outlet!]!
   owner: User!
   public_key: String!
+}
+
+type PayoutMethod {
+  accountName: String!
+  bankName: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: Int!
+  isDefault: Boolean!
+  isVerified: Boolean!
+  maskedAccountNumber: String!
+  orgId: Int!
+  organization: Organization!
+  type: PayoutMethodType!
+  updatedAt: DateTime!
+  verifiedAt: DateTime
+  withdrawals: [Withdrawal!]!
+}
+
+enum PayoutMethodType {
+  BANK_TRANSFER
+  CHECK
+  GCASH
+  PAYMAYA
 }
 
 type PerformanceSummary {
@@ -1841,6 +2308,71 @@ input PriceTierInput {
   price: Float!
 }
 
+type PricingAnalytics {
+  averageMargin: Float!
+  averageSellingPrice: Float!
+  estimatedProfit: Float!
+  estimatedRevenue: Float!
+  highestPrice: Float!
+  lowestPrice: Float!
+  priceChangeCount: Int!
+  priceTrend: [SupplierItemPriceHistory!]!
+}
+
+type PricingDetail {
+  margin: Float!
+  markup: Float!
+  profitPerUnit: Float!
+  supplierItem: SupplierItem!
+}
+
+type PricingKPIs {
+  activePriceCount: Int!
+  averageMargin: Float!
+  averageSellingPrice: Float!
+  highestMargin: Float!
+  lowestMargin: Float!
+  priceUpdatesThisMonth: Int!
+  productsOnPromotion: Int!
+  scheduledPriceChanges: Int!
+}
+
+input PricingListFilterInput {
+  brand: String
+  categoryId: Int
+  endDate: DateTime
+  maxMargin: Float
+  maxPrice: Float
+  minMargin: Float
+  minPrice: Float
+  search: String
+  startDate: DateTime
+}
+
+type PricingListItem {
+  categoryId: Int
+  categoryName: String
+  currentCost: Float!
+  id: String!
+  image: String
+  isActive: Boolean!
+  margin: Float!
+  markup: Float!
+  name: String!
+  priceTierCount: Int!
+  sellingPrice: Float!
+  sku: String
+  supplierItem: SupplierItem!
+  updatedAt: DateTime!
+}
+
+type PricingListResult {
+  items: [PricingListItem!]!
+  page: Int!
+  pageSize: Int!
+  total: Int!
+}
+
 type PromoType {
   createdAt: DateTime!
   description: String
@@ -1922,6 +2454,7 @@ type Query {
   getLatestSalary(employeeId: ID!): SalaryHistory
   getMyProfile: User
   getMySubscription: Subscription
+  getNotifications(limit: Int): [Notification!]!
   getOrgBranches: [Branch!]!
   getOrgCategories(groupId: Int, isActive: Boolean, orderBy: String, pageSize: Int, query: String): [OrgItemCategory!]!
   getOrgCategoryById(id: Int!): OrgItemCategory
@@ -1951,6 +2484,7 @@ type Query {
   getTransactionById(id: Int!): Transaction
   getTransactionsByOrgId(endDate: String, startDate: String): [Transaction!]!
   getTransactionsByStoreId(endDate: DateTime, outletId: Int!, startDate: DateTime): [Transaction!]!
+  getUnreadCount: Int!
   getUserById(id: ID!): User!
   getUserProfile(userId: Int!): User
   gisRow(id: Int): GISRow
@@ -1974,6 +2508,7 @@ type Query {
   myPerformanceSummary(from: String!, to: String!): PerformanceSummary
   nearestOutletsWithItems(customerLat: Float!, customerLng: Float!, items: [SearchItemInput!]!, maxResults: Int): [OutletSearchResult!]!
   organization(id: Int): Organization
+  organizationReviews(organizationId: Int!): OrganizationReviewPayload!
   organizations: [Organization]
   outletCatalog(outletId: Int!): OutletCatalogResult!
   outletOrderQueue(outletId: Int!): [KompraCOrder!]!
@@ -1986,10 +2521,15 @@ type Query {
   placeLocations(orgId: Int): [PlaceLocation]
   position(id: String!): Position
   positions: [Position!]!
+  pricingAnalytics(supplierItemId: String): PricingAnalytics
+  pricingDashboard(catalogId: String): PricingKPIs
+  pricingDetail(supplierItemId: String): PricingDetail
+  pricingList(catalogId: String, filter: PricingListFilterInput, page: Int, pageSize: Int): PricingListResult
   promoType(id: Int!): PromoType
   promoTypes: [PromoType!]!
   promoTypesByOrg: [PromoType!]!
   purchaseOrder(id: String!): PurchaseOrder
+  purchaseOrderActivity(poId: String!): [AuditLogEntry!]!
   purchaseOrdersForBuyer(buyerOrgId: Int!, status: POStatus): [PurchaseOrder!]!
   purchaseOrdersForSupplier(status: POStatus, supplierOrgId: Int!): [PurchaseOrder!]!
   receivedItemMaps(buyerOrgId: Int!, supplierItemId: String!): [ReceivedItemMap!]!
@@ -1999,6 +2539,7 @@ type Query {
   salesOrdersByStatus(status: SalesOrderStatusEnum!): [SalesOrder]
   scPwdCustomer(id: String!): ScPwdCustomer
   scPwdCustomers(search: String): [ScPwdCustomer!]!
+  scheduledPricesList(supplierItemId: String): [SupplierScheduledPrice!]
   searchInventoryItems(branchId: Int, outletId: Int, search: String, skip: Int!, take: Int!): InventoryItemsSearchResult!
   subCenter(id: Int): SubCenter
   subCenters(orgId: Int): [SubCenter]
@@ -2006,10 +2547,28 @@ type Query {
   summaryRow(id: Int): SummaryRow
   summaryRowExpenses(endDate: String, startDate: String): [SummaryRow]
   summaryRows(endDate: String, startDate: String): [SummaryRow]
-  supplierCatalog(organizationId: Int!): SupplierCatalog
+  supplierCatalog: SupplierCatalog
   supplierDashboard(supplierOrgId: Int!): SupplierDashboardStats
+  supplierFinanceFeeHistory: [WalletLedgerEntry]
+  supplierFinancePayoutMethods: [PayoutMethod]
+  supplierFinanceTransactions: [WalletLedgerEntry]
+  supplierFinanceWithdrawals: [Withdrawal]
+  supplierIncomingStockList(supplierItemId: String!): [SupplierIncomingStock!]!
+  supplierInventoryAnalytics(supplierItemId: String!): InventoryAnalytics
+  supplierInventoryDashboard(orgId: Int!): SupplierInventoryDashboard
+  supplierInventoryForecast(supplierItemId: String!, trailingDays: Int = 30): InventoryForecast
+  supplierInventoryList(orgId: Int!, warehouseId: String): [SupplierItem!]!
+  supplierInventoryMovements(page: Int = 1, pageSize: Int = 30, supplierItemId: String!): [SupplierInventoryMovement!]!
+  supplierInventoryValuation(supplierItemId: String!): InventoryValuation
   supplierItem(id: String!): SupplierItem
+  supplierItemCostHistoryList(supplierItemId: String!): [SupplierItemCostHistory!]!
+  supplierItemPriceHistoryList(supplierItemId: String): [SupplierItemPriceHistory!]
+  supplierItemReviews(supplierItemId: String!): SupplierItemReviewPayload!
   supplierItems(catalogId: String!): [SupplierItem!]!
+  supplierOrderTimeline(endDate: String, eventTypes: [SupplierTimelineEventType!], limit: Int, offset: Int, search: String, sort: SupplierTimelineSort, startDate: String, status: SupplierTimelineStatus, supplierOrgId: Int!): SupplierOrderTimelinePayload!
+  supplierStockBatches(includeDepleted: Boolean, supplierItemId: String!): [SupplierStockBatch!]!
+  supplierWalletSummary: Wallet
+  supplierWarehouses(orgId: Int!): [SupplierWarehouse!]!
   todayAttendanceByOrg(limit: Int = 20, page: Int = 1, role: String): PaginatedUserAttendance
   transactionsByDiscountType(discountType: DiscountType!): [Transaction!]!
   userAttendanceHistory(limit: Int = 20, page: Int = 1, userId: Int!): PaginatedAttendance
@@ -2017,6 +2576,11 @@ type Query {
   userPerformanceSummary(from: String!, to: String!, userId: Int!): PerformanceSummary
   vatType(id: Int): VatType
   vatTypes: [VatType]
+}
+
+type RatingBreakdownItem {
+  count: Int!
+  rating: Int!
 }
 
 input ReceivePurchaseOrderItemInput {
@@ -2180,6 +2744,13 @@ input ReturnItemInput {
 type ReturnResult {
   success: Boolean!
   transactionId: Int!
+}
+
+type ReviewAggregate {
+  averageRating: Float!
+  breakdown: [RatingBreakdownItem!]!
+  reviewCount: Int!
+  verifiedCount: Int!
 }
 
 enum Role {
@@ -2367,10 +2938,22 @@ input ScPwdCustomerInput {
   representativeName: String
 }
 
+enum ScheduledPriceStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
 input SearchItemInput {
   itemId: Int!
   name: String!
   quantityWanted: Int!
+}
+
+enum SettlementType {
+  ESCROW
+  INSTANT
 }
 
 type Shift {
@@ -2401,6 +2984,29 @@ enum Status {
   PAID
   PENDING
   SYNCED
+}
+
+type StockAgingBuckets {
+  aging: Float!
+  fresh: Float!
+  old: Float!
+  stale: Float!
+}
+
+type StockBatch {
+  deletedAt: DateTime
+  exactExpiryDate: DateTime
+  expiryEndDate: DateTime
+  expiryStartDate: DateTime
+  id: Int!
+  item: Item!
+  itemId: Int!
+  orderId: Int
+  org: Organization!
+  orgId: Int!
+  quantity: Float!
+  receivedAt: DateTime!
+  remainingQty: Float!
 }
 
 type SubCenter {
@@ -2473,31 +3079,196 @@ type SupplierCatalog {
   createdAt: DateTime!
   id: String!
   items: [SupplierItem!]!
+  organization: Organization!
   organizationId: Int!
 }
 
 type SupplierDashboardStats {
+  catalogItemCount: Int!
   duePayments: Float!
   fulfilledToday: Int!
+  myAcceptedMandateOffers: Int!
+  myPendingMandateOffers: Int!
   newPOs: Int!
+  openMandatesCount: Int!
   pendingDeliveries: Int!
+  walletBalance: Float!
+  walletHeldBalance: Float!
+}
+
+enum SupplierIncomingStatus {
+  CANCELLED
+  PENDING
+  RECEIVED
+}
+
+type SupplierIncomingStock {
+  createdAt: DateTime!
+  createdById: Int
+  deletedAt: DateTime
+  expectedDate: DateTime
+  expectedQty: Float!
+  id: String!
+  notes: String
+  receivedBatchId: String
+  sourceLabel: String
+  status: SupplierIncomingStatus!
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+  updatedAt: DateTime!
+  warehouse: SupplierWarehouse
+  warehouseId: String
+}
+
+type SupplierInventoryDashboard {
+  availableStock: Float!
+  averageInventoryCost: Float!
+  averageMargin: Float
+  expiringSoonCount: Int!
+  incomingStock: Float!
+  inventoryValue: Float!
+  lowStockCount: Int!
+  outOfStockCount: Int!
+  reservedStock: Float!
+  totalInventory: Float!
+}
+
+type SupplierInventoryMovement {
+  batch: SupplierStockBatch
+  batchId: String
+  createdAt: DateTime!
+  createdById: Int
+  deletedAt: DateTime
+  id: String!
+  quantity: Float!
+  quantityAfter: Float!
+  quantityBefore: Float!
+  reason: String
+  referenceId: String
+  referenceType: String
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+  transferGroupId: String
+  type: SupplierInventoryMovementType!
+  unitCost: Float
+  warehouse: SupplierWarehouse
+  warehouseId: String
+}
+
+enum SupplierInventoryMovementType {
+  ADJUSTED
+  DAMAGED
+  EXPIRED
+  RECEIVED
+  RELEASED
+  RESERVED
+  RETURNED
+  SOLD
+  TRANSFERRED_IN
+  TRANSFERRED_OUT
 }
 
 type SupplierItem {
   availableQty: Int!
+  averageRating: Float!
+  category: SupplierItemCategory
+  costHistory: [SupplierItemCostHistory!]!
   createdAt: DateTime!
+  currentCost: Float
+  damagedQty: Float!
   description: String
+  group: SupplierItemGroup
   id: String!
+  image: String
+  incomingQty: Float!
   isActive: Boolean!
   isVatExempt: Boolean!
   moq: Int!
   name: String!
+  priceHistory: [SupplierItemPriceHistory!]!
   priceTiers: [PriceTier!]!
+  reorderLevel: Float
+  reorderQty: Float
+  reservedQty: Float!
+  returnedQty: Float!
+  reviewCount: Int!
+  reviews: [SupplierItemReview!]!
+  scheduledPrices: [SupplierScheduledPrice!]!
   sku: String
+  supplierIncomingStock: [SupplierIncomingStock!]!
+  supplierInventoryMovements: [SupplierInventoryMovement!]!
+  supplierStockBatches: [SupplierStockBatch!]!
   unit: String!
   unitPrice: Float!
   updatedAt: DateTime!
   vatRate: Float!
+}
+
+type SupplierItemCategory {
+  catalog: SupplierCatalog!
+  catalogId: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  id: String!
+  isActive: Boolean!
+  items: [SupplierItem!]!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type SupplierItemCostHistory {
+  changedById: Int
+  effectiveAt: DateTime!
+  id: String!
+  newCost: Float!
+  oldCost: Float!
+  reason: String
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+}
+
+type SupplierItemGroup {
+  catalog: SupplierCatalog!
+  catalogId: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  description: String
+  id: String!
+  isActive: Boolean!
+  items: [SupplierItem!]!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type SupplierItemPriceHistory {
+  changedById: Int
+  effectiveAt: DateTime!
+  id: String!
+  newPrice: Float!
+  oldPrice: Float!
+  reason: String
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+}
+
+type SupplierItemReview {
+  comment: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: String!
+  isVerifiedPurchase: Boolean!
+  rating: Int!
+  reviewer: Organization!
+  reviewerOrgId: Int!
+  supplierItemId: String!
+  title: String
+  updatedAt: DateTime!
+}
+
+type SupplierItemReviewPayload {
+  aggregate: ReviewAggregate!
+  reviews: [SupplierItemReview!]!
 }
 
 type SupplierOrder {
@@ -2541,6 +3312,149 @@ enum SupplierOrderStatus {
   delivered
   pending
   sent
+}
+
+type SupplierOrderTimelinePayload {
+  groups: [SupplierTimelineGroup!]!
+  hasNextPage: Boolean!
+  summary: SupplierTimelineSummary!
+  totalCount: Int!
+}
+
+type SupplierOutletLink {
+  createdAt: DateTime!
+  id: String!
+  isApproved: Boolean!
+  outlet: Outlet!
+  outletId: Int!
+  supplierOrg: Organization!
+  supplierOrgId: Int!
+}
+
+type SupplierScheduledPrice {
+  createdAt: DateTime!
+  createdById: Int
+  deletedAt: DateTime
+  effectiveAt: DateTime!
+  expiresAt: DateTime
+  id: String!
+  price: Float!
+  status: ScheduledPriceStatus!
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+  updatedAt: DateTime!
+}
+
+type SupplierStockBatch {
+  batchNumber: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  expiryDate: DateTime
+  id: String!
+  movements: [SupplierInventoryMovement!]!
+  quantity: Float!
+  receivedAt: DateTime!
+  remainingQty: Float!
+  status: SupplierStockBatchStatus!
+  supplierItem: SupplierItem!
+  supplierItemId: String!
+  unitCost: Float!
+  updatedAt: DateTime!
+  warehouse: SupplierWarehouse
+  warehouseId: String
+}
+
+enum SupplierStockBatchStatus {
+  ACTIVE
+  DAMAGED
+  DEPLETED
+  EXPIRED
+}
+
+type SupplierTimelineEvent {
+  actionLabel: String
+  actionRoute: String
+  actor: String
+  color: String!
+  createdAt: DateTime!
+  description: String!
+  eventType: SupplierTimelineEventType!
+  icon: String!
+  id: String!
+  metadata: Json!
+  organization: String
+  referenceId: String
+  referenceType: String
+  status: SupplierTimelineStatus!
+  title: String!
+}
+
+enum SupplierTimelineEventType {
+  DELIVERY
+  INVENTORY
+  MANDATE
+  NOTIFICATION
+  ORGANIZATION
+  PURCHASE_ORDER
+  SYSTEM
+  WALLET
+}
+
+type SupplierTimelineGroup {
+  events: [SupplierTimelineEvent!]!
+  label: String!
+}
+
+enum SupplierTimelineSort {
+  NEWEST
+  OLDEST
+}
+
+enum SupplierTimelineStatus {
+  ERROR
+  INFO
+  PENDING
+  SUCCESS
+  WARNING
+}
+
+type SupplierTimelineSummary {
+  attention: Int!
+  deliveries: Int!
+  inventory: Int!
+  mandates: Int!
+  notifications: Int!
+  purchaseOrders: Int!
+  total: Int!
+  wallet: Int!
+}
+
+type SupplierWarehouse {
+  address: String
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: String!
+  incoming: [SupplierIncomingStock!]!
+  isActive: Boolean!
+  isDefault: Boolean!
+  latitude: Float
+  longitude: Float
+  movements: [SupplierInventoryMovement!]!
+  name: String!
+  organization: Organization!
+  organizationId: Int!
+  stockBatches: [SupplierStockBatch!]!
+  updatedAt: DateTime!
+}
+
+type SystemConfig {
+  deletedAt: DateTime
+  description: String
+  id: String!
+  key: String!
+  updatedAt: DateTime!
+  updatedById: Int
+  value: Json!
 }
 
 type TimeInStatus {
@@ -2756,6 +3670,79 @@ type VatType {
   org: Organization!
   orgId: Int!
   rate: Float!
+}
+
+enum VerificationStatus {
+  APPROVED
+  BYPASSED_DEV
+  PENDING
+  REJECTED
+}
+
+type VisibilityRule {
+  agentTier: String!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  id: String!
+  isVisible: Boolean!
+  rankBoost: Float!
+  supplierPlan: SubscriptionPlan!
+  updatedAt: DateTime!
+}
+
+type Wallet {
+  balance: Float!
+  createdAt: DateTime!
+  currency: String!
+  deletedAt: DateTime
+  heldBalance: Float!
+  id: Int!
+  ledgerEntries: [WalletLedgerEntry!]!
+  orgId: Int!
+  organization: Organization!
+  updatedAt: DateTime!
+  withdrawals: [Withdrawal!]!
+}
+
+type WalletLedgerEntry {
+  amount: Float!
+  balanceAfter: Float!
+  createdAt: DateTime!
+  deletedAt: DateTime
+  environment: Environment!
+  id: Int!
+  referenceId: String
+  sourceType: LedgerSourceType!
+  status: LedgerEntryStatus!
+  type: LedgerEntryType!
+  wallet: Wallet!
+  walletId: Int!
+}
+
+type Withdrawal {
+  amount: Float!
+  approvedAt: DateTime
+  approvedById: Int
+  completedAt: DateTime
+  deletedAt: DateTime
+  environment: Environment!
+  id: Int!
+  payoutMethod: PayoutMethod!
+  payoutMethodId: Int!
+  rejectionReason: String
+  requestedAt: DateTime!
+  requestedById: Int!
+  status: WithdrawalStatus!
+  wallet: Wallet!
+  walletId: Int!
+}
+
+enum WithdrawalStatus {
+  APPROVED
+  COMPLETED
+  PENDING
+  PROCESSING
+  REJECTED
 }
 
 enum orderBy {

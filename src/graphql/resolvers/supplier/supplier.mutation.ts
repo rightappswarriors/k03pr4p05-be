@@ -84,9 +84,10 @@ export const SupplierMutation = extendType({
 */
 
 // rai-pos-backend/src/graphql/resolvers/supplier/supplier.mutation.ts
-import { extendType, nonNull, stringArg, intArg, list, arg } from 'nexus';
+import { extendType, nonNull, stringArg, intArg, list, arg, booleanArg, floatArg } from 'nexus';
 import { sendEmail } from '../../../services/email/email.service.js';
 import { prisma } from '../../../lib/prisma.js';
+import { requireAuth } from '../../../middleware/auth.middleware.js';
 
 export const SupplierMutation = extendType({
   type: 'Mutation',
@@ -195,6 +196,60 @@ export const SupplierMutation = extendType({
         // await sendPushNotification(orgOwner.pushToken, { ... })
 
         return updatedOrder;
+      },
+    });
+
+    t.field('requestSupplierWithdrawal', {
+      type: 'Withdrawal',
+      args: {
+        amount: nonNull(floatArg()),
+        payoutMethodId: nonNull(intArg()),
+      },
+      async resolve(_, { amount, payoutMethodId }, ctx) {
+        requireAuth(ctx);
+        const orgId = Number(ctx.user?.orgId);
+        const wallet = await prisma.wallet.findFirst({ where: { orgId } });
+        if (!wallet) throw new Error('Wallet not found');
+        const payoutMethod = await prisma.payoutMethod.findFirst({ where: { id: payoutMethodId, orgId, deletedAt: null } });
+        if (!payoutMethod) throw new Error('Payout method not found');
+        if (amount <= 0) throw new Error('Amount must be greater than zero');
+        if (amount > wallet.balance - wallet.heldBalance) throw new Error('Insufficient available balance');
+
+        return prisma.withdrawal.create({
+          data: {
+            walletId: wallet.id,
+            payoutMethodId: payoutMethod.id,
+            amount,
+            status: 'PENDING',
+            requestedById: Number(ctx.user?.userId ?? 0),
+          },
+          include: { payoutMethod: true },
+        });
+      },
+    });
+
+    t.field('createSupplierPayoutMethod', {
+      type: 'PayoutMethod',
+      args: {
+        type: nonNull(arg({ type: 'PayoutMethodType' })),
+        accountName: nonNull(stringArg()),
+        maskedAccountNumber: nonNull(stringArg()),
+        bankName: stringArg(),
+        isDefault: booleanArg(),
+      },
+      async resolve(_, { type, accountName, maskedAccountNumber, bankName, isDefault }, ctx) {
+        requireAuth(ctx);
+        const orgId = Number(ctx.user?.orgId);
+        return prisma.payoutMethod.create({
+          data: {
+            orgId,
+            type,
+            accountName,
+            maskedAccountNumber,
+            bankName: bankName ?? null,
+            isDefault: isDefault ?? false,
+          },
+        });
       },
     });
 

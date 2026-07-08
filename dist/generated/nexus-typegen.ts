@@ -73,6 +73,10 @@ export interface NexusGenInputs {
     pageKey?: string | null; // String
     userId?: number | null; // Int
   }
+  BulkPriceUpdateItemInput: { // input type
+    price: number; // Float!
+    supplierItemId: string; // String!
+  }
   CartItemInput: { // input type
     discountAmount?: number | null; // Float
     discountQuantity?: number | null; // Float
@@ -261,6 +265,17 @@ export interface NexusGenInputs {
     minQty: number; // Int!
     price: number; // Float!
   }
+  PricingListFilterInput: { // input type
+    brand?: string | null; // String
+    categoryId?: number | null; // Int
+    endDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    maxMargin?: number | null; // Float
+    maxPrice?: number | null; // Float
+    minMargin?: number | null; // Float
+    minPrice?: number | null; // Float
+    search?: string | null; // String
+    startDate?: NexusGenScalars['DateTime'] | null; // DateTime
+  }
   ReceivePurchaseOrderItemInput: { // input type
     confirmedQty: number; // Float!
     supplierOrderItemId: number; // Int!
@@ -437,6 +452,7 @@ export interface NexusGenInputs {
 export interface NexusGenEnums {
   Access: "ADMIN" | "POSTERMINAL" | "SELLER" | "SUPPLIER"
   AccountLink: "ACCOUNTS_PAYABLE_NON_TRADE" | "ACCOUNTS_PAYABLE_TRADE" | "ACCOUNTS_RECEIVABLE_NON_TRADE" | "ACCOUNTS_RECEIVABLE_TRADE" | "ACCRUED_EXPENSES" | "ACCUMULATED_DEP_DELIVERY_VEHICLE" | "ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS" | "ACCUMULATED_DEP_OFFICE_EQUIPMENT" | "ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES" | "ACCUMULATED_DEP_SERVICE_VEHICLE" | "ADVANCES_TO_AFFILIATES" | "ADVANCES_TO_EMPLOYEES" | "ADVANCES_TO_OFFICERS_STOCKHOLDERS" | "ADVANCES_TO_OUTSIDE_PERSONNEL" | "CASH_IN_BANK_BDO" | "CASH_IN_BANK_CHINABANK" | "CASH_IN_BANK_SECURITY_BANK" | "CASH_ON_HAND" | "COMMUNICATION" | "COST_OF_SALES_ALL_STOCKS" | "DELIVERY_VEHICLE" | "DEPRECIATION" | "ELECTRICITY" | "EMPLOYEE_BENEFITS" | "FUEL_OIL" | "INCOME_TAX" | "INCOME_TAX_PAYABLE" | "INSURANCE" | "INTEREST_INCOME" | "INVENTORY_ALL_STOCKS" | "LAND" | "LEASEHOLD_IMPROVEMENTS" | "MISCELLANEOUS_INCOME" | "OFFICE_EQUIPMENT" | "OFFICE_FURNITURES_FIXTURES" | "OFFICE_SUPPLIES" | "ORDINARY_SHARES" | "OUTPUT_VAT" | "PETTY_CASH_FUND" | "PREPAID_INSURANCE" | "PROFESSIONAL_FEE" | "RENT" | "REPAIRS_MAINTENANCE" | "REPRESENTATION" | "RETAINED_EARNINGS" | "SALARIES_WAGES" | "SERVICE_VEHICLE" | "SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS" | "SUBSCRIBED_ORDINARY_SHARES" | "SUBSCRIPTION_RECEIVABLE" | "TAXES_LICENSES" | "TRANSPORTATION_TRAVEL" | "UNUSED_OFFICE_SUPPLIES" | "VAT_INPUT" | "VAT_PAYABLE" | "WATER" | "WITHHOLDING_TAX_PAYABLE"
+  AgentType: "ORG_LINKED" | "STANDALONE"
   AttendanceStatus: "ABSENT" | "OFF_DUTY" | "ON_BREAK" | "PRESENT"
   AuditAction: "CREATE" | "DELETE" | "EDIT" | "LOGIN" | "LOGOUT" | "PERMISSION_CHANGE" | "STATUS_CHANGE" | "VIEW"
   CustomerType: "PWD" | "REGULAR" | "SENIOR_CITIZEN"
@@ -444,11 +460,22 @@ export interface NexusGenEnums {
   DeliveryStatus: "DELIVERED" | "FAILED" | "IN_TRANSIT" | "SCHEDULED"
   DeliveryStatusEvent: "arrived_at_door" | "cancelled" | "delivered" | "order_placed" | "outlet_confirmed" | "outlet_preparing" | "return_requested" | "returned" | "rider_assigned" | "rider_en_route" | "rider_picked_up"
   DiscountType: "BNPC_PWD" | "BNPC_SENIOR_CITIZEN" | "CUSTOM" | "NONE" | "PWD" | "SENIOR_CITIZEN"
+  DisputeStatus: "NONE" | "RAISED" | "RESOLVED" | "UNDER_REVIEW"
+  DocumentType: "BIR_2303" | "BUSINESS_PERMIT" | "DTI_SEC_REGISTRATION" | "OTHER" | "PROOF_OF_ADDRESS" | "VALID_ID"
   EmployeeStatus: "Active" | "Contract" | "On_Leave"
+  Environment: "PRODUCTION" | "SANDBOX"
+  FeeApplication: "MANDATE_TRANSACTION" | "RETAIL_ORDER"
+  FeeRateType: "FLAT" | "PERCENTAGE" | "PER_UNIT"
   FeeType: "delivery" | "handling" | "packaging" | "priority" | "voucher_discount"
   ItemStatus: "loss_item" | "slow_mover" | "stable" | "top_seller"
   ItemTrend: "down" | "stable" | "up"
   KompraCPaymentMethod: "card" | "cash_on_delivery" | "gcash" | "paymaya" | "qrph"
+  LedgerEntryStatus: "AVAILABLE" | "HELD" | "RELEASED" | "REVERSED"
+  LedgerEntryType: "CREDIT" | "DEBIT"
+  LedgerSourceType: "ADJUSTMENT" | "ESCROW_HOLD" | "ESCROW_RELEASE" | "MANDATE_TRANSACTION" | "PLATFORM_FEE" | "RETAIL_ORDER" | "SUBSCRIPTION_FEE" | "WITHDRAWAL"
+  MandateOfferStatus: "ACCEPTED" | "EXPIRED" | "PENDING" | "REJECTED" | "WITHDRAWN"
+  MandateStatus: "ACCEPTED" | "CANCELLED" | "COMPLETED" | "DISPUTED" | "DRAFT" | "FUNDED" | "OFFERED" | "SEARCHING" | "SENT" | "SETTLED"
+  MandateTransactionStatus: "CANCELLED" | "COMPLETED" | "DISPUTED" | "FUNDED" | "PENDING" | "REFUNDED" | "SETTLED"
   MediaType: "image" | "video"
   OrderModeEnum: "DELIVERY" | "PICK_UP" | "WALK_IN"
   OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "packed" | "pending" | "preparing" | "received" | "returned"
@@ -456,16 +483,30 @@ export interface NexusGenEnums {
   OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   POStatus: "ACCEPTED" | "CANCELLED" | "DELIVERED" | "IN_TRANSIT" | "PENDING" | "REJECTED"
+  PaymentGatewayProvider: "BANK_API" | "GCASH" | "PAYMAYA" | "PAYMONGO"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
+  PaymentRelatedType: "KOMPRA_C_ORDER" | "MANDATE_TRANSACTION" | "SALES_ORDER" | "SUBSCRIPTION"
+  PaymentTransactionStatus: "FAILED" | "PENDING" | "REFUNDED" | "SUCCEEDED"
   PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
+  PayoutMethodType: "BANK_TRANSFER" | "CHECK" | "GCASH" | "PAYMAYA"
   RecurrenceType: "custom" | "daily" | "monthly" | "once" | "weekly"
   Role: "ADMIN" | "CASHIER" | "MANAGER" | "OWNER" | "STAFF"
   SalesOrderStatusEnum: "CANCELLED" | "COMPLETED" | "ORDERED" | "OUT_FOR_DELIVERY" | "PENDING" | "PROCESSING" | "READY_FOR_PICKUP" | "RECEIVED" | "SHIPPED"
+  ScheduledPriceStatus: "ACTIVE" | "CANCELLED" | "EXPIRED" | "PENDING"
+  SettlementType: "ESCROW" | "INSTANT"
   Status: "CANCELED" | "COMPLETED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   SubscriptionPlan: "BASIC" | "GOLD"
+  SupplierIncomingStatus: "CANCELLED" | "PENDING" | "RECEIVED"
+  SupplierInventoryMovementType: "ADJUSTED" | "DAMAGED" | "EXPIRED" | "RECEIVED" | "RELEASED" | "RESERVED" | "RETURNED" | "SOLD" | "TRANSFERRED_IN" | "TRANSFERRED_OUT"
   SupplierOrderStatus: "acknowledged" | "cancelled" | "delivered" | "pending" | "sent"
+  SupplierStockBatchStatus: "ACTIVE" | "DAMAGED" | "DEPLETED" | "EXPIRED"
+  SupplierTimelineEventType: "DELIVERY" | "INVENTORY" | "MANDATE" | "NOTIFICATION" | "ORGANIZATION" | "PURCHASE_ORDER" | "SYSTEM" | "WALLET"
+  SupplierTimelineSort: "NEWEST" | "OLDEST"
+  SupplierTimelineStatus: "ERROR" | "INFO" | "PENDING" | "SUCCESS" | "WARNING"
   VatExemptType: "DIPLOMAT" | "GOVERNMENT" | "PWD" | "SENIOR_CITIZEN"
+  VerificationStatus: "APPROVED" | "BYPASSED_DEV" | "PENDING" | "REJECTED"
+  WithdrawalStatus: "APPROVED" | "COMPLETED" | "PENDING" | "PROCESSING" | "REJECTED"
   orderBy: "asc" | "desc"
 }
 
@@ -506,6 +547,39 @@ export interface NexusGenObjects {
     pageSize: number; // Int!
     total: number; // Int!
   }
+  Agent: { // root type
+    agentType: NexusGenEnums['AgentType']; // AgentType!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    email: string; // String!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fullname: string; // String!
+    id: string; // String!
+    isDevSeed: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    mandates: NexusGenRootTypes['Mandate'][]; // [Mandate!]!
+    organization?: NexusGenRootTypes['Organization'] | null; // Organization
+    organizationId?: number | null; // Int
+    passwordHash: string; // String!
+    phone?: string | null; // String
+    trustTier: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    verificationStatus: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+    verifications: NexusGenRootTypes['AgentVerification'][]; // [AgentVerification!]!
+  }
+  AgentVerification: { // root type
+    agent: NexusGenRootTypes['Agent']; // Agent!
+    agentId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fileUrl: string; // String!
+    id: string; // String!
+    reviewedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    reviewedById?: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+  }
   AnalyticsSummary: { // root type
     grossProfit: number; // Float!
     profitChange: number; // Float!
@@ -539,6 +613,11 @@ export interface NexusGenObjects {
     user?: NexusGenRootTypes['User'] | null; // User
     userId: number; // Int!
   }
+  AuditLogEntry: { // root type
+    action: NexusGenEnums['AuditAction']; // AuditAction!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+  }
   AuditLogType: { // root type
     action: NexusGenEnums['AuditAction']; // AuditAction!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -557,6 +636,12 @@ export interface NexusGenObjects {
     refresh_token: string; // String!
     token: string; // String!
     user: NexusGenRootTypes['User']; // User!
+  }
+  BatchDistributionEntry: { // root type
+    batchId: string; // String!
+    batchNumber?: string | null; // String
+    remainingQty: number; // Float!
+    unitCost: number; // Float!
   }
   BatchPayload: { // root type
     count: number; // Int!
@@ -618,6 +703,21 @@ export interface NexusGenObjects {
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     userId?: number | null; // Int
     year: number; // Int!
+  }
+  BusinessVerification: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fileUrl: string; // String!
+    id: string; // String!
+    notes?: string | null; // String
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    reviewedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    reviewedById?: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   CartItem: { // root type
     costSnapshot?: number | null; // Float
@@ -842,12 +942,43 @@ export interface NexusGenObjects {
     status: NexusGenEnums['EmployeeStatus']; // EmployeeStatus!
     userId?: number | null; // Int
   }
+  EscrowRelease: { // root type
+    autoReleaseAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    buyerConfirmedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    buyerProofUrl?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    disputeReason?: string | null; // String
+    disputeStatus: NexusGenEnums['DisputeStatus']; // DisputeStatus!
+    id: string; // String!
+    mandateTransaction: NexusGenRootTypes['MandateTransaction']; // MandateTransaction!
+    mandateTransactionId: string; // String!
+    releasedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    resolvedById?: number | null; // Int
+    sellerConfirmedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    sellerProofUrl?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   ExtraCharge: { // root type
     amount: number; // Float!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
     label: string; // String!
     salesOrderId: string; // String!
+  }
+  FeeRule: { // root type
+    appliesTo: NexusGenEnums['FeeApplication']; // FeeApplication!
+    category?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveFrom: NexusGenScalars['DateTime']; // DateTime!
+    effectiveTo?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    rate: number; // Float!
+    rateType: NexusGenEnums['FeeRateType']; // FeeRateType!
+    tierModifier?: number | null; // Float
+    unitType?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   GISRow: { // root type
     accountTitleId: number; // Int!
@@ -870,12 +1001,33 @@ export interface NexusGenObjects {
     name?: string | null; // String
     outletId: number; // Int!
   }
+  InventoryAnalytics: { // root type
+    averageCost: number; // Float!
+    avgDaysInStock?: number | null; // Float
+    batchDistribution: NexusGenRootTypes['BatchDistributionEntry'][]; // [BatchDistributionEntry!]!
+    estimatedProfit?: number | null; // Float
+    highestCost?: number | null; // Float
+    inventoryTurnover?: number | null; // Float
+    inventoryValue: number; // Float!
+    lowestCost?: number | null; // Float
+    marginPct?: number | null; // Float
+    stockAging: NexusGenRootTypes['StockAgingBuckets']; // StockAgingBuckets!
+  }
   InventoryCategoryBreakdown: { // root type
     name: string; // String!
     totalStock: number; // Float!
   }
   InventoryForItem: { // root type
     id: number; // Int!
+  }
+  InventoryForecast: { // root type
+    avgDailyConsumption?: number | null; // Float
+    daysRemaining?: number | null; // Float
+    expectedStockoutDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    hasData: boolean; // Boolean!
+    isLowStockPredicted?: boolean | null; // Boolean
+    suggestedReorderDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    suggestedReorderQty?: number | null; // Float
   }
   InventoryItem: { // root type
     category: string; // String!
@@ -924,6 +1076,24 @@ export interface NexusGenObjects {
     code: string; // String!
     id: number; // Int!
     name: string; // String!
+  }
+  InventoryReconcileResult: { // root type
+    after: NexusGenRootTypes['InventoryRollupSnapshot']; // InventoryRollupSnapshot!
+    before: NexusGenRootTypes['InventoryRollupSnapshot']; // InventoryRollupSnapshot!
+    driftDetected: boolean; // Boolean!
+  }
+  InventoryRollupSnapshot: { // root type
+    availableQty: number; // Float!
+    damagedQty: number; // Float!
+    incomingQty: number; // Float!
+    reservedQty: number; // Float!
+    returnedQty: number; // Float!
+  }
+  InventoryValuation: { // root type
+    averageCost: number; // Float!
+    batchCount: number; // Int!
+    totalQty: number; // Float!
+    totalValue: number; // Float!
   }
   Item: { // root type
     ServiceCharge: boolean; // Boolean!
@@ -1152,6 +1322,61 @@ export interface NexusGenObjects {
     rack: string; // String!
     shelf: string; // String!
   }
+  Mandate: { // root type
+    agent: NexusGenRootTypes['Agent']; // Agent!
+    agentId: string; // String!
+    category: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    latitude?: number | null; // Float
+    longitude?: number | null; // Float
+    notes?: string | null; // String
+    offers: NexusGenRootTypes['MandateOffer'][]; // [MandateOffer!]!
+    quantity: number; // Float!
+    radiusKm?: number | null; // Float
+    status: NexusGenEnums['MandateStatus']; // MandateStatus!
+    targetPrice?: number | null; // Float
+    transaction?: NexusGenRootTypes['MandateTransaction'] | null; // MandateTransaction
+    unitType: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  MandateOffer: { // root type
+    availableQty: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    mandate: NexusGenRootTypes['Mandate']; // Mandate!
+    mandateId: string; // String!
+    price: number; // Float!
+    status: NexusGenEnums['MandateOfferStatus']; // MandateOfferStatus!
+    supplierOrg: NexusGenRootTypes['Organization']; // Organization!
+    supplierOrgId: number; // Int!
+    terms?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  MandateTransaction: { // root type
+    agentId: string; // String!
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    escrow?: NexusGenRootTypes['EscrowRelease'] | null; // EscrowRelease
+    feeAmount: number; // Float!
+    id: string; // String!
+    linkedPoId?: string | null; // String
+    mandate: NexusGenRootTypes['Mandate']; // Mandate!
+    mandateId: string; // String!
+    netAmount: number; // Float!
+    offerId: string; // String!
+    paymentTransactionId?: string | null; // String
+    settlementType: NexusGenEnums['SettlementType']; // SettlementType!
+    status: NexusGenEnums['MandateTransactionStatus']; // MandateTransactionStatus!
+    supplierOrg: NexusGenRootTypes['Organization']; // Organization!
+    supplierOrgId: number; // Int!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   Media: { // root type
     id: number; // Int!
     itemId?: number | null; // Int
@@ -1164,6 +1389,17 @@ export interface NexusGenObjects {
     outletId: number; // Int!
     outletName: string; // String!
     role: string; // String!
+  }
+  Notification: { // root type
+    createdAt: string; // String!
+    id: number; // Int!
+    isRead: boolean; // Boolean!
+    itemId?: number | null; // Int
+    message: string; // String!
+    orgId: number; // Int!
+    outletId?: number | null; // Int
+    title: string; // String!
+    type: string; // String!
   }
   OrgBasic: { // root type
     email?: string | null; // String
@@ -1196,6 +1432,7 @@ export interface NexusGenObjects {
     facebookLink?: string | null; // String
     id: number; // Int!
     instagramLink?: string | null; // String
+    isDevSeed: boolean; // Boolean!
     location?: string | null; // String
     name: string; // String!
     profileImg?: string | null; // String
@@ -1203,6 +1440,24 @@ export interface NexusGenObjects {
     roles: NexusGenEnums['OrgRole'][]; // [OrgRole!]!
     twitterLink?: string | null; // String
     updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+  }
+  OrganizationReview: { // root type
+    comment?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVerifiedTransaction: boolean; // Boolean!
+    organizationId: number; // Int!
+    rating: number; // Int!
+    reviewerCustomerId?: number | null; // Int
+    reviewerName?: string | null; // String
+    reviewerOrgId?: number | null; // Int
+    title?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  OrganizationReviewPayload: { // root type
+    aggregate: NexusGenRootTypes['ReviewAggregate']; // ReviewAggregate!
+    reviews: NexusGenRootTypes['OrganizationReview'][]; // [OrganizationReview!]!
   }
   Outlet: { // root type
     address: string; // String!
@@ -1377,6 +1632,18 @@ export interface NexusGenObjects {
     page: number; // Int!
     total: number; // Int!
   }
+  PaymentGatewayCredential: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    orgId?: number | null; // Int
+    organization?: NexusGenRootTypes['Organization'] | null; // Organization
+    provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    publicKey?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   PaymentInitiation: { // root type
     client_key: string; // String!
     paymentIntentId: string; // String!
@@ -1385,9 +1652,41 @@ export interface NexusGenObjects {
     return_url: string; // String!
     url: string; // String!
   }
+  PaymentTransaction: { // root type
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    feeAmount: number; // Float!
+    gatewayReference?: string | null; // String
+    id: string; // String!
+    payerAgentId?: string | null; // String
+    payerOrgId?: number | null; // Int
+    provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    relatedId: string; // String!
+    relatedType: NexusGenEnums['PaymentRelatedType']; // PaymentRelatedType!
+    status: NexusGenEnums['PaymentTransactionStatus']; // PaymentTransactionStatus!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   PaymongoAPIKeys: { // root type
     id: number; // Int!
     public_key: string; // String!
+  }
+  PayoutMethod: { // root type
+    accountName: string; // String!
+    bankName?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: number; // Int!
+    isDefault: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    maskedAccountNumber: string; // String!
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    verifiedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    withdrawals: NexusGenRootTypes['Withdrawal'][]; // [Withdrawal!]!
   }
   PerformanceSummary: { // root type
     absentDays: number; // Int!
@@ -1432,6 +1731,53 @@ export interface NexusGenObjects {
     minQty: number; // Int!
     price: number; // Float!
   }
+  PricingAnalytics: { // root type
+    averageMargin: number; // Float!
+    averageSellingPrice: number; // Float!
+    estimatedProfit: number; // Float!
+    estimatedRevenue: number; // Float!
+    highestPrice: number; // Float!
+    lowestPrice: number; // Float!
+    priceChangeCount: number; // Int!
+    priceTrend: NexusGenRootTypes['SupplierItemPriceHistory'][]; // [SupplierItemPriceHistory!]!
+  }
+  PricingDetail: { // root type
+    margin: number; // Float!
+    markup: number; // Float!
+    profitPerUnit: number; // Float!
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+  }
+  PricingKPIs: { // root type
+    activePriceCount: number; // Int!
+    averageMargin: number; // Float!
+    averageSellingPrice: number; // Float!
+    highestMargin: number; // Float!
+    lowestMargin: number; // Float!
+    priceUpdatesThisMonth: number; // Int!
+    productsOnPromotion: number; // Int!
+    scheduledPriceChanges: number; // Int!
+  }
+  PricingListItem: { // root type
+    categoryId?: number | null; // Int
+    categoryName?: string | null; // String
+    currentCost: number; // Float!
+    id: string; // String!
+    image?: string | null; // String
+    isActive: boolean; // Boolean!
+    margin: number; // Float!
+    markup: number; // Float!
+    name: string; // String!
+    priceTierCount: number; // Int!
+    sellingPrice: number; // Float!
+    sku?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  PricingListResult: { // root type
+    items: NexusGenRootTypes['PricingListItem'][]; // [PricingListItem!]!
+    page: number; // Int!
+    pageSize: number; // Int!
+    total: number; // Int!
+  }
   PromoType: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     description?: string | null; // String
@@ -1453,6 +1799,10 @@ export interface NexusGenObjects {
     vatAmount: number; // Float!
   }
   Query: {};
+  RatingBreakdownItem: { // root type
+    count: number; // Int!
+    rating: number; // Int!
+  }
   ReceivedItemMap: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
@@ -1521,6 +1871,12 @@ export interface NexusGenObjects {
   ReturnResult: { // root type
     success: boolean; // Boolean!
     transactionId: number; // Int!
+  }
+  ReviewAggregate: { // root type
+    averageRating: number; // Float!
+    breakdown: NexusGenRootTypes['RatingBreakdownItem'][]; // [RatingBreakdownItem!]!
+    reviewCount: number; // Int!
+    verifiedCount: number; // Int!
   }
   SalaryHistory: { // root type
     ammount: number; // Float!
@@ -1646,6 +2002,25 @@ export interface NexusGenObjects {
     totalRevenue: number; // Float!
     unitsSold: number; // Float!
   }
+  StockAgingBuckets: { // root type
+    aging: number; // Float!
+    fresh: number; // Float!
+    old: number; // Float!
+    stale: number; // Float!
+  }
+  StockBatch: { // root type
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    exactExpiryDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryEndDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryStartDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: number; // Int!
+    itemId: number; // Int!
+    orderId?: number | null; // Int
+    orgId: number; // Int!
+    quantity: number; // Float!
+    receivedAt: NexusGenScalars['DateTime']; // DateTime!
+    remainingQty: number; // Float!
+  }
   SubCenter: { // root type
     id: number; // Int!
     label: string; // String!
@@ -1698,25 +2073,138 @@ export interface NexusGenObjects {
     organizationId: number; // Int!
   }
   SupplierDashboardStats: { // root type
+    catalogItemCount: number; // Int!
     duePayments: number; // Float!
     fulfilledToday: number; // Int!
+    myAcceptedMandateOffers: number; // Int!
+    myPendingMandateOffers: number; // Int!
     newPOs: number; // Int!
+    openMandatesCount: number; // Int!
     pendingDeliveries: number; // Int!
+    walletBalance: number; // Float!
+    walletHeldBalance: number; // Float!
+  }
+  SupplierIncomingStock: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById?: number | null; // Int
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    expectedDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    expectedQty: number; // Float!
+    id: string; // String!
+    notes?: string | null; // String
+    receivedBatchId?: string | null; // String
+    sourceLabel?: string | null; // String
+    status: NexusGenEnums['SupplierIncomingStatus']; // SupplierIncomingStatus!
+    supplierItemId: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    warehouseId?: string | null; // String
+  }
+  SupplierInventoryDashboard: { // root type
+    availableStock: number; // Float!
+    averageInventoryCost: number; // Float!
+    averageMargin?: number | null; // Float
+    expiringSoonCount: number; // Int!
+    incomingStock: number; // Float!
+    inventoryValue: number; // Float!
+    lowStockCount: number; // Int!
+    outOfStockCount: number; // Int!
+    reservedStock: number; // Float!
+    totalInventory: number; // Float!
+  }
+  SupplierInventoryMovement: { // root type
+    batchId?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById?: number | null; // Int
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    quantity: number; // Float!
+    quantityAfter: number; // Float!
+    quantityBefore: number; // Float!
+    reason?: string | null; // String
+    referenceId?: string | null; // String
+    referenceType?: string | null; // String
+    supplierItemId: string; // String!
+    transferGroupId?: string | null; // String
+    type: NexusGenEnums['SupplierInventoryMovementType']; // SupplierInventoryMovementType!
+    unitCost?: number | null; // Float
+    warehouseId?: string | null; // String
   }
   SupplierItem: { // root type
     availableQty: number; // Int!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currentCost?: number | null; // Float
+    damagedQty: number; // Float!
     description?: string | null; // String
     id: string; // String!
+    image?: string | null; // String
+    incomingQty: number; // Float!
     isActive: boolean; // Boolean!
     isVatExempt: boolean; // Boolean!
     moq: number; // Int!
     name: string; // String!
+    reorderLevel?: number | null; // Float
+    reorderQty?: number | null; // Float
+    reservedQty: number; // Float!
+    returnedQty: number; // Float!
     sku?: string | null; // String
     unit: string; // String!
     unitPrice: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     vatRate: number; // Float!
+  }
+  SupplierItemCategory: { // root type
+    catalogId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    description?: string | null; // String
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemCostHistory: { // root type
+    changedById?: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    newCost: number; // Float!
+    oldCost: number; // Float!
+    reason?: string | null; // String
+    supplierItemId: string; // String!
+  }
+  SupplierItemGroup: { // root type
+    catalogId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    description?: string | null; // String
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    name: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemPriceHistory: { // root type
+    changedById?: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    newPrice: number; // Float!
+    oldPrice: number; // Float!
+    reason?: string | null; // String
+    supplierItemId: string; // String!
+  }
+  SupplierItemReview: { // root type
+    comment?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVerifiedPurchase: boolean; // Boolean!
+    rating: number; // Int!
+    reviewerOrgId: number; // Int!
+    supplierItemId: string; // String!
+    title?: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemReviewPayload: { // root type
+    aggregate: NexusGenRootTypes['ReviewAggregate']; // ReviewAggregate!
+    reviews: NexusGenRootTypes['SupplierItemReview'][]; // [SupplierItemReview!]!
   }
   SupplierOrder: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -1740,6 +2228,99 @@ export interface NexusGenObjects {
     itemId: number; // Int!
     orderId: number; // Int!
     requestedQty: number; // Float!
+  }
+  SupplierOrderTimelinePayload: { // root type
+    groups: NexusGenRootTypes['SupplierTimelineGroup'][]; // [SupplierTimelineGroup!]!
+    hasNextPage: boolean; // Boolean!
+    summary: NexusGenRootTypes['SupplierTimelineSummary']; // SupplierTimelineSummary!
+    totalCount: number; // Int!
+  }
+  SupplierOutletLink: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    isApproved: boolean; // Boolean!
+    outletId: number; // Int!
+    supplierOrgId: number; // Int!
+  }
+  SupplierScheduledPrice: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById?: number | null; // Int
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    price: number; // Float!
+    status: NexusGenEnums['ScheduledPriceStatus']; // ScheduledPriceStatus!
+    supplierItemId: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierStockBatch: { // root type
+    batchNumber?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    quantity: number; // Float!
+    receivedAt: NexusGenScalars['DateTime']; // DateTime!
+    remainingQty: number; // Float!
+    status: NexusGenEnums['SupplierStockBatchStatus']; // SupplierStockBatchStatus!
+    supplierItemId: string; // String!
+    unitCost: number; // Float!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    warehouseId?: string | null; // String
+  }
+  SupplierTimelineEvent: { // root type
+    actionLabel?: string | null; // String
+    actionRoute?: string | null; // String
+    actor?: string | null; // String
+    color: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string; // String!
+    eventType: NexusGenEnums['SupplierTimelineEventType']; // SupplierTimelineEventType!
+    icon: string; // String!
+    id: string; // String!
+    metadata: NexusGenScalars['Json']; // Json!
+    organization?: string | null; // String
+    referenceId?: string | null; // String
+    referenceType?: string | null; // String
+    status: NexusGenEnums['SupplierTimelineStatus']; // SupplierTimelineStatus!
+    title: string; // String!
+  }
+  SupplierTimelineGroup: { // root type
+    events: NexusGenRootTypes['SupplierTimelineEvent'][]; // [SupplierTimelineEvent!]!
+    label: string; // String!
+  }
+  SupplierTimelineSummary: { // root type
+    attention: number; // Int!
+    deliveries: number; // Int!
+    inventory: number; // Int!
+    mandates: number; // Int!
+    notifications: number; // Int!
+    purchaseOrders: number; // Int!
+    total: number; // Int!
+    wallet: number; // Int!
+  }
+  SupplierWarehouse: { // root type
+    address?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    isDefault: boolean; // Boolean!
+    latitude?: number | null; // Float
+    longitude?: number | null; // Float
+    name: string; // String!
+    organizationId: number; // Int!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SystemConfig: { // root type
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    description?: string | null; // String
+    id: string; // String!
+    key: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    updatedById?: number | null; // Int
+    value: NexusGenScalars['Json']; // Json!
   }
   TimeInStatus: { // root type
     hasTimeIn: boolean; // Boolean!
@@ -1851,6 +2432,60 @@ export interface NexusGenObjects {
     orgId: number; // Int!
     rate: number; // Float!
   }
+  VisibilityRule: { // root type
+    agentTier: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVisible: boolean; // Boolean!
+    rankBoost: number; // Float!
+    supplierPlan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  Wallet: { // root type
+    balance: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currency: string; // String!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    heldBalance: number; // Float!
+    id: number; // Int!
+    ledgerEntries: NexusGenRootTypes['WalletLedgerEntry'][]; // [WalletLedgerEntry!]!
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    withdrawals: NexusGenRootTypes['Withdrawal'][]; // [Withdrawal!]!
+  }
+  WalletLedgerEntry: { // root type
+    amount: number; // Float!
+    balanceAfter: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    referenceId?: string | null; // String
+    sourceType: NexusGenEnums['LedgerSourceType']; // LedgerSourceType!
+    status: NexusGenEnums['LedgerEntryStatus']; // LedgerEntryStatus!
+    type: NexusGenEnums['LedgerEntryType']; // LedgerEntryType!
+    wallet: NexusGenRootTypes['Wallet']; // Wallet!
+    walletId: number; // Int!
+  }
+  Withdrawal: { // root type
+    amount: number; // Float!
+    approvedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    approvedById?: number | null; // Int
+    completedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    payoutMethod: NexusGenRootTypes['PayoutMethod']; // PayoutMethod!
+    payoutMethodId: number; // Int!
+    rejectionReason?: string | null; // String
+    requestedAt: NexusGenScalars['DateTime']; // DateTime!
+    requestedById: number; // Int!
+    status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
+    wallet: NexusGenRootTypes['Wallet']; // Wallet!
+    walletId: number; // Int!
+  }
 }
 
 export interface NexusGenInterfaces {
@@ -1893,6 +2528,39 @@ export interface NexusGenFieldTypes {
     pageSize: number; // Int!
     total: number; // Int!
   }
+  Agent: { // field return type
+    agentType: NexusGenEnums['AgentType']; // AgentType!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    email: string; // String!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fullname: string; // String!
+    id: string; // String!
+    isDevSeed: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    mandates: NexusGenRootTypes['Mandate'][]; // [Mandate!]!
+    organization: NexusGenRootTypes['Organization'] | null; // Organization
+    organizationId: number | null; // Int
+    passwordHash: string; // String!
+    phone: string | null; // String
+    trustTier: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    verificationStatus: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+    verifications: NexusGenRootTypes['AgentVerification'][]; // [AgentVerification!]!
+  }
+  AgentVerification: { // field return type
+    agent: NexusGenRootTypes['Agent']; // Agent!
+    agentId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fileUrl: string; // String!
+    id: string; // String!
+    reviewedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    reviewedById: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+  }
   AnalyticsSummary: { // field return type
     grossProfit: number; // Float!
     profitChange: number; // Float!
@@ -1926,6 +2594,12 @@ export interface NexusGenFieldTypes {
     user: NexusGenRootTypes['User'] | null; // User
     userId: number; // Int!
   }
+  AuditLogEntry: { // field return type
+    action: NexusGenEnums['AuditAction']; // AuditAction!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    userFullname: string | null; // String
+  }
   AuditLogType: { // field return type
     action: NexusGenEnums['AuditAction']; // AuditAction!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -1945,6 +2619,12 @@ export interface NexusGenFieldTypes {
     refresh_token: string; // String!
     token: string; // String!
     user: NexusGenRootTypes['User']; // User!
+  }
+  BatchDistributionEntry: { // field return type
+    batchId: string; // String!
+    batchNumber: string | null; // String
+    remainingQty: number; // Float!
+    unitCost: number; // Float!
   }
   BatchPayload: { // field return type
     count: number; // Int!
@@ -2014,6 +2694,21 @@ export interface NexusGenFieldTypes {
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
     year: number; // Int!
+  }
+  BusinessVerification: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    environment: NexusGenEnums['Environment']; // Environment!
+    fileUrl: string; // String!
+    id: string; // String!
+    notes: string | null; // String
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    reviewedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    reviewedById: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   CartItem: { // field return type
     costSnapshot: number | null; // Float
@@ -2258,12 +2953,43 @@ export interface NexusGenFieldTypes {
     user: NexusGenRootTypes['User'] | null; // User
     userId: number | null; // Int
   }
+  EscrowRelease: { // field return type
+    autoReleaseAt: NexusGenScalars['DateTime'] | null; // DateTime
+    buyerConfirmedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    buyerProofUrl: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    disputeReason: string | null; // String
+    disputeStatus: NexusGenEnums['DisputeStatus']; // DisputeStatus!
+    id: string; // String!
+    mandateTransaction: NexusGenRootTypes['MandateTransaction']; // MandateTransaction!
+    mandateTransactionId: string; // String!
+    releasedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    resolvedById: number | null; // Int
+    sellerConfirmedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    sellerProofUrl: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   ExtraCharge: { // field return type
     amount: number; // Float!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
     label: string; // String!
     salesOrderId: string; // String!
+  }
+  FeeRule: { // field return type
+    appliesTo: NexusGenEnums['FeeApplication']; // FeeApplication!
+    category: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveFrom: NexusGenScalars['DateTime']; // DateTime!
+    effectiveTo: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    rate: number; // Float!
+    rateType: NexusGenEnums['FeeRateType']; // FeeRateType!
+    tierModifier: number | null; // Float
+    unitType: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   GISRow: { // field return type
     accountTitle: NexusGenRootTypes['AccountTitle']; // AccountTitle!
@@ -2293,6 +3019,18 @@ export interface NexusGenFieldTypes {
     outlet: NexusGenRootTypes['Outlet']; // Outlet!
     outletId: number; // Int!
   }
+  InventoryAnalytics: { // field return type
+    averageCost: number; // Float!
+    avgDaysInStock: number | null; // Float
+    batchDistribution: NexusGenRootTypes['BatchDistributionEntry'][]; // [BatchDistributionEntry!]!
+    estimatedProfit: number | null; // Float
+    highestCost: number | null; // Float
+    inventoryTurnover: number | null; // Float
+    inventoryValue: number; // Float!
+    lowestCost: number | null; // Float
+    marginPct: number | null; // Float
+    stockAging: NexusGenRootTypes['StockAgingBuckets']; // StockAgingBuckets!
+  }
   InventoryCategoryBreakdown: { // field return type
     name: string; // String!
     totalStock: number; // Float!
@@ -2300,6 +3038,15 @@ export interface NexusGenFieldTypes {
   InventoryForItem: { // field return type
     id: number; // Int!
     outlet: NexusGenRootTypes['InventoryOutletSummary'] | null; // InventoryOutletSummary
+  }
+  InventoryForecast: { // field return type
+    avgDailyConsumption: number | null; // Float
+    daysRemaining: number | null; // Float
+    expectedStockoutDate: NexusGenScalars['DateTime'] | null; // DateTime
+    hasData: boolean; // Boolean!
+    isLowStockPredicted: boolean | null; // Boolean
+    suggestedReorderDate: NexusGenScalars['DateTime'] | null; // DateTime
+    suggestedReorderQty: number | null; // Float
   }
   InventoryItem: { // field return type
     category: string; // String!
@@ -2356,6 +3103,24 @@ export interface NexusGenFieldTypes {
     code: string; // String!
     id: number; // Int!
     name: string; // String!
+  }
+  InventoryReconcileResult: { // field return type
+    after: NexusGenRootTypes['InventoryRollupSnapshot']; // InventoryRollupSnapshot!
+    before: NexusGenRootTypes['InventoryRollupSnapshot']; // InventoryRollupSnapshot!
+    driftDetected: boolean; // Boolean!
+  }
+  InventoryRollupSnapshot: { // field return type
+    availableQty: number; // Float!
+    damagedQty: number; // Float!
+    incomingQty: number; // Float!
+    reservedQty: number; // Float!
+    returnedQty: number; // Float!
+  }
+  InventoryValuation: { // field return type
+    averageCost: number; // Float!
+    batchCount: number; // Int!
+    totalQty: number; // Float!
+    totalValue: number; // Float!
   }
   Item: { // field return type
     InventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
@@ -2608,6 +3373,61 @@ export interface NexusGenFieldTypes {
     rack: string; // String!
     shelf: string; // String!
   }
+  Mandate: { // field return type
+    agent: NexusGenRootTypes['Agent']; // Agent!
+    agentId: string; // String!
+    category: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    latitude: number | null; // Float
+    longitude: number | null; // Float
+    notes: string | null; // String
+    offers: NexusGenRootTypes['MandateOffer'][]; // [MandateOffer!]!
+    quantity: number; // Float!
+    radiusKm: number | null; // Float
+    status: NexusGenEnums['MandateStatus']; // MandateStatus!
+    targetPrice: number | null; // Float
+    transaction: NexusGenRootTypes['MandateTransaction'] | null; // MandateTransaction
+    unitType: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  MandateOffer: { // field return type
+    availableQty: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    expiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    mandate: NexusGenRootTypes['Mandate']; // Mandate!
+    mandateId: string; // String!
+    price: number; // Float!
+    status: NexusGenEnums['MandateOfferStatus']; // MandateOfferStatus!
+    supplierOrg: NexusGenRootTypes['Organization']; // Organization!
+    supplierOrgId: number; // Int!
+    terms: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  MandateTransaction: { // field return type
+    agentId: string; // String!
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    escrow: NexusGenRootTypes['EscrowRelease'] | null; // EscrowRelease
+    feeAmount: number; // Float!
+    id: string; // String!
+    linkedPoId: string | null; // String
+    mandate: NexusGenRootTypes['Mandate']; // Mandate!
+    mandateId: string; // String!
+    netAmount: number; // Float!
+    offerId: string; // String!
+    paymentTransactionId: string | null; // String
+    settlementType: NexusGenEnums['SettlementType']; // SettlementType!
+    status: NexusGenEnums['MandateTransactionStatus']; // MandateTransactionStatus!
+    supplierOrg: NexusGenRootTypes['Organization']; // Organization!
+    supplierOrgId: number; // Int!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   Media: { // field return type
     id: number; // Int!
     itemId: number | null; // Int
@@ -2625,11 +3445,15 @@ export interface NexusGenFieldTypes {
     addItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     addItemToInventoryWithUnits: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
+    adjustStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     assignKompraOrderRider: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     banUser: NexusGenRootTypes['User']; // User!
     bulkCreateInventoryItems: NexusGenRootTypes['InventoryItems'][]; // [InventoryItems!]!
+    bulkUpdatePrices: NexusGenRootTypes['SupplierItem'][] | null; // [SupplierItem!]
+    cancelIncomingStock: boolean | null; // Boolean
     cancelKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     cancelSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    cancelScheduledPrice: NexusGenRootTypes['SupplierScheduledPrice'] | null; // SupplierScheduledPrice
     changePassword: boolean; // Boolean!
     changeUserPassword: boolean; // Boolean!
     confirmDelivery: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
@@ -2652,6 +3476,7 @@ export interface NexusGenFieldTypes {
     createItems: NexusGenRootTypes['BatchPayload']; // BatchPayload!
     createOrgItemCategory: NexusGenRootTypes['OrgItemCategory']; // OrgItemCategory!
     createOrganization: NexusGenRootTypes['Organization'] | null; // Organization
+    createOrganizationReview: NexusGenRootTypes['OrganizationReview']; // OrganizationReview!
     createOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     createOutletPromo: NexusGenRootTypes['OutletPromo']; // OutletPromo!
     createPlaceLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
@@ -2662,12 +3487,15 @@ export interface NexusGenFieldTypes {
     createRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
     createSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     createScPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
+    createScheduledPrice: NexusGenRootTypes['SupplierScheduledPrice'] | null; // SupplierScheduledPrice
     createStaff: NexusGenRootTypes['User']; // User!
     createSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     createSubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     createSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     createSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     createSupplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    createSupplierItemReview: NexusGenRootTypes['SupplierItemReview']; // SupplierItemReview!
+    createSupplierPayoutMethod: NexusGenRootTypes['PayoutMethod'] | null; // PayoutMethod
     createTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     createVatType: NexusGenRootTypes['VatType'] | null; // VatType
     deactivateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
@@ -2686,6 +3514,7 @@ export interface NexusGenFieldTypes {
     deleteItemGroup: NexusGenRootTypes['ItemGroup'] | null; // ItemGroup
     deleteItemMedia: NexusGenRootTypes['Media']; // Media!
     deleteOrgItemCategory: NexusGenRootTypes['OrgItemCategory']; // OrgItemCategory!
+    deleteOrganizationReview: NexusGenRootTypes['OrganizationReview']; // OrganizationReview!
     deleteOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     deleteOutletPromo: NexusGenRootTypes['OutletPromo']; // OutletPromo!
     deleteOutletStaffs: NexusGenRootTypes['OutletStaff']; // OutletStaff!
@@ -2695,38 +3524,53 @@ export interface NexusGenFieldTypes {
     deleteRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     deleteRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
     deleteSalarySnapshot: NexusGenRootTypes['SalaryHistory']; // SalaryHistory!
+    deleteScheduledPrice: NexusGenRootTypes['SupplierScheduledPrice'] | null; // SupplierScheduledPrice
     deleteSubCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     deleteSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     deleteSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     deleteSupplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    deleteSupplierItemReview: NexusGenRootTypes['SupplierItemReview']; // SupplierItemReview!
     deleteUser: NexusGenRootTypes['User']; // User!
     deleteVatType: NexusGenRootTypes['VatType'] | null; // VatType
+    editScheduledPrice: NexusGenRootTypes['SupplierScheduledPrice'] | null; // SupplierScheduledPrice
     endBreak: NexusGenRootTypes['Attendance'] | null; // Attendance
     extendSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     finalizeTransaction: NexusGenRootTypes['Transaction'] | null; // Transaction
     initiatePayment: NexusGenRootTypes['PaymentInitiation'] | null; // PaymentInitiation
+    logIncomingStock: NexusGenRootTypes['SupplierIncomingStock'] | null; // SupplierIncomingStock
     login: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     mapReceivedItem: NexusGenRootTypes['ReceivedItemMap']; // ReceivedItemMap!
+    markAllNotificationsRead: boolean; // Boolean!
+    markDamagedStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     markDelivered: NexusGenRootTypes['Delivery']; // Delivery!
     markKompraOrderDelivered: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     markKompraOrderPacked: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
+    markNotificationRead: NexusGenRootTypes['Notification']; // Notification!
     markOrderInDelivery: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
+    markReturnedStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     me: NexusGenRootTypes['User']; // User!
     placeKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     processCustomerReturn: NexusGenRootTypes['ReturnResult'] | null; // ReturnResult
     processSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    receiveIncomingStock: NexusGenRootTypes['SupplierStockBatch'] | null; // SupplierStockBatch
     receivePurchaseOrder: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     receiveSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
+    receiveStock: NexusGenRootTypes['SupplierStockBatch'] | null; // SupplierStockBatch
+    reconcileInventoryRollups: NexusGenRootTypes['InventoryReconcileResult'] | null; // InventoryReconcileResult
     recordSalarySnapshot: NexusGenRootTypes['SalaryHistory']; // SalaryHistory!
     refreshToken: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     registerAdmin: NexusGenRootTypes['User']; // User!
     registerKompraCustomer: NexusGenRootTypes['KompraCustomer']; // KompraCustomer!
     registerUser: NexusGenRootTypes['User']; // User!
     rejectPO: NexusGenRootTypes['PurchaseOrder']; // PurchaseOrder!
+    releaseReservation: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     removeExtraCharge: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     reorderItemMedia: NexusGenRootTypes['Media'][]; // [Media!]!
+    requestSupplierWithdrawal: NexusGenRootTypes['Withdrawal'] | null; // Withdrawal
     resendOTP: string; // String!
+    reserveStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     restockOutlet: NexusGenRootTypes['RestockOutletPayload'] | null; // RestockOutletPayload
+    restockReturnedItem: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setPositionPermissions: NexusGenRootTypes['PositionPermission'][]; // [PositionPermission!]!
     setUserPermissionOverride: NexusGenRootTypes['UserPermissionOverride']; // UserPermissionOverride!
@@ -2741,6 +3585,7 @@ export interface NexusGenFieldTypes {
     toggleContact: NexusGenRootTypes['Contact'] | null; // Contact
     toggleRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     toggleRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
+    transferStock: NexusGenRootTypes['SupplierStockBatch'][]; // [SupplierStockBatch!]!
     unbanUser: NexusGenRootTypes['User']; // User!
     unmapReceivedItem: NexusGenRootTypes['ReceivedItemMap']; // ReceivedItemMap!
     unverifyUser: NexusGenRootTypes['User']; // User!
@@ -2761,11 +3606,13 @@ export interface NexusGenFieldTypes {
     updateMyProfile: NexusGenRootTypes['User'] | null; // User
     updateOrgItemCategory: NexusGenRootTypes['OrgItemCategory']; // OrgItemCategory!
     updateOrganization: NexusGenRootTypes['Organization'] | null; // Organization
+    updateOrganizationReview: NexusGenRootTypes['OrganizationReview']; // OrganizationReview!
     updateOutlet: NexusGenRootTypes['Outlet']; // Outlet!
     updateOutletItem: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     updateOutletPromo: NexusGenRootTypes['OutletPromo']; // OutletPromo!
     updatePlaceLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
     updatePosition: NexusGenRootTypes['Position']; // Position!
+    updatePrice: NexusGenRootTypes['SupplierItem'] | null; // SupplierItem
     updatePromoType: NexusGenRootTypes['PromoType']; // PromoType!
     updateRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     updateRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
@@ -2777,10 +3624,12 @@ export interface NexusGenFieldTypes {
     updateSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
     updateSummaryRow: NexusGenRootTypes['SummaryRow'] | null; // SummaryRow
     updateSupplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    updateSupplierItemReview: NexusGenRootTypes['SupplierItemReview']; // SupplierItemReview!
     updateUser: NexusGenRootTypes['User']; // User!
     updateUserProfile: NexusGenRootTypes['User'] | null; // User
     updateVatType: NexusGenRootTypes['VatType'] | null; // VatType
     upsertSupplierCatalog: NexusGenRootTypes['SupplierCatalog']; // SupplierCatalog!
+    upsertSupplierWarehouse: NexusGenRootTypes['SupplierWarehouse'] | null; // SupplierWarehouse
     verifyEmail: NexusGenRootTypes['AuthPayload']; // AuthPayload!
     verifyUser: NexusGenRootTypes['User']; // User!
   }
@@ -2788,6 +3637,19 @@ export interface NexusGenFieldTypes {
     outletId: number; // Int!
     outletName: string; // String!
     role: string; // String!
+  }
+  Notification: { // field return type
+    createdAt: string; // String!
+    id: number; // Int!
+    isRead: boolean; // Boolean!
+    item: NexusGenRootTypes['Item'] | null; // Item
+    itemId: number | null; // Int
+    message: string; // String!
+    orgId: number; // Int!
+    outlet: NexusGenRootTypes['Outlet'] | null; // Outlet
+    outletId: number | null; // Int
+    title: string; // String!
+    type: string; // String!
   }
   OrgBasic: { // field return type
     email: string | null; // String
@@ -2816,12 +3678,18 @@ export interface NexusGenFieldTypes {
   }
   Organization: { // field return type
     accountTitles: NexusGenRootTypes['AccountTitle'][]; // [AccountTitle!]!
+    attendances: NexusGenRootTypes['Attendance'][]; // [Attendance!]!
+    averageRating: number; // Float!
     bannerImg: string | null; // String
     bio: string | null; // String
     branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     brands: NexusGenRootTypes['Brand'][]; // [Brand!]!
+    budgets: NexusGenRootTypes['Budget'][]; // [Budget!]!
+    businessVerifications: NexusGenRootTypes['BusinessVerification'][]; // [BusinessVerification!]!
+    buyerReceivedItemMaps: NexusGenRootTypes['ReceivedItemMap'][]; // [ReceivedItemMap!]!
     centers: NexusGenRootTypes['Center'][]; // [Center!]!
     contactNumber: string | null; // String
+    contacts: NexusGenRootTypes['Contact'][]; // [Contact!]!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
     departments: NexusGenRootTypes['Department'][]; // [Department!]!
@@ -2832,26 +3700,71 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     instagramLink: string | null; // String
     inventoryItems: NexusGenRootTypes['InventoryItem'][]; // [InventoryItem!]!
+    isDevSeed: boolean; // Boolean!
     itemCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
     itemGroups: NexusGenRootTypes['ItemGroup'][]; // [ItemGroup!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     kompraCOrders: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
+    linkedAgents: NexusGenRootTypes['Agent'][]; // [Agent!]!
     location: string | null; // String
+    mandateOffersReceived: NexusGenRootTypes['MandateOffer'][]; // [MandateOffer!]!
+    mandateTransactions: NexusGenRootTypes['MandateTransaction'][]; // [MandateTransaction!]!
     name: string; // String!
+    notifications: NexusGenRootTypes['Notification'][]; // [Notification!]!
+    orgCategories: NexusGenRootTypes['OrgItemCategory'][]; // [OrgItemCategory!]!
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
+    paymentGatewayCreds: NexusGenRootTypes['PaymentGatewayCredential'][]; // [PaymentGatewayCredential!]!
+    payoutMethods: NexusGenRootTypes['PayoutMethod'][]; // [PayoutMethod!]!
     positions: NexusGenRootTypes['Position'][]; // [Position!]!
     profileImg: string | null; // String
     profilePhoto: string | null; // String
     promoTypes: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
+    receivedPOs: NexusGenRootTypes['PurchaseOrder'][]; // [PurchaseOrder!]!
+    restockCycles: NexusGenRootTypes['RestockCycle'][]; // [RestockCycle!]!
+    restockSchedules: NexusGenRootTypes['RestockSchedule'][]; // [RestockSchedule!]!
+    reviewCount: number; // Int!
+    reviews: NexusGenRootTypes['OrganizationReview'][]; // [OrganizationReview!]!
+    reviewsReceived: NexusGenRootTypes['OrganizationReview'][]; // [OrganizationReview!]!
+    reviewsWritten: NexusGenRootTypes['OrganizationReview'][]; // [OrganizationReview!]!
     roles: NexusGenEnums['OrgRole'][]; // [OrgRole!]!
     salesOrders: NexusGenRootTypes['SalesOrder'][]; // [SalesOrder!]!
+    scPwdCustomers: NexusGenRootTypes['ScPwdCustomer'][]; // [ScPwdCustomer!]!
+    sentPOs: NexusGenRootTypes['PurchaseOrder'][]; // [PurchaseOrder!]!
+    shifts: NexusGenRootTypes['Shift'][]; // [Shift!]!
+    stockBatches: NexusGenRootTypes['StockBatch'][]; // [StockBatch!]!
     subCenters: NexusGenRootTypes['SubCenter'][]; // [SubCenter!]!
     subscription: NexusGenRootTypes['Subscription'] | null; // Subscription
     summaryRows: NexusGenRootTypes['SummaryRow'][]; // [SummaryRow!]!
+    supplierCatalog: NexusGenRootTypes['SupplierCatalog'] | null; // SupplierCatalog
+    supplierLinks: NexusGenRootTypes['SupplierOutletLink'][]; // [SupplierOutletLink!]!
+    supplierOrders: NexusGenRootTypes['SupplierOrder'][]; // [SupplierOrder!]!
+    supplierWarehouses: NexusGenRootTypes['SupplierWarehouse'][]; // [SupplierWarehouse!]!
+    totalReviews: number; // Int!
     twitterLink: string | null; // String
     updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
     users: NexusGenRootTypes['User'][]; // [User!]!
     vatTypes: NexusGenRootTypes['VatType'][]; // [VatType!]!
+    verifiedReviewsCount: number; // Int!
+    wallet: NexusGenRootTypes['Wallet'] | null; // Wallet
+  }
+  OrganizationReview: { // field return type
+    comment: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVerifiedTransaction: boolean; // Boolean!
+    organizationId: number; // Int!
+    rating: number; // Int!
+    reviewer: NexusGenRootTypes['Organization'] | null; // Organization
+    reviewerCustomerId: number | null; // Int
+    reviewerName: string | null; // String
+    reviewerOrgId: number | null; // Int
+    title: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  OrganizationReviewPayload: { // field return type
+    aggregate: NexusGenRootTypes['ReviewAggregate']; // ReviewAggregate!
+    reviews: NexusGenRootTypes['OrganizationReview'][]; // [OrganizationReview!]!
   }
   Outlet: { // field return type
     address: string; // String!
@@ -3047,6 +3960,18 @@ export interface NexusGenFieldTypes {
     page: number; // Int!
     total: number; // Int!
   }
+  PaymentGatewayCredential: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    orgId: number | null; // Int
+    organization: NexusGenRootTypes['Organization'] | null; // Organization
+    provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    publicKey: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   PaymentInitiation: { // field return type
     client_key: string; // String!
     paymentIntentId: string; // String!
@@ -3055,11 +3980,43 @@ export interface NexusGenFieldTypes {
     return_url: string; // String!
     url: string; // String!
   }
+  PaymentTransaction: { // field return type
+    amount: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    feeAmount: number; // Float!
+    gatewayReference: string | null; // String
+    id: string; // String!
+    payerAgentId: string | null; // String
+    payerOrgId: number | null; // Int
+    provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    relatedId: string; // String!
+    relatedType: NexusGenEnums['PaymentRelatedType']; // PaymentRelatedType!
+    status: NexusGenEnums['PaymentTransactionStatus']; // PaymentTransactionStatus!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
   PaymongoAPIKeys: { // field return type
     id: number; // Int!
     outlets: NexusGenRootTypes['Outlet'][]; // [Outlet!]!
     owner: NexusGenRootTypes['User']; // User!
     public_key: string; // String!
+  }
+  PayoutMethod: { // field return type
+    accountName: string; // String!
+    bankName: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: number; // Int!
+    isDefault: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    maskedAccountNumber: string; // String!
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    verifiedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    withdrawals: NexusGenRootTypes['Withdrawal'][]; // [Withdrawal!]!
   }
   PerformanceSummary: { // field return type
     absentDays: number; // Int!
@@ -3111,6 +4068,54 @@ export interface NexusGenFieldTypes {
     id: string; // String!
     minQty: number; // Int!
     price: number; // Float!
+  }
+  PricingAnalytics: { // field return type
+    averageMargin: number; // Float!
+    averageSellingPrice: number; // Float!
+    estimatedProfit: number; // Float!
+    estimatedRevenue: number; // Float!
+    highestPrice: number; // Float!
+    lowestPrice: number; // Float!
+    priceChangeCount: number; // Int!
+    priceTrend: NexusGenRootTypes['SupplierItemPriceHistory'][]; // [SupplierItemPriceHistory!]!
+  }
+  PricingDetail: { // field return type
+    margin: number; // Float!
+    markup: number; // Float!
+    profitPerUnit: number; // Float!
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+  }
+  PricingKPIs: { // field return type
+    activePriceCount: number; // Int!
+    averageMargin: number; // Float!
+    averageSellingPrice: number; // Float!
+    highestMargin: number; // Float!
+    lowestMargin: number; // Float!
+    priceUpdatesThisMonth: number; // Int!
+    productsOnPromotion: number; // Int!
+    scheduledPriceChanges: number; // Int!
+  }
+  PricingListItem: { // field return type
+    categoryId: number | null; // Int
+    categoryName: string | null; // String
+    currentCost: number; // Float!
+    id: string; // String!
+    image: string | null; // String
+    isActive: boolean; // Boolean!
+    margin: number; // Float!
+    markup: number; // Float!
+    name: string; // String!
+    priceTierCount: number; // Int!
+    sellingPrice: number; // Float!
+    sku: string | null; // String
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  PricingListResult: { // field return type
+    items: NexusGenRootTypes['PricingListItem'][]; // [PricingListItem!]!
+    page: number; // Int!
+    pageSize: number; // Int!
+    total: number; // Int!
   }
   PromoType: { // field return type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -3187,6 +4192,7 @@ export interface NexusGenFieldTypes {
     getLatestSalary: NexusGenRootTypes['SalaryHistory'] | null; // SalaryHistory
     getMyProfile: NexusGenRootTypes['User'] | null; // User
     getMySubscription: NexusGenRootTypes['Subscription'] | null; // Subscription
+    getNotifications: NexusGenRootTypes['Notification'][]; // [Notification!]!
     getOrgBranches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     getOrgCategories: NexusGenRootTypes['OrgItemCategory'][]; // [OrgItemCategory!]!
     getOrgCategoryById: NexusGenRootTypes['OrgItemCategory'] | null; // OrgItemCategory
@@ -3216,6 +4222,7 @@ export interface NexusGenFieldTypes {
     getTransactionById: NexusGenRootTypes['Transaction'] | null; // Transaction
     getTransactionsByOrgId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     getTransactionsByStoreId: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
+    getUnreadCount: number; // Int!
     getUserById: NexusGenRootTypes['User']; // User!
     getUserProfile: NexusGenRootTypes['User'] | null; // User
     gisRow: NexusGenRootTypes['GISRow'] | null; // GISRow
@@ -3239,6 +4246,7 @@ export interface NexusGenFieldTypes {
     myPerformanceSummary: NexusGenRootTypes['PerformanceSummary'] | null; // PerformanceSummary
     nearestOutletsWithItems: NexusGenRootTypes['OutletSearchResult'][]; // [OutletSearchResult!]!
     organization: NexusGenRootTypes['Organization'] | null; // Organization
+    organizationReviews: NexusGenRootTypes['OrganizationReviewPayload']; // OrganizationReviewPayload!
     organizations: Array<NexusGenRootTypes['Organization'] | null> | null; // [Organization]
     outletCatalog: NexusGenRootTypes['OutletCatalogResult']; // OutletCatalogResult!
     outletOrderQueue: NexusGenRootTypes['KompraCOrder'][]; // [KompraCOrder!]!
@@ -3251,10 +4259,15 @@ export interface NexusGenFieldTypes {
     placeLocations: Array<NexusGenRootTypes['PlaceLocation'] | null> | null; // [PlaceLocation]
     position: NexusGenRootTypes['Position'] | null; // Position
     positions: NexusGenRootTypes['Position'][]; // [Position!]!
+    pricingAnalytics: NexusGenRootTypes['PricingAnalytics'] | null; // PricingAnalytics
+    pricingDashboard: NexusGenRootTypes['PricingKPIs'] | null; // PricingKPIs
+    pricingDetail: NexusGenRootTypes['PricingDetail'] | null; // PricingDetail
+    pricingList: NexusGenRootTypes['PricingListResult'] | null; // PricingListResult
     promoType: NexusGenRootTypes['PromoType'] | null; // PromoType
     promoTypes: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
     promoTypesByOrg: NexusGenRootTypes['PromoType'][]; // [PromoType!]!
     purchaseOrder: NexusGenRootTypes['PurchaseOrder'] | null; // PurchaseOrder
+    purchaseOrderActivity: NexusGenRootTypes['AuditLogEntry'][]; // [AuditLogEntry!]!
     purchaseOrdersForBuyer: NexusGenRootTypes['PurchaseOrder'][]; // [PurchaseOrder!]!
     purchaseOrdersForSupplier: NexusGenRootTypes['PurchaseOrder'][]; // [PurchaseOrder!]!
     receivedItemMaps: NexusGenRootTypes['ReceivedItemMap'][]; // [ReceivedItemMap!]!
@@ -3264,6 +4277,7 @@ export interface NexusGenFieldTypes {
     salesOrdersByStatus: Array<NexusGenRootTypes['SalesOrder'] | null> | null; // [SalesOrder]
     scPwdCustomer: NexusGenRootTypes['ScPwdCustomer'] | null; // ScPwdCustomer
     scPwdCustomers: NexusGenRootTypes['ScPwdCustomer'][]; // [ScPwdCustomer!]!
+    scheduledPricesList: NexusGenRootTypes['SupplierScheduledPrice'][] | null; // [SupplierScheduledPrice!]
     searchInventoryItems: NexusGenRootTypes['InventoryItemsSearchResult']; // InventoryItemsSearchResult!
     subCenter: NexusGenRootTypes['SubCenter'] | null; // SubCenter
     subCenters: Array<NexusGenRootTypes['SubCenter'] | null> | null; // [SubCenter]
@@ -3273,8 +4287,26 @@ export interface NexusGenFieldTypes {
     summaryRows: Array<NexusGenRootTypes['SummaryRow'] | null> | null; // [SummaryRow]
     supplierCatalog: NexusGenRootTypes['SupplierCatalog'] | null; // SupplierCatalog
     supplierDashboard: NexusGenRootTypes['SupplierDashboardStats'] | null; // SupplierDashboardStats
+    supplierFinanceFeeHistory: Array<NexusGenRootTypes['WalletLedgerEntry'] | null> | null; // [WalletLedgerEntry]
+    supplierFinancePayoutMethods: Array<NexusGenRootTypes['PayoutMethod'] | null> | null; // [PayoutMethod]
+    supplierFinanceTransactions: Array<NexusGenRootTypes['WalletLedgerEntry'] | null> | null; // [WalletLedgerEntry]
+    supplierFinanceWithdrawals: Array<NexusGenRootTypes['Withdrawal'] | null> | null; // [Withdrawal]
+    supplierIncomingStockList: NexusGenRootTypes['SupplierIncomingStock'][]; // [SupplierIncomingStock!]!
+    supplierInventoryAnalytics: NexusGenRootTypes['InventoryAnalytics'] | null; // InventoryAnalytics
+    supplierInventoryDashboard: NexusGenRootTypes['SupplierInventoryDashboard'] | null; // SupplierInventoryDashboard
+    supplierInventoryForecast: NexusGenRootTypes['InventoryForecast'] | null; // InventoryForecast
+    supplierInventoryList: NexusGenRootTypes['SupplierItem'][]; // [SupplierItem!]!
+    supplierInventoryMovements: NexusGenRootTypes['SupplierInventoryMovement'][]; // [SupplierInventoryMovement!]!
+    supplierInventoryValuation: NexusGenRootTypes['InventoryValuation'] | null; // InventoryValuation
     supplierItem: NexusGenRootTypes['SupplierItem'] | null; // SupplierItem
+    supplierItemCostHistoryList: NexusGenRootTypes['SupplierItemCostHistory'][]; // [SupplierItemCostHistory!]!
+    supplierItemPriceHistoryList: NexusGenRootTypes['SupplierItemPriceHistory'][] | null; // [SupplierItemPriceHistory!]
+    supplierItemReviews: NexusGenRootTypes['SupplierItemReviewPayload']; // SupplierItemReviewPayload!
     supplierItems: NexusGenRootTypes['SupplierItem'][]; // [SupplierItem!]!
+    supplierOrderTimeline: NexusGenRootTypes['SupplierOrderTimelinePayload']; // SupplierOrderTimelinePayload!
+    supplierStockBatches: NexusGenRootTypes['SupplierStockBatch'][]; // [SupplierStockBatch!]!
+    supplierWalletSummary: NexusGenRootTypes['Wallet'] | null; // Wallet
+    supplierWarehouses: NexusGenRootTypes['SupplierWarehouse'][]; // [SupplierWarehouse!]!
     todayAttendanceByOrg: NexusGenRootTypes['PaginatedUserAttendance'] | null; // PaginatedUserAttendance
     transactionsByDiscountType: NexusGenRootTypes['Transaction'][]; // [Transaction!]!
     userAttendanceHistory: NexusGenRootTypes['PaginatedAttendance'] | null; // PaginatedAttendance
@@ -3282,6 +4314,10 @@ export interface NexusGenFieldTypes {
     userPerformanceSummary: NexusGenRootTypes['PerformanceSummary'] | null; // PerformanceSummary
     vatType: NexusGenRootTypes['VatType'] | null; // VatType
     vatTypes: Array<NexusGenRootTypes['VatType'] | null> | null; // [VatType]
+  }
+  RatingBreakdownItem: { // field return type
+    count: number; // Int!
+    rating: number; // Int!
   }
   ReceivedItemMap: { // field return type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -3364,6 +4400,12 @@ export interface NexusGenFieldTypes {
   ReturnResult: { // field return type
     success: boolean; // Boolean!
     transactionId: number; // Int!
+  }
+  ReviewAggregate: { // field return type
+    averageRating: number; // Float!
+    breakdown: NexusGenRootTypes['RatingBreakdownItem'][]; // [RatingBreakdownItem!]!
+    reviewCount: number; // Int!
+    verifiedCount: number; // Int!
   }
   SalaryHistory: { // field return type
     ammount: number; // Float!
@@ -3497,6 +4539,27 @@ export interface NexusGenFieldTypes {
     totalRevenue: number; // Float!
     unitsSold: number; // Float!
   }
+  StockAgingBuckets: { // field return type
+    aging: number; // Float!
+    fresh: number; // Float!
+    old: number; // Float!
+    stale: number; // Float!
+  }
+  StockBatch: { // field return type
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    exactExpiryDate: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryEndDate: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryStartDate: NexusGenScalars['DateTime'] | null; // DateTime
+    id: number; // Int!
+    item: NexusGenRootTypes['Item']; // Item!
+    itemId: number; // Int!
+    orderId: number | null; // Int
+    org: NexusGenRootTypes['Organization']; // Organization!
+    orgId: number; // Int!
+    quantity: number; // Float!
+    receivedAt: NexusGenScalars['DateTime']; // DateTime!
+    remainingQty: number; // Float!
+  }
   SubCenter: { // field return type
     gisRows: Array<NexusGenRootTypes['GISRow'] | null> | null; // [GISRow]
     id: number; // Int!
@@ -3558,29 +4621,166 @@ export interface NexusGenFieldTypes {
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
     items: NexusGenRootTypes['SupplierItem'][]; // [SupplierItem!]!
+    organization: NexusGenRootTypes['Organization']; // Organization!
     organizationId: number; // Int!
   }
   SupplierDashboardStats: { // field return type
+    catalogItemCount: number; // Int!
     duePayments: number; // Float!
     fulfilledToday: number; // Int!
+    myAcceptedMandateOffers: number; // Int!
+    myPendingMandateOffers: number; // Int!
     newPOs: number; // Int!
+    openMandatesCount: number; // Int!
     pendingDeliveries: number; // Int!
+    walletBalance: number; // Float!
+    walletHeldBalance: number; // Float!
+  }
+  SupplierIncomingStock: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById: number | null; // Int
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    expectedDate: NexusGenScalars['DateTime'] | null; // DateTime
+    expectedQty: number; // Float!
+    id: string; // String!
+    notes: string | null; // String
+    receivedBatchId: string | null; // String
+    sourceLabel: string | null; // String
+    status: NexusGenEnums['SupplierIncomingStatus']; // SupplierIncomingStatus!
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    warehouse: NexusGenRootTypes['SupplierWarehouse'] | null; // SupplierWarehouse
+    warehouseId: string | null; // String
+  }
+  SupplierInventoryDashboard: { // field return type
+    availableStock: number; // Float!
+    averageInventoryCost: number; // Float!
+    averageMargin: number | null; // Float
+    expiringSoonCount: number; // Int!
+    incomingStock: number; // Float!
+    inventoryValue: number; // Float!
+    lowStockCount: number; // Int!
+    outOfStockCount: number; // Int!
+    reservedStock: number; // Float!
+    totalInventory: number; // Float!
+  }
+  SupplierInventoryMovement: { // field return type
+    batch: NexusGenRootTypes['SupplierStockBatch'] | null; // SupplierStockBatch
+    batchId: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById: number | null; // Int
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    quantity: number; // Float!
+    quantityAfter: number; // Float!
+    quantityBefore: number; // Float!
+    reason: string | null; // String
+    referenceId: string | null; // String
+    referenceType: string | null; // String
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+    transferGroupId: string | null; // String
+    type: NexusGenEnums['SupplierInventoryMovementType']; // SupplierInventoryMovementType!
+    unitCost: number | null; // Float
+    warehouse: NexusGenRootTypes['SupplierWarehouse'] | null; // SupplierWarehouse
+    warehouseId: string | null; // String
   }
   SupplierItem: { // field return type
     availableQty: number; // Int!
+    averageRating: number; // Float!
+    category: NexusGenRootTypes['SupplierItemCategory'] | null; // SupplierItemCategory
+    costHistory: NexusGenRootTypes['SupplierItemCostHistory'][]; // [SupplierItemCostHistory!]!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currentCost: number | null; // Float
+    damagedQty: number; // Float!
     description: string | null; // String
+    group: NexusGenRootTypes['SupplierItemGroup'] | null; // SupplierItemGroup
     id: string; // String!
+    image: string | null; // String
+    incomingQty: number; // Float!
     isActive: boolean; // Boolean!
     isVatExempt: boolean; // Boolean!
     moq: number; // Int!
     name: string; // String!
+    priceHistory: NexusGenRootTypes['SupplierItemPriceHistory'][]; // [SupplierItemPriceHistory!]!
     priceTiers: NexusGenRootTypes['PriceTier'][]; // [PriceTier!]!
+    reorderLevel: number | null; // Float
+    reorderQty: number | null; // Float
+    reservedQty: number; // Float!
+    returnedQty: number; // Float!
+    reviewCount: number; // Int!
+    reviews: NexusGenRootTypes['SupplierItemReview'][]; // [SupplierItemReview!]!
+    scheduledPrices: NexusGenRootTypes['SupplierScheduledPrice'][]; // [SupplierScheduledPrice!]!
     sku: string | null; // String
+    supplierIncomingStock: NexusGenRootTypes['SupplierIncomingStock'][]; // [SupplierIncomingStock!]!
+    supplierInventoryMovements: NexusGenRootTypes['SupplierInventoryMovement'][]; // [SupplierInventoryMovement!]!
+    supplierStockBatches: NexusGenRootTypes['SupplierStockBatch'][]; // [SupplierStockBatch!]!
     unit: string; // String!
     unitPrice: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     vatRate: number; // Float!
+  }
+  SupplierItemCategory: { // field return type
+    catalog: NexusGenRootTypes['SupplierCatalog']; // SupplierCatalog!
+    catalogId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    description: string | null; // String
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    items: NexusGenRootTypes['SupplierItem'][]; // [SupplierItem!]!
+    name: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemCostHistory: { // field return type
+    changedById: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    newCost: number; // Float!
+    oldCost: number; // Float!
+    reason: string | null; // String
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+  }
+  SupplierItemGroup: { // field return type
+    catalog: NexusGenRootTypes['SupplierCatalog']; // SupplierCatalog!
+    catalogId: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    description: string | null; // String
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    items: NexusGenRootTypes['SupplierItem'][]; // [SupplierItem!]!
+    name: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemPriceHistory: { // field return type
+    changedById: number | null; // Int
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    newPrice: number; // Float!
+    oldPrice: number; // Float!
+    reason: string | null; // String
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+  }
+  SupplierItemReview: { // field return type
+    comment: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVerifiedPurchase: boolean; // Boolean!
+    rating: number; // Int!
+    reviewer: NexusGenRootTypes['Organization']; // Organization!
+    reviewerOrgId: number; // Int!
+    supplierItemId: string; // String!
+    title: string | null; // String
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierItemReviewPayload: { // field return type
+    aggregate: NexusGenRootTypes['ReviewAggregate']; // ReviewAggregate!
+    reviews: NexusGenRootTypes['SupplierItemReview'][]; // [SupplierItemReview!]!
   }
   SupplierOrder: { // field return type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -3606,6 +4806,109 @@ export interface NexusGenFieldTypes {
     itemId: number; // Int!
     orderId: number; // Int!
     requestedQty: number; // Float!
+  }
+  SupplierOrderTimelinePayload: { // field return type
+    groups: NexusGenRootTypes['SupplierTimelineGroup'][]; // [SupplierTimelineGroup!]!
+    hasNextPage: boolean; // Boolean!
+    summary: NexusGenRootTypes['SupplierTimelineSummary']; // SupplierTimelineSummary!
+    totalCount: number; // Int!
+  }
+  SupplierOutletLink: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    id: string; // String!
+    isApproved: boolean; // Boolean!
+    outlet: NexusGenRootTypes['Outlet']; // Outlet!
+    outletId: number; // Int!
+    supplierOrg: NexusGenRootTypes['Organization']; // Organization!
+    supplierOrgId: number; // Int!
+  }
+  SupplierScheduledPrice: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    createdById: number | null; // Int
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    effectiveAt: NexusGenScalars['DateTime']; // DateTime!
+    expiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    price: number; // Float!
+    status: NexusGenEnums['ScheduledPriceStatus']; // ScheduledPriceStatus!
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SupplierStockBatch: { // field return type
+    batchNumber: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    expiryDate: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    movements: NexusGenRootTypes['SupplierInventoryMovement'][]; // [SupplierInventoryMovement!]!
+    quantity: number; // Float!
+    receivedAt: NexusGenScalars['DateTime']; // DateTime!
+    remainingQty: number; // Float!
+    status: NexusGenEnums['SupplierStockBatchStatus']; // SupplierStockBatchStatus!
+    supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
+    supplierItemId: string; // String!
+    unitCost: number; // Float!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    warehouse: NexusGenRootTypes['SupplierWarehouse'] | null; // SupplierWarehouse
+    warehouseId: string | null; // String
+  }
+  SupplierTimelineEvent: { // field return type
+    actionLabel: string | null; // String
+    actionRoute: string | null; // String
+    actor: string | null; // String
+    color: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string; // String!
+    eventType: NexusGenEnums['SupplierTimelineEventType']; // SupplierTimelineEventType!
+    icon: string; // String!
+    id: string; // String!
+    metadata: NexusGenScalars['Json']; // Json!
+    organization: string | null; // String
+    referenceId: string | null; // String
+    referenceType: string | null; // String
+    status: NexusGenEnums['SupplierTimelineStatus']; // SupplierTimelineStatus!
+    title: string; // String!
+  }
+  SupplierTimelineGroup: { // field return type
+    events: NexusGenRootTypes['SupplierTimelineEvent'][]; // [SupplierTimelineEvent!]!
+    label: string; // String!
+  }
+  SupplierTimelineSummary: { // field return type
+    attention: number; // Int!
+    deliveries: number; // Int!
+    inventory: number; // Int!
+    mandates: number; // Int!
+    notifications: number; // Int!
+    purchaseOrders: number; // Int!
+    total: number; // Int!
+    wallet: number; // Int!
+  }
+  SupplierWarehouse: { // field return type
+    address: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    incoming: NexusGenRootTypes['SupplierIncomingStock'][]; // [SupplierIncomingStock!]!
+    isActive: boolean; // Boolean!
+    isDefault: boolean; // Boolean!
+    latitude: number | null; // Float
+    longitude: number | null; // Float
+    movements: NexusGenRootTypes['SupplierInventoryMovement'][]; // [SupplierInventoryMovement!]!
+    name: string; // String!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    organizationId: number; // Int!
+    stockBatches: NexusGenRootTypes['SupplierStockBatch'][]; // [SupplierStockBatch!]!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  SystemConfig: { // field return type
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    description: string | null; // String
+    id: string; // String!
+    key: string; // String!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    updatedById: number | null; // Int
+    value: NexusGenScalars['Json']; // Json!
   }
   TimeInStatus: { // field return type
     hasTimeIn: boolean; // Boolean!
@@ -3742,6 +5045,60 @@ export interface NexusGenFieldTypes {
     orgId: number; // Int!
     rate: number; // Float!
   }
+  VisibilityRule: { // field return type
+    agentTier: string; // String!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    id: string; // String!
+    isVisible: boolean; // Boolean!
+    rankBoost: number; // Float!
+    supplierPlan: NexusGenEnums['SubscriptionPlan']; // SubscriptionPlan!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  Wallet: { // field return type
+    balance: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currency: string; // String!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    heldBalance: number; // Float!
+    id: number; // Int!
+    ledgerEntries: NexusGenRootTypes['WalletLedgerEntry'][]; // [WalletLedgerEntry!]!
+    orgId: number; // Int!
+    organization: NexusGenRootTypes['Organization']; // Organization!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    withdrawals: NexusGenRootTypes['Withdrawal'][]; // [Withdrawal!]!
+  }
+  WalletLedgerEntry: { // field return type
+    amount: number; // Float!
+    balanceAfter: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    referenceId: string | null; // String
+    sourceType: NexusGenEnums['LedgerSourceType']; // LedgerSourceType!
+    status: NexusGenEnums['LedgerEntryStatus']; // LedgerEntryStatus!
+    type: NexusGenEnums['LedgerEntryType']; // LedgerEntryType!
+    wallet: NexusGenRootTypes['Wallet']; // Wallet!
+    walletId: number; // Int!
+  }
+  Withdrawal: { // field return type
+    amount: number; // Float!
+    approvedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    approvedById: number | null; // Int
+    completedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    payoutMethod: NexusGenRootTypes['PayoutMethod']; // PayoutMethod!
+    payoutMethodId: number; // Int!
+    rejectionReason: string | null; // String
+    requestedAt: NexusGenScalars['DateTime']; // DateTime!
+    requestedById: number; // Int!
+    status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
+    wallet: NexusGenRootTypes['Wallet']; // Wallet!
+    walletId: number; // Int!
+  }
 }
 
 export interface NexusGenFieldTypeNames {
@@ -3773,6 +5130,39 @@ export interface NexusGenFieldTypeNames {
     page: 'Int'
     pageSize: 'Int'
     total: 'Int'
+  }
+  Agent: { // field return type name
+    agentType: 'AgentType'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    email: 'String'
+    environment: 'Environment'
+    fullname: 'String'
+    id: 'String'
+    isDevSeed: 'Boolean'
+    isVerified: 'Boolean'
+    mandates: 'Mandate'
+    organization: 'Organization'
+    organizationId: 'Int'
+    passwordHash: 'String'
+    phone: 'String'
+    trustTier: 'String'
+    updatedAt: 'DateTime'
+    verificationStatus: 'VerificationStatus'
+    verifications: 'AgentVerification'
+  }
+  AgentVerification: { // field return type name
+    agent: 'Agent'
+    agentId: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    documentType: 'DocumentType'
+    environment: 'Environment'
+    fileUrl: 'String'
+    id: 'String'
+    reviewedAt: 'DateTime'
+    reviewedById: 'Int'
+    status: 'VerificationStatus'
   }
   AnalyticsSummary: { // field return type name
     grossProfit: 'Float'
@@ -3807,6 +5197,12 @@ export interface NexusGenFieldTypeNames {
     user: 'User'
     userId: 'Int'
   }
+  AuditLogEntry: { // field return type name
+    action: 'AuditAction'
+    createdAt: 'DateTime'
+    id: 'String'
+    userFullname: 'String'
+  }
   AuditLogType: { // field return type name
     action: 'AuditAction'
     createdAt: 'DateTime'
@@ -3826,6 +5222,12 @@ export interface NexusGenFieldTypeNames {
     refresh_token: 'String'
     token: 'String'
     user: 'User'
+  }
+  BatchDistributionEntry: { // field return type name
+    batchId: 'String'
+    batchNumber: 'String'
+    remainingQty: 'Float'
+    unitCost: 'Float'
   }
   BatchPayload: { // field return type name
     count: 'Int'
@@ -3895,6 +5297,21 @@ export interface NexusGenFieldTypeNames {
     user: 'User'
     userId: 'Int'
     year: 'Int'
+  }
+  BusinessVerification: { // field return type name
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    documentType: 'DocumentType'
+    environment: 'Environment'
+    fileUrl: 'String'
+    id: 'String'
+    notes: 'String'
+    orgId: 'Int'
+    organization: 'Organization'
+    reviewedAt: 'DateTime'
+    reviewedById: 'Int'
+    status: 'VerificationStatus'
+    updatedAt: 'DateTime'
   }
   CartItem: { // field return type name
     costSnapshot: 'Float'
@@ -4139,12 +5556,43 @@ export interface NexusGenFieldTypeNames {
     user: 'User'
     userId: 'Int'
   }
+  EscrowRelease: { // field return type name
+    autoReleaseAt: 'DateTime'
+    buyerConfirmedAt: 'DateTime'
+    buyerProofUrl: 'String'
+    createdAt: 'DateTime'
+    disputeReason: 'String'
+    disputeStatus: 'DisputeStatus'
+    id: 'String'
+    mandateTransaction: 'MandateTransaction'
+    mandateTransactionId: 'String'
+    releasedAt: 'DateTime'
+    resolvedById: 'Int'
+    sellerConfirmedAt: 'DateTime'
+    sellerProofUrl: 'String'
+    updatedAt: 'DateTime'
+  }
   ExtraCharge: { // field return type name
     amount: 'Float'
     createdAt: 'DateTime'
     id: 'String'
     label: 'String'
     salesOrderId: 'String'
+  }
+  FeeRule: { // field return type name
+    appliesTo: 'FeeApplication'
+    category: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    effectiveFrom: 'DateTime'
+    effectiveTo: 'DateTime'
+    id: 'String'
+    isActive: 'Boolean'
+    rate: 'Float'
+    rateType: 'FeeRateType'
+    tierModifier: 'Float'
+    unitType: 'String'
+    updatedAt: 'DateTime'
   }
   GISRow: { // field return type name
     accountTitle: 'AccountTitle'
@@ -4174,6 +5622,18 @@ export interface NexusGenFieldTypeNames {
     outlet: 'Outlet'
     outletId: 'Int'
   }
+  InventoryAnalytics: { // field return type name
+    averageCost: 'Float'
+    avgDaysInStock: 'Float'
+    batchDistribution: 'BatchDistributionEntry'
+    estimatedProfit: 'Float'
+    highestCost: 'Float'
+    inventoryTurnover: 'Float'
+    inventoryValue: 'Float'
+    lowestCost: 'Float'
+    marginPct: 'Float'
+    stockAging: 'StockAgingBuckets'
+  }
   InventoryCategoryBreakdown: { // field return type name
     name: 'String'
     totalStock: 'Float'
@@ -4181,6 +5641,15 @@ export interface NexusGenFieldTypeNames {
   InventoryForItem: { // field return type name
     id: 'Int'
     outlet: 'InventoryOutletSummary'
+  }
+  InventoryForecast: { // field return type name
+    avgDailyConsumption: 'Float'
+    daysRemaining: 'Float'
+    expectedStockoutDate: 'DateTime'
+    hasData: 'Boolean'
+    isLowStockPredicted: 'Boolean'
+    suggestedReorderDate: 'DateTime'
+    suggestedReorderQty: 'Float'
   }
   InventoryItem: { // field return type name
     category: 'String'
@@ -4237,6 +5706,24 @@ export interface NexusGenFieldTypeNames {
     code: 'String'
     id: 'Int'
     name: 'String'
+  }
+  InventoryReconcileResult: { // field return type name
+    after: 'InventoryRollupSnapshot'
+    before: 'InventoryRollupSnapshot'
+    driftDetected: 'Boolean'
+  }
+  InventoryRollupSnapshot: { // field return type name
+    availableQty: 'Float'
+    damagedQty: 'Float'
+    incomingQty: 'Float'
+    reservedQty: 'Float'
+    returnedQty: 'Float'
+  }
+  InventoryValuation: { // field return type name
+    averageCost: 'Float'
+    batchCount: 'Int'
+    totalQty: 'Float'
+    totalValue: 'Float'
   }
   Item: { // field return type name
     InventoryItems: 'InventoryItems'
@@ -4489,6 +5976,61 @@ export interface NexusGenFieldTypeNames {
     rack: 'String'
     shelf: 'String'
   }
+  Mandate: { // field return type name
+    agent: 'Agent'
+    agentId: 'String'
+    category: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'String'
+    latitude: 'Float'
+    longitude: 'Float'
+    notes: 'String'
+    offers: 'MandateOffer'
+    quantity: 'Float'
+    radiusKm: 'Float'
+    status: 'MandateStatus'
+    targetPrice: 'Float'
+    transaction: 'MandateTransaction'
+    unitType: 'String'
+    updatedAt: 'DateTime'
+  }
+  MandateOffer: { // field return type name
+    availableQty: 'Float'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    expiresAt: 'DateTime'
+    id: 'String'
+    mandate: 'Mandate'
+    mandateId: 'String'
+    price: 'Float'
+    status: 'MandateOfferStatus'
+    supplierOrg: 'Organization'
+    supplierOrgId: 'Int'
+    terms: 'String'
+    updatedAt: 'DateTime'
+  }
+  MandateTransaction: { // field return type name
+    agentId: 'String'
+    amount: 'Float'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    environment: 'Environment'
+    escrow: 'EscrowRelease'
+    feeAmount: 'Float'
+    id: 'String'
+    linkedPoId: 'String'
+    mandate: 'Mandate'
+    mandateId: 'String'
+    netAmount: 'Float'
+    offerId: 'String'
+    paymentTransactionId: 'String'
+    settlementType: 'SettlementType'
+    status: 'MandateTransactionStatus'
+    supplierOrg: 'Organization'
+    supplierOrgId: 'Int'
+    updatedAt: 'DateTime'
+  }
   Media: { // field return type name
     id: 'Int'
     itemId: 'Int'
@@ -4506,11 +6048,15 @@ export interface NexusGenFieldTypeNames {
     addItemMedia: 'Media'
     addItemToInventoryWithUnits: 'InventoryItems'
     addItemsToInventory: 'BatchPayload'
+    adjustStock: 'SupplierInventoryMovement'
     assignKompraOrderRider: 'KompraCOrder'
     banUser: 'User'
     bulkCreateInventoryItems: 'InventoryItems'
+    bulkUpdatePrices: 'SupplierItem'
+    cancelIncomingStock: 'Boolean'
     cancelKompraOrder: 'KompraCOrder'
     cancelSalesOrder: 'SalesOrder'
+    cancelScheduledPrice: 'SupplierScheduledPrice'
     changePassword: 'Boolean'
     changeUserPassword: 'Boolean'
     confirmDelivery: 'SupplierOrder'
@@ -4533,6 +6079,7 @@ export interface NexusGenFieldTypeNames {
     createItems: 'BatchPayload'
     createOrgItemCategory: 'OrgItemCategory'
     createOrganization: 'Organization'
+    createOrganizationReview: 'OrganizationReview'
     createOutlet: 'Outlet'
     createOutletPromo: 'OutletPromo'
     createPlaceLocation: 'PlaceLocation'
@@ -4543,12 +6090,15 @@ export interface NexusGenFieldTypeNames {
     createRestockSchedule: 'RestockSchedule'
     createSalesOrder: 'SalesOrder'
     createScPwdCustomer: 'ScPwdCustomer'
+    createScheduledPrice: 'SupplierScheduledPrice'
     createStaff: 'User'
     createSubCenter: 'SubCenter'
     createSubscription: 'Subscription'
     createSubscriptionAdmin: 'Subscription'
     createSummaryRow: 'SummaryRow'
     createSupplierItem: 'SupplierItem'
+    createSupplierItemReview: 'SupplierItemReview'
+    createSupplierPayoutMethod: 'PayoutMethod'
     createTransaction: 'Transaction'
     createVatType: 'VatType'
     deactivateInventoryItemUnit: 'InventoryItemUnit'
@@ -4567,6 +6117,7 @@ export interface NexusGenFieldTypeNames {
     deleteItemGroup: 'ItemGroup'
     deleteItemMedia: 'Media'
     deleteOrgItemCategory: 'OrgItemCategory'
+    deleteOrganizationReview: 'OrganizationReview'
     deleteOutlet: 'Outlet'
     deleteOutletPromo: 'OutletPromo'
     deleteOutletStaffs: 'OutletStaff'
@@ -4576,38 +6127,53 @@ export interface NexusGenFieldTypeNames {
     deleteRestockCycle: 'RestockCycle'
     deleteRestockSchedule: 'RestockSchedule'
     deleteSalarySnapshot: 'SalaryHistory'
+    deleteScheduledPrice: 'SupplierScheduledPrice'
     deleteSubCenter: 'SubCenter'
     deleteSubscriptionAdmin: 'Subscription'
     deleteSummaryRow: 'SummaryRow'
     deleteSupplierItem: 'SupplierItem'
+    deleteSupplierItemReview: 'SupplierItemReview'
     deleteUser: 'User'
     deleteVatType: 'VatType'
+    editScheduledPrice: 'SupplierScheduledPrice'
     endBreak: 'Attendance'
     extendSubscriptionAdmin: 'Subscription'
     finalizeTransaction: 'Transaction'
     initiatePayment: 'PaymentInitiation'
+    logIncomingStock: 'SupplierIncomingStock'
     login: 'AuthPayload'
     mapReceivedItem: 'ReceivedItemMap'
+    markAllNotificationsRead: 'Boolean'
+    markDamagedStock: 'SupplierInventoryMovement'
     markDelivered: 'Delivery'
     markKompraOrderDelivered: 'KompraCOrder'
     markKompraOrderPacked: 'KompraCOrder'
+    markNotificationRead: 'Notification'
     markOrderInDelivery: 'KompraCOrder'
+    markReturnedStock: 'SupplierInventoryMovement'
     me: 'User'
     placeKompraOrder: 'KompraCOrder'
     processCustomerReturn: 'ReturnResult'
     processSalesOrder: 'SalesOrder'
+    receiveIncomingStock: 'SupplierStockBatch'
     receivePurchaseOrder: 'SupplierOrder'
     receiveSalesOrder: 'SalesOrder'
+    receiveStock: 'SupplierStockBatch'
+    reconcileInventoryRollups: 'InventoryReconcileResult'
     recordSalarySnapshot: 'SalaryHistory'
     refreshToken: 'AuthPayload'
     registerAdmin: 'User'
     registerKompraCustomer: 'KompraCustomer'
     registerUser: 'User'
     rejectPO: 'PurchaseOrder'
+    releaseReservation: 'SupplierInventoryMovement'
     removeExtraCharge: 'SalesOrder'
     reorderItemMedia: 'Media'
+    requestSupplierWithdrawal: 'Withdrawal'
     resendOTP: 'String'
+    reserveStock: 'SupplierInventoryMovement'
     restockOutlet: 'RestockOutletPayload'
+    restockReturnedItem: 'SupplierInventoryMovement'
     setItemPrimaryMedia: 'Media'
     setPositionPermissions: 'PositionPermission'
     setUserPermissionOverride: 'UserPermissionOverride'
@@ -4622,6 +6188,7 @@ export interface NexusGenFieldTypeNames {
     toggleContact: 'Contact'
     toggleRestockCycle: 'RestockCycle'
     toggleRestockSchedule: 'RestockSchedule'
+    transferStock: 'SupplierStockBatch'
     unbanUser: 'User'
     unmapReceivedItem: 'ReceivedItemMap'
     unverifyUser: 'User'
@@ -4642,11 +6209,13 @@ export interface NexusGenFieldTypeNames {
     updateMyProfile: 'User'
     updateOrgItemCategory: 'OrgItemCategory'
     updateOrganization: 'Organization'
+    updateOrganizationReview: 'OrganizationReview'
     updateOutlet: 'Outlet'
     updateOutletItem: 'InventoryItems'
     updateOutletPromo: 'OutletPromo'
     updatePlaceLocation: 'PlaceLocation'
     updatePosition: 'Position'
+    updatePrice: 'SupplierItem'
     updatePromoType: 'PromoType'
     updateRestockCycle: 'RestockCycle'
     updateRestockSchedule: 'RestockSchedule'
@@ -4658,10 +6227,12 @@ export interface NexusGenFieldTypeNames {
     updateSubscriptionAdmin: 'Subscription'
     updateSummaryRow: 'SummaryRow'
     updateSupplierItem: 'SupplierItem'
+    updateSupplierItemReview: 'SupplierItemReview'
     updateUser: 'User'
     updateUserProfile: 'User'
     updateVatType: 'VatType'
     upsertSupplierCatalog: 'SupplierCatalog'
+    upsertSupplierWarehouse: 'SupplierWarehouse'
     verifyEmail: 'AuthPayload'
     verifyUser: 'User'
   }
@@ -4669,6 +6240,19 @@ export interface NexusGenFieldTypeNames {
     outletId: 'Int'
     outletName: 'String'
     role: 'String'
+  }
+  Notification: { // field return type name
+    createdAt: 'String'
+    id: 'Int'
+    isRead: 'Boolean'
+    item: 'Item'
+    itemId: 'Int'
+    message: 'String'
+    orgId: 'Int'
+    outlet: 'Outlet'
+    outletId: 'Int'
+    title: 'String'
+    type: 'String'
   }
   OrgBasic: { // field return type name
     email: 'String'
@@ -4697,12 +6281,18 @@ export interface NexusGenFieldTypeNames {
   }
   Organization: { // field return type name
     accountTitles: 'AccountTitle'
+    attendances: 'Attendance'
+    averageRating: 'Float'
     bannerImg: 'String'
     bio: 'String'
     branches: 'Branch'
     brands: 'Brand'
+    budgets: 'Budget'
+    businessVerifications: 'BusinessVerification'
+    buyerReceivedItemMaps: 'ReceivedItemMap'
     centers: 'Center'
     contactNumber: 'String'
+    contacts: 'Contact'
     createdAt: 'DateTime'
     deletedAt: 'DateTime'
     departments: 'Department'
@@ -4713,26 +6303,71 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     instagramLink: 'String'
     inventoryItems: 'InventoryItem'
+    isDevSeed: 'Boolean'
     itemCategories: 'ItemCategory'
     itemGroups: 'ItemGroup'
     items: 'Item'
     kompraCOrders: 'KompraCOrder'
+    linkedAgents: 'Agent'
     location: 'String'
+    mandateOffersReceived: 'MandateOffer'
+    mandateTransactions: 'MandateTransaction'
     name: 'String'
+    notifications: 'Notification'
+    orgCategories: 'OrgItemCategory'
     outlets: 'Outlet'
+    paymentGatewayCreds: 'PaymentGatewayCredential'
+    payoutMethods: 'PayoutMethod'
     positions: 'Position'
     profileImg: 'String'
     profilePhoto: 'String'
     promoTypes: 'PromoType'
+    receivedPOs: 'PurchaseOrder'
+    restockCycles: 'RestockCycle'
+    restockSchedules: 'RestockSchedule'
+    reviewCount: 'Int'
+    reviews: 'OrganizationReview'
+    reviewsReceived: 'OrganizationReview'
+    reviewsWritten: 'OrganizationReview'
     roles: 'OrgRole'
     salesOrders: 'SalesOrder'
+    scPwdCustomers: 'ScPwdCustomer'
+    sentPOs: 'PurchaseOrder'
+    shifts: 'Shift'
+    stockBatches: 'StockBatch'
     subCenters: 'SubCenter'
     subscription: 'Subscription'
     summaryRows: 'SummaryRow'
+    supplierCatalog: 'SupplierCatalog'
+    supplierLinks: 'SupplierOutletLink'
+    supplierOrders: 'SupplierOrder'
+    supplierWarehouses: 'SupplierWarehouse'
+    totalReviews: 'Int'
     twitterLink: 'String'
     updatedAt: 'DateTime'
     users: 'User'
     vatTypes: 'VatType'
+    verifiedReviewsCount: 'Int'
+    wallet: 'Wallet'
+  }
+  OrganizationReview: { // field return type name
+    comment: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'String'
+    isVerifiedTransaction: 'Boolean'
+    organizationId: 'Int'
+    rating: 'Int'
+    reviewer: 'Organization'
+    reviewerCustomerId: 'Int'
+    reviewerName: 'String'
+    reviewerOrgId: 'Int'
+    title: 'String'
+    updatedAt: 'DateTime'
+  }
+  OrganizationReviewPayload: { // field return type name
+    aggregate: 'ReviewAggregate'
+    reviews: 'OrganizationReview'
   }
   Outlet: { // field return type name
     address: 'String'
@@ -4928,6 +6563,18 @@ export interface NexusGenFieldTypeNames {
     page: 'Int'
     total: 'Int'
   }
+  PaymentGatewayCredential: { // field return type name
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    environment: 'Environment'
+    id: 'Int'
+    isActive: 'Boolean'
+    orgId: 'Int'
+    organization: 'Organization'
+    provider: 'PaymentGatewayProvider'
+    publicKey: 'String'
+    updatedAt: 'DateTime'
+  }
   PaymentInitiation: { // field return type name
     client_key: 'String'
     paymentIntentId: 'String'
@@ -4936,11 +6583,43 @@ export interface NexusGenFieldTypeNames {
     return_url: 'String'
     url: 'String'
   }
+  PaymentTransaction: { // field return type name
+    amount: 'Float'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    environment: 'Environment'
+    feeAmount: 'Float'
+    gatewayReference: 'String'
+    id: 'String'
+    payerAgentId: 'String'
+    payerOrgId: 'Int'
+    provider: 'PaymentGatewayProvider'
+    relatedId: 'String'
+    relatedType: 'PaymentRelatedType'
+    status: 'PaymentTransactionStatus'
+    updatedAt: 'DateTime'
+  }
   PaymongoAPIKeys: { // field return type name
     id: 'Int'
     outlets: 'Outlet'
     owner: 'User'
     public_key: 'String'
+  }
+  PayoutMethod: { // field return type name
+    accountName: 'String'
+    bankName: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'Int'
+    isDefault: 'Boolean'
+    isVerified: 'Boolean'
+    maskedAccountNumber: 'String'
+    orgId: 'Int'
+    organization: 'Organization'
+    type: 'PayoutMethodType'
+    updatedAt: 'DateTime'
+    verifiedAt: 'DateTime'
+    withdrawals: 'Withdrawal'
   }
   PerformanceSummary: { // field return type name
     absentDays: 'Int'
@@ -4992,6 +6671,54 @@ export interface NexusGenFieldTypeNames {
     id: 'String'
     minQty: 'Int'
     price: 'Float'
+  }
+  PricingAnalytics: { // field return type name
+    averageMargin: 'Float'
+    averageSellingPrice: 'Float'
+    estimatedProfit: 'Float'
+    estimatedRevenue: 'Float'
+    highestPrice: 'Float'
+    lowestPrice: 'Float'
+    priceChangeCount: 'Int'
+    priceTrend: 'SupplierItemPriceHistory'
+  }
+  PricingDetail: { // field return type name
+    margin: 'Float'
+    markup: 'Float'
+    profitPerUnit: 'Float'
+    supplierItem: 'SupplierItem'
+  }
+  PricingKPIs: { // field return type name
+    activePriceCount: 'Int'
+    averageMargin: 'Float'
+    averageSellingPrice: 'Float'
+    highestMargin: 'Float'
+    lowestMargin: 'Float'
+    priceUpdatesThisMonth: 'Int'
+    productsOnPromotion: 'Int'
+    scheduledPriceChanges: 'Int'
+  }
+  PricingListItem: { // field return type name
+    categoryId: 'Int'
+    categoryName: 'String'
+    currentCost: 'Float'
+    id: 'String'
+    image: 'String'
+    isActive: 'Boolean'
+    margin: 'Float'
+    markup: 'Float'
+    name: 'String'
+    priceTierCount: 'Int'
+    sellingPrice: 'Float'
+    sku: 'String'
+    supplierItem: 'SupplierItem'
+    updatedAt: 'DateTime'
+  }
+  PricingListResult: { // field return type name
+    items: 'PricingListItem'
+    page: 'Int'
+    pageSize: 'Int'
+    total: 'Int'
   }
   PromoType: { // field return type name
     createdAt: 'DateTime'
@@ -5068,6 +6795,7 @@ export interface NexusGenFieldTypeNames {
     getLatestSalary: 'SalaryHistory'
     getMyProfile: 'User'
     getMySubscription: 'Subscription'
+    getNotifications: 'Notification'
     getOrgBranches: 'Branch'
     getOrgCategories: 'OrgItemCategory'
     getOrgCategoryById: 'OrgItemCategory'
@@ -5097,6 +6825,7 @@ export interface NexusGenFieldTypeNames {
     getTransactionById: 'Transaction'
     getTransactionsByOrgId: 'Transaction'
     getTransactionsByStoreId: 'Transaction'
+    getUnreadCount: 'Int'
     getUserById: 'User'
     getUserProfile: 'User'
     gisRow: 'GISRow'
@@ -5120,6 +6849,7 @@ export interface NexusGenFieldTypeNames {
     myPerformanceSummary: 'PerformanceSummary'
     nearestOutletsWithItems: 'OutletSearchResult'
     organization: 'Organization'
+    organizationReviews: 'OrganizationReviewPayload'
     organizations: 'Organization'
     outletCatalog: 'OutletCatalogResult'
     outletOrderQueue: 'KompraCOrder'
@@ -5132,10 +6862,15 @@ export interface NexusGenFieldTypeNames {
     placeLocations: 'PlaceLocation'
     position: 'Position'
     positions: 'Position'
+    pricingAnalytics: 'PricingAnalytics'
+    pricingDashboard: 'PricingKPIs'
+    pricingDetail: 'PricingDetail'
+    pricingList: 'PricingListResult'
     promoType: 'PromoType'
     promoTypes: 'PromoType'
     promoTypesByOrg: 'PromoType'
     purchaseOrder: 'PurchaseOrder'
+    purchaseOrderActivity: 'AuditLogEntry'
     purchaseOrdersForBuyer: 'PurchaseOrder'
     purchaseOrdersForSupplier: 'PurchaseOrder'
     receivedItemMaps: 'ReceivedItemMap'
@@ -5145,6 +6880,7 @@ export interface NexusGenFieldTypeNames {
     salesOrdersByStatus: 'SalesOrder'
     scPwdCustomer: 'ScPwdCustomer'
     scPwdCustomers: 'ScPwdCustomer'
+    scheduledPricesList: 'SupplierScheduledPrice'
     searchInventoryItems: 'InventoryItemsSearchResult'
     subCenter: 'SubCenter'
     subCenters: 'SubCenter'
@@ -5154,8 +6890,26 @@ export interface NexusGenFieldTypeNames {
     summaryRows: 'SummaryRow'
     supplierCatalog: 'SupplierCatalog'
     supplierDashboard: 'SupplierDashboardStats'
+    supplierFinanceFeeHistory: 'WalletLedgerEntry'
+    supplierFinancePayoutMethods: 'PayoutMethod'
+    supplierFinanceTransactions: 'WalletLedgerEntry'
+    supplierFinanceWithdrawals: 'Withdrawal'
+    supplierIncomingStockList: 'SupplierIncomingStock'
+    supplierInventoryAnalytics: 'InventoryAnalytics'
+    supplierInventoryDashboard: 'SupplierInventoryDashboard'
+    supplierInventoryForecast: 'InventoryForecast'
+    supplierInventoryList: 'SupplierItem'
+    supplierInventoryMovements: 'SupplierInventoryMovement'
+    supplierInventoryValuation: 'InventoryValuation'
     supplierItem: 'SupplierItem'
+    supplierItemCostHistoryList: 'SupplierItemCostHistory'
+    supplierItemPriceHistoryList: 'SupplierItemPriceHistory'
+    supplierItemReviews: 'SupplierItemReviewPayload'
     supplierItems: 'SupplierItem'
+    supplierOrderTimeline: 'SupplierOrderTimelinePayload'
+    supplierStockBatches: 'SupplierStockBatch'
+    supplierWalletSummary: 'Wallet'
+    supplierWarehouses: 'SupplierWarehouse'
     todayAttendanceByOrg: 'PaginatedUserAttendance'
     transactionsByDiscountType: 'Transaction'
     userAttendanceHistory: 'PaginatedAttendance'
@@ -5163,6 +6917,10 @@ export interface NexusGenFieldTypeNames {
     userPerformanceSummary: 'PerformanceSummary'
     vatType: 'VatType'
     vatTypes: 'VatType'
+  }
+  RatingBreakdownItem: { // field return type name
+    count: 'Int'
+    rating: 'Int'
   }
   ReceivedItemMap: { // field return type name
     createdAt: 'DateTime'
@@ -5245,6 +7003,12 @@ export interface NexusGenFieldTypeNames {
   ReturnResult: { // field return type name
     success: 'Boolean'
     transactionId: 'Int'
+  }
+  ReviewAggregate: { // field return type name
+    averageRating: 'Float'
+    breakdown: 'RatingBreakdownItem'
+    reviewCount: 'Int'
+    verifiedCount: 'Int'
   }
   SalaryHistory: { // field return type name
     ammount: 'Float'
@@ -5378,6 +7142,27 @@ export interface NexusGenFieldTypeNames {
     totalRevenue: 'Float'
     unitsSold: 'Float'
   }
+  StockAgingBuckets: { // field return type name
+    aging: 'Float'
+    fresh: 'Float'
+    old: 'Float'
+    stale: 'Float'
+  }
+  StockBatch: { // field return type name
+    deletedAt: 'DateTime'
+    exactExpiryDate: 'DateTime'
+    expiryEndDate: 'DateTime'
+    expiryStartDate: 'DateTime'
+    id: 'Int'
+    item: 'Item'
+    itemId: 'Int'
+    orderId: 'Int'
+    org: 'Organization'
+    orgId: 'Int'
+    quantity: 'Float'
+    receivedAt: 'DateTime'
+    remainingQty: 'Float'
+  }
   SubCenter: { // field return type name
     gisRows: 'GISRow'
     id: 'Int'
@@ -5439,29 +7224,166 @@ export interface NexusGenFieldTypeNames {
     createdAt: 'DateTime'
     id: 'String'
     items: 'SupplierItem'
+    organization: 'Organization'
     organizationId: 'Int'
   }
   SupplierDashboardStats: { // field return type name
+    catalogItemCount: 'Int'
     duePayments: 'Float'
     fulfilledToday: 'Int'
+    myAcceptedMandateOffers: 'Int'
+    myPendingMandateOffers: 'Int'
     newPOs: 'Int'
+    openMandatesCount: 'Int'
     pendingDeliveries: 'Int'
+    walletBalance: 'Float'
+    walletHeldBalance: 'Float'
+  }
+  SupplierIncomingStock: { // field return type name
+    createdAt: 'DateTime'
+    createdById: 'Int'
+    deletedAt: 'DateTime'
+    expectedDate: 'DateTime'
+    expectedQty: 'Float'
+    id: 'String'
+    notes: 'String'
+    receivedBatchId: 'String'
+    sourceLabel: 'String'
+    status: 'SupplierIncomingStatus'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+    updatedAt: 'DateTime'
+    warehouse: 'SupplierWarehouse'
+    warehouseId: 'String'
+  }
+  SupplierInventoryDashboard: { // field return type name
+    availableStock: 'Float'
+    averageInventoryCost: 'Float'
+    averageMargin: 'Float'
+    expiringSoonCount: 'Int'
+    incomingStock: 'Float'
+    inventoryValue: 'Float'
+    lowStockCount: 'Int'
+    outOfStockCount: 'Int'
+    reservedStock: 'Float'
+    totalInventory: 'Float'
+  }
+  SupplierInventoryMovement: { // field return type name
+    batch: 'SupplierStockBatch'
+    batchId: 'String'
+    createdAt: 'DateTime'
+    createdById: 'Int'
+    deletedAt: 'DateTime'
+    id: 'String'
+    quantity: 'Float'
+    quantityAfter: 'Float'
+    quantityBefore: 'Float'
+    reason: 'String'
+    referenceId: 'String'
+    referenceType: 'String'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+    transferGroupId: 'String'
+    type: 'SupplierInventoryMovementType'
+    unitCost: 'Float'
+    warehouse: 'SupplierWarehouse'
+    warehouseId: 'String'
   }
   SupplierItem: { // field return type name
     availableQty: 'Int'
+    averageRating: 'Float'
+    category: 'SupplierItemCategory'
+    costHistory: 'SupplierItemCostHistory'
     createdAt: 'DateTime'
+    currentCost: 'Float'
+    damagedQty: 'Float'
     description: 'String'
+    group: 'SupplierItemGroup'
     id: 'String'
+    image: 'String'
+    incomingQty: 'Float'
     isActive: 'Boolean'
     isVatExempt: 'Boolean'
     moq: 'Int'
     name: 'String'
+    priceHistory: 'SupplierItemPriceHistory'
     priceTiers: 'PriceTier'
+    reorderLevel: 'Float'
+    reorderQty: 'Float'
+    reservedQty: 'Float'
+    returnedQty: 'Float'
+    reviewCount: 'Int'
+    reviews: 'SupplierItemReview'
+    scheduledPrices: 'SupplierScheduledPrice'
     sku: 'String'
+    supplierIncomingStock: 'SupplierIncomingStock'
+    supplierInventoryMovements: 'SupplierInventoryMovement'
+    supplierStockBatches: 'SupplierStockBatch'
     unit: 'String'
     unitPrice: 'Float'
     updatedAt: 'DateTime'
     vatRate: 'Float'
+  }
+  SupplierItemCategory: { // field return type name
+    catalog: 'SupplierCatalog'
+    catalogId: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    description: 'String'
+    id: 'String'
+    isActive: 'Boolean'
+    items: 'SupplierItem'
+    name: 'String'
+    updatedAt: 'DateTime'
+  }
+  SupplierItemCostHistory: { // field return type name
+    changedById: 'Int'
+    effectiveAt: 'DateTime'
+    id: 'String'
+    newCost: 'Float'
+    oldCost: 'Float'
+    reason: 'String'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+  }
+  SupplierItemGroup: { // field return type name
+    catalog: 'SupplierCatalog'
+    catalogId: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    description: 'String'
+    id: 'String'
+    isActive: 'Boolean'
+    items: 'SupplierItem'
+    name: 'String'
+    updatedAt: 'DateTime'
+  }
+  SupplierItemPriceHistory: { // field return type name
+    changedById: 'Int'
+    effectiveAt: 'DateTime'
+    id: 'String'
+    newPrice: 'Float'
+    oldPrice: 'Float'
+    reason: 'String'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+  }
+  SupplierItemReview: { // field return type name
+    comment: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'String'
+    isVerifiedPurchase: 'Boolean'
+    rating: 'Int'
+    reviewer: 'Organization'
+    reviewerOrgId: 'Int'
+    supplierItemId: 'String'
+    title: 'String'
+    updatedAt: 'DateTime'
+  }
+  SupplierItemReviewPayload: { // field return type name
+    aggregate: 'ReviewAggregate'
+    reviews: 'SupplierItemReview'
   }
   SupplierOrder: { // field return type name
     createdAt: 'DateTime'
@@ -5487,6 +7409,109 @@ export interface NexusGenFieldTypeNames {
     itemId: 'Int'
     orderId: 'Int'
     requestedQty: 'Float'
+  }
+  SupplierOrderTimelinePayload: { // field return type name
+    groups: 'SupplierTimelineGroup'
+    hasNextPage: 'Boolean'
+    summary: 'SupplierTimelineSummary'
+    totalCount: 'Int'
+  }
+  SupplierOutletLink: { // field return type name
+    createdAt: 'DateTime'
+    id: 'String'
+    isApproved: 'Boolean'
+    outlet: 'Outlet'
+    outletId: 'Int'
+    supplierOrg: 'Organization'
+    supplierOrgId: 'Int'
+  }
+  SupplierScheduledPrice: { // field return type name
+    createdAt: 'DateTime'
+    createdById: 'Int'
+    deletedAt: 'DateTime'
+    effectiveAt: 'DateTime'
+    expiresAt: 'DateTime'
+    id: 'String'
+    price: 'Float'
+    status: 'ScheduledPriceStatus'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+    updatedAt: 'DateTime'
+  }
+  SupplierStockBatch: { // field return type name
+    batchNumber: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    expiryDate: 'DateTime'
+    id: 'String'
+    movements: 'SupplierInventoryMovement'
+    quantity: 'Float'
+    receivedAt: 'DateTime'
+    remainingQty: 'Float'
+    status: 'SupplierStockBatchStatus'
+    supplierItem: 'SupplierItem'
+    supplierItemId: 'String'
+    unitCost: 'Float'
+    updatedAt: 'DateTime'
+    warehouse: 'SupplierWarehouse'
+    warehouseId: 'String'
+  }
+  SupplierTimelineEvent: { // field return type name
+    actionLabel: 'String'
+    actionRoute: 'String'
+    actor: 'String'
+    color: 'String'
+    createdAt: 'DateTime'
+    description: 'String'
+    eventType: 'SupplierTimelineEventType'
+    icon: 'String'
+    id: 'String'
+    metadata: 'Json'
+    organization: 'String'
+    referenceId: 'String'
+    referenceType: 'String'
+    status: 'SupplierTimelineStatus'
+    title: 'String'
+  }
+  SupplierTimelineGroup: { // field return type name
+    events: 'SupplierTimelineEvent'
+    label: 'String'
+  }
+  SupplierTimelineSummary: { // field return type name
+    attention: 'Int'
+    deliveries: 'Int'
+    inventory: 'Int'
+    mandates: 'Int'
+    notifications: 'Int'
+    purchaseOrders: 'Int'
+    total: 'Int'
+    wallet: 'Int'
+  }
+  SupplierWarehouse: { // field return type name
+    address: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'String'
+    incoming: 'SupplierIncomingStock'
+    isActive: 'Boolean'
+    isDefault: 'Boolean'
+    latitude: 'Float'
+    longitude: 'Float'
+    movements: 'SupplierInventoryMovement'
+    name: 'String'
+    organization: 'Organization'
+    organizationId: 'Int'
+    stockBatches: 'SupplierStockBatch'
+    updatedAt: 'DateTime'
+  }
+  SystemConfig: { // field return type name
+    deletedAt: 'DateTime'
+    description: 'String'
+    id: 'String'
+    key: 'String'
+    updatedAt: 'DateTime'
+    updatedById: 'Int'
+    value: 'Json'
   }
   TimeInStatus: { // field return type name
     hasTimeIn: 'Boolean'
@@ -5623,6 +7648,60 @@ export interface NexusGenFieldTypeNames {
     orgId: 'Int'
     rate: 'Float'
   }
+  VisibilityRule: { // field return type name
+    agentTier: 'String'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    id: 'String'
+    isVisible: 'Boolean'
+    rankBoost: 'Float'
+    supplierPlan: 'SubscriptionPlan'
+    updatedAt: 'DateTime'
+  }
+  Wallet: { // field return type name
+    balance: 'Float'
+    createdAt: 'DateTime'
+    currency: 'String'
+    deletedAt: 'DateTime'
+    heldBalance: 'Float'
+    id: 'Int'
+    ledgerEntries: 'WalletLedgerEntry'
+    orgId: 'Int'
+    organization: 'Organization'
+    updatedAt: 'DateTime'
+    withdrawals: 'Withdrawal'
+  }
+  WalletLedgerEntry: { // field return type name
+    amount: 'Float'
+    balanceAfter: 'Float'
+    createdAt: 'DateTime'
+    deletedAt: 'DateTime'
+    environment: 'Environment'
+    id: 'Int'
+    referenceId: 'String'
+    sourceType: 'LedgerSourceType'
+    status: 'LedgerEntryStatus'
+    type: 'LedgerEntryType'
+    wallet: 'Wallet'
+    walletId: 'Int'
+  }
+  Withdrawal: { // field return type name
+    amount: 'Float'
+    approvedAt: 'DateTime'
+    approvedById: 'Int'
+    completedAt: 'DateTime'
+    deletedAt: 'DateTime'
+    environment: 'Environment'
+    id: 'Int'
+    payoutMethod: 'PayoutMethod'
+    payoutMethodId: 'Int'
+    rejectionReason: 'String'
+    requestedAt: 'DateTime'
+    requestedById: 'Int'
+    status: 'WithdrawalStatus'
+    wallet: 'Wallet'
+    walletId: 'Int'
+  }
 }
 
 export interface NexusGenArgTypes {
@@ -5665,6 +7744,13 @@ export interface NexusGenArgTypes {
       inventoryId: string; // ID!
       items: NexusGenInputs['AddItemToInventoryInput'][]; // [AddItemToInventoryInput!]!
     }
+    adjustStock: { // args
+      delta: number; // Float!
+      reason: string; // String!
+      supplierItemId: string; // String!
+      unitCost?: number | null; // Float
+      warehouseId?: string | null; // String
+    }
     assignKompraOrderRider: { // args
       orderId: number; // Int!
       riderName: string; // String!
@@ -5676,6 +7762,14 @@ export interface NexusGenArgTypes {
     bulkCreateInventoryItems: { // args
       items: NexusGenInputs['InventoryItemInput'][]; // [InventoryItemInput!]!
     }
+    bulkUpdatePrices: { // args
+      changedById?: number | null; // Int
+      items: NexusGenInputs['BulkPriceUpdateItemInput'][]; // [BulkPriceUpdateItemInput!]!
+      reason?: string | null; // String
+    }
+    cancelIncomingStock: { // args
+      incomingStockId: string; // String!
+    }
     cancelKompraOrder: { // args
       actorId: number; // Int!
       actorType: string; // String!
@@ -5685,6 +7779,9 @@ export interface NexusGenArgTypes {
     cancelSalesOrder: { // args
       id: string; // String!
       reason?: string | null; // String
+    }
+    cancelScheduledPrice: { // args
+      id?: string | null; // String
     }
     changePassword: { // args
       newPassword: string; // String!
@@ -5803,6 +7900,14 @@ export interface NexusGenArgTypes {
       name: string; // String!
       roles?: NexusGenEnums['OrgRole'][] | null; // [OrgRole!]
     }
+    createOrganizationReview: { // args
+      comment?: string | null; // String
+      organizationId: number; // Int!
+      rating: number; // Int!
+      reviewerCustomerId?: number | null; // Int
+      reviewerName?: string | null; // String
+      title?: string | null; // String
+    }
     createOutlet: { // args
       address: string; // String!
       bannerImage?: string | null; // String
@@ -5881,6 +7986,14 @@ export interface NexusGenArgTypes {
     createScPwdCustomer: { // args
       data: NexusGenInputs['ScPwdCustomerInput']; // ScPwdCustomerInput!
     }
+    createScheduledPrice: { // args
+      createdById?: number | null; // Int
+      effectiveAt?: NexusGenScalars['DateTime'] | null; // DateTime
+      expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+      price?: number | null; // Float
+      reason?: string | null; // String
+      supplierItemId?: string | null; // String
+    }
     createStaff: { // args
       departmentId?: number | null; // Int
       email: string; // String!
@@ -5924,6 +8037,7 @@ export interface NexusGenArgTypes {
       availableQty: number; // Int!
       catalogId: string; // String!
       description?: string | null; // String
+      image: string; // String!
       isVatExempt: boolean; // Boolean!
       moq: number; // Int!
       name: string; // String!
@@ -5932,6 +8046,19 @@ export interface NexusGenArgTypes {
       unit: string; // String!
       unitPrice: number; // Float!
       vatRate: number; // Float!
+    }
+    createSupplierItemReview: { // args
+      comment?: string | null; // String
+      rating: number; // Int!
+      supplierItemId: string; // String!
+      title?: string | null; // String
+    }
+    createSupplierPayoutMethod: { // args
+      accountName: string; // String!
+      bankName?: string | null; // String
+      isDefault?: boolean | null; // Boolean
+      maskedAccountNumber: string; // String!
+      type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
     }
     createTransaction: { // args
       cashReceived?: number | null; // Float
@@ -6013,6 +8140,9 @@ export interface NexusGenArgTypes {
     deleteOrgItemCategory: { // args
       id: number; // Int!
     }
+    deleteOrganizationReview: { // args
+      id: string; // String!
+    }
     deleteOutlet: { // args
       id: string; // ID!
     }
@@ -6041,6 +8171,9 @@ export interface NexusGenArgTypes {
     deleteSalarySnapshot: { // args
       id: string; // ID!
     }
+    deleteScheduledPrice: { // args
+      id?: string | null; // String
+    }
     deleteSubCenter: { // args
       id?: number | null; // Int
     }
@@ -6053,11 +8186,21 @@ export interface NexusGenArgTypes {
     deleteSupplierItem: { // args
       id: string; // String!
     }
+    deleteSupplierItemReview: { // args
+      id: string; // String!
+    }
     deleteUser: { // args
       id: string; // ID!
     }
     deleteVatType: { // args
       id?: number | null; // Int
+    }
+    editScheduledPrice: { // args
+      effectiveAt?: NexusGenScalars['DateTime'] | null; // DateTime
+      expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+      id?: string | null; // String
+      price?: number | null; // Float
+      reason?: string | null; // String
     }
     endBreak: { // args
       noteBreakEnd: string; // String!
@@ -6083,6 +8226,14 @@ export interface NexusGenArgTypes {
       paymentType: NexusGenEnums['PaymentTypeEnum']; // PaymentTypeEnum!
       total: number; // Float!
     }
+    logIncomingStock: { // args
+      expectedDate?: NexusGenScalars['DateTime'] | null; // DateTime
+      expectedQty: number; // Float!
+      notes?: string | null; // String
+      sourceLabel?: string | null; // String
+      supplierItemId: string; // String!
+      warehouseId?: string | null; // String
+    }
     login: { // args
       email: string; // String!
       password: string; // String!
@@ -6092,6 +8243,12 @@ export interface NexusGenArgTypes {
       itemId: number; // Int!
       outletId?: number | null; // Int
       supplierItemId: string; // String!
+    }
+    markDamagedStock: { // args
+      quantity: number; // Float!
+      reason: string; // String!
+      supplierItemId: string; // String!
+      warehouseId?: string | null; // String
     }
     markDelivered: { // args
       notes?: string | null; // String
@@ -6104,10 +8261,18 @@ export interface NexusGenArgTypes {
       orderId: number; // Int!
       outletNote?: string | null; // String
     }
+    markNotificationRead: { // args
+      id: number; // Int!
+    }
     markOrderInDelivery: { // args
       orderId: number; // Int!
       riderName: string; // String!
       riderPhone: string; // String!
+    }
+    markReturnedStock: { // args
+      quantity: number; // Float!
+      reason?: string | null; // String
+      supplierItemId: string; // String!
     }
     placeKompraOrder: { // args
       customerId: number; // Int!
@@ -6121,12 +8286,29 @@ export interface NexusGenArgTypes {
     processSalesOrder: { // args
       id: string; // String!
     }
+    receiveIncomingStock: { // args
+      batchNumber?: string | null; // String
+      expiryDate?: NexusGenScalars['DateTime'] | null; // DateTime
+      incomingStockId: string; // String!
+      unitCost: number; // Float!
+    }
     receivePurchaseOrder: { // args
       items: NexusGenInputs['ReceivePurchaseOrderItemInput'][]; // [ReceivePurchaseOrderItemInput!]!
       supplierOrderId: number; // Int!
     }
     receiveSalesOrder: { // args
       id: string; // String!
+    }
+    receiveStock: { // args
+      batchNumber?: string | null; // String
+      expiryDate?: NexusGenScalars['DateTime'] | null; // DateTime
+      quantity: number; // Float!
+      supplierItemId: string; // String!
+      unitCost: number; // Float!
+      warehouseId?: string | null; // String
+    }
+    reconcileInventoryRollups: { // args
+      supplierItemId: string; // String!
     }
     recordSalarySnapshot: { // args
       ammount: number; // Float!
@@ -6155,6 +8337,11 @@ export interface NexusGenArgTypes {
     rejectPO: { // args
       id: string; // String!
     }
+    releaseReservation: { // args
+      quantity: number; // Float!
+      reason?: string | null; // String
+      supplierItemId: string; // String!
+    }
     removeExtraCharge: { // args
       extraChargeId: string; // String!
     }
@@ -6162,8 +8349,24 @@ export interface NexusGenArgTypes {
       itemId: number; // Int!
       order: NexusGenInputs['MediaSortOrderInput'][]; // [MediaSortOrderInput!]!
     }
+    requestSupplierWithdrawal: { // args
+      amount: number; // Float!
+      payoutMethodId: number; // Int!
+    }
     resendOTP: { // args
       email: string; // String!
+    }
+    reserveStock: { // args
+      quantity: number; // Float!
+      referenceId?: string | null; // String
+      referenceType?: string | null; // String
+      supplierItemId: string; // String!
+    }
+    restockReturnedItem: { // args
+      quantity: number; // Float!
+      supplierItemId: string; // String!
+      unitCost: number; // Float!
+      warehouseId?: string | null; // String
     }
     setItemPrimaryMedia: { // args
       itemId: number; // Int!
@@ -6225,6 +8428,13 @@ export interface NexusGenArgTypes {
     }
     toggleRestockSchedule: { // args
       id: number; // Int!
+    }
+    transferStock: { // args
+      fromWarehouseId: string; // String!
+      quantity: number; // Float!
+      reason?: string | null; // String
+      supplierItemId: string; // String!
+      toWarehouseId: string; // String!
     }
     unbanUser: { // args
       userId: number; // Int!
@@ -6354,6 +8564,13 @@ export interface NexusGenArgTypes {
       profileImg?: string | null; // String
       twitterLink?: string | null; // String
     }
+    updateOrganizationReview: { // args
+      comment?: string | null; // String
+      id: string; // String!
+      rating?: number | null; // Int
+      reviewerName?: string | null; // String
+      title?: string | null; // String
+    }
     updateOutlet: { // args
       address?: string | null; // String
       bannerImage?: string | null; // String
@@ -6392,6 +8609,16 @@ export interface NexusGenArgTypes {
     updatePosition: { // args
       id: string; // String!
       input: NexusGenInputs['PositionInput']; // PositionInput!
+    }
+    updatePrice: { // args
+      changedById?: number | null; // Int
+      effectiveAt?: NexusGenScalars['DateTime'] | null; // DateTime
+      moq?: number | null; // Int
+      price?: number | null; // Float
+      priceTiers?: Array<NexusGenInputs['PriceTierInput'] | null> | null; // [PriceTierInput]
+      reason?: string | null; // String
+      supplierItemId?: string | null; // String
+      vatRate?: number | null; // Float
     }
     updatePromoType: { // args
       data: NexusGenInputs['UpdatePromoTypeInput']; // UpdatePromoTypeInput!
@@ -6456,6 +8683,7 @@ export interface NexusGenArgTypes {
       availableQty?: number | null; // Int
       description?: string | null; // String
       id: string; // String!
+      image: string; // String!
       isActive?: boolean | null; // Boolean
       isVatExempt?: boolean | null; // Boolean
       moq?: number | null; // Int
@@ -6465,6 +8693,12 @@ export interface NexusGenArgTypes {
       unit?: string | null; // String
       unitPrice?: number | null; // Float
       vatRate?: number | null; // Float
+    }
+    updateSupplierItemReview: { // args
+      comment?: string | null; // String
+      id: string; // String!
+      rating?: number | null; // Int
+      title?: string | null; // String
     }
     updateUser: { // args
       fullname?: string | null; // String
@@ -6492,6 +8726,15 @@ export interface NexusGenArgTypes {
       rate?: number | null; // Float
     }
     upsertSupplierCatalog: { // args
+      organizationId: number; // Int!
+    }
+    upsertSupplierWarehouse: { // args
+      address?: string | null; // String
+      id?: string | null; // String
+      isDefault?: boolean | null; // Boolean
+      latitude?: number | null; // Float
+      longitude?: number | null; // Float
+      name: string; // String!
       organizationId: number; // Int!
     }
     verifyEmail: { // args
@@ -6653,6 +8896,9 @@ export interface NexusGenArgTypes {
     }
     getLatestSalary: { // args
       employeeId: string; // ID!
+    }
+    getNotifications: { // args
+      limit?: number | null; // Int
     }
     getOrgCategories: { // args
       groupId?: number | null; // Int
@@ -6823,6 +9069,9 @@ export interface NexusGenArgTypes {
     organization: { // args
       id?: number | null; // Int
     }
+    organizationReviews: { // args
+      organizationId: number; // Int!
+    }
     outletCatalog: { // args
       outletId: number; // Int!
     }
@@ -6850,11 +9099,29 @@ export interface NexusGenArgTypes {
     position: { // args
       id: string; // String!
     }
+    pricingAnalytics: { // args
+      supplierItemId?: string | null; // String
+    }
+    pricingDashboard: { // args
+      catalogId?: string | null; // String
+    }
+    pricingDetail: { // args
+      supplierItemId?: string | null; // String
+    }
+    pricingList: { // args
+      catalogId?: string | null; // String
+      filter?: NexusGenInputs['PricingListFilterInput'] | null; // PricingListFilterInput
+      page?: number | null; // Int
+      pageSize?: number | null; // Int
+    }
     promoType: { // args
       id: number; // Int!
     }
     purchaseOrder: { // args
       id: string; // String!
+    }
+    purchaseOrderActivity: { // args
+      poId: string; // String!
     }
     purchaseOrdersForBuyer: { // args
       buyerOrgId: number; // Int!
@@ -6886,6 +9153,9 @@ export interface NexusGenArgTypes {
     scPwdCustomers: { // args
       search?: string | null; // String
     }
+    scheduledPricesList: { // args
+      supplierItemId?: string | null; // String
+    }
     searchInventoryItems: { // args
       branchId?: number | null; // Int
       outletId?: number | null; // Int
@@ -6913,17 +9183,66 @@ export interface NexusGenArgTypes {
       endDate?: string | null; // String
       startDate?: string | null; // String
     }
-    supplierCatalog: { // args
-      organizationId: number; // Int!
-    }
     supplierDashboard: { // args
       supplierOrgId: number; // Int!
+    }
+    supplierIncomingStockList: { // args
+      supplierItemId: string; // String!
+    }
+    supplierInventoryAnalytics: { // args
+      supplierItemId: string; // String!
+    }
+    supplierInventoryDashboard: { // args
+      orgId: number; // Int!
+    }
+    supplierInventoryForecast: { // args
+      supplierItemId: string; // String!
+      trailingDays: number | null; // Int
+    }
+    supplierInventoryList: { // args
+      orgId: number; // Int!
+      warehouseId?: string | null; // String
+    }
+    supplierInventoryMovements: { // args
+      page: number | null; // Int
+      pageSize: number | null; // Int
+      supplierItemId: string; // String!
+    }
+    supplierInventoryValuation: { // args
+      supplierItemId: string; // String!
     }
     supplierItem: { // args
       id: string; // String!
     }
+    supplierItemCostHistoryList: { // args
+      supplierItemId: string; // String!
+    }
+    supplierItemPriceHistoryList: { // args
+      supplierItemId?: string | null; // String
+    }
+    supplierItemReviews: { // args
+      supplierItemId: string; // String!
+    }
     supplierItems: { // args
       catalogId: string; // String!
+    }
+    supplierOrderTimeline: { // args
+      endDate?: string | null; // String
+      eventTypes?: NexusGenEnums['SupplierTimelineEventType'][] | null; // [SupplierTimelineEventType!]
+      limit?: number | null; // Int
+      offset?: number | null; // Int
+      search?: string | null; // String
+      sort?: NexusGenEnums['SupplierTimelineSort'] | null; // SupplierTimelineSort
+      startDate?: string | null; // String
+      status?: NexusGenEnums['SupplierTimelineStatus'] | null; // SupplierTimelineStatus
+      supplierOrgId: number; // Int!
+    }
+    supplierStockBatches: { // args
+      includeDepleted?: boolean | null; // Boolean
+      supplierItemId: string; // String!
+    }
+    supplierWarehouses: { // args
+      orgId: number; // Int!
     }
     todayAttendanceByOrg: { // args
       limit: number | null; // Int
