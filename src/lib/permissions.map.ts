@@ -2,6 +2,7 @@
 import { requireAuth, requireControlPermission, requirePagePermission } from "../middleware/auth.middleware.js";
 import { Context } from "./types.js";
 export const PAGE_PERMISSIONS = {
+  //Retailer
   //Dashboard
   dashboard: {
     view: (ctx: Context) => requirePagePermission(ctx, 'dashboardPage', 'canView')
@@ -117,6 +118,13 @@ export const PAGE_PERMISSIONS = {
     edit:   (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canEdit'),
     delete: (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canDelete'),
   },
+  // SUPPLIER
+  verification : {
+    view: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canView'),
+    create: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canCreate'),
+    edit: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canEdit'),
+    delete: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canDelete')
+  }
 } as const;
 
 // Control permissions map

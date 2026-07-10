@@ -447,6 +447,13 @@ export interface NexusGenInputs {
     isActive?: boolean | null; // Boolean
     name?: string | null; // String
   }
+  UploadVerificationDocumentInput: { // input type
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    filePath: string; // String!
+    fileUrl: string; // String!
+    orgId: number; // Int!
+    requirementId: string; // String!
+  }
 }
 
 export interface NexusGenEnums {
@@ -480,6 +487,7 @@ export interface NexusGenEnums {
   OrderModeEnum: "DELIVERY" | "PICK_UP" | "WALK_IN"
   OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "packed" | "pending" | "preparing" | "received" | "returned"
   OrgRole: "SELLER" | "SUPPLIER"
+  OrgVerificationStatus: "EXPIRED" | "PENDING" | "UNVERIFIED" | "VERIFIED"
   OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   POStatus: "ACCEPTED" | "CANCELLED" | "DELIVERED" | "IN_TRANSIT" | "PENDING" | "REJECTED"
@@ -704,20 +712,23 @@ export interface NexusGenObjects {
     userId?: number | null; // Int
     year: number; // Int!
   }
-  BusinessVerification: { // root type
+  BusinessVerificationDocument: { // root type
+    adminRemarks?: string | null; // String
+    approvedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     createdAt: NexusGenScalars['DateTime']; // DateTime!
-    deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     documentType: NexusGenEnums['DocumentType']; // DocumentType!
-    environment: NexusGenEnums['Environment']; // Environment!
+    expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    filePath: string; // String!
     fileUrl: string; // String!
     id: string; // String!
-    notes?: string | null; // String
+    isSuperseded: boolean; // Boolean!
     orgId: number; // Int!
-    organization: NexusGenRootTypes['Organization']; // Organization!
+    requirementId: string; // String!
     reviewedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     reviewedById?: number | null; // Int
     status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    uploadedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   CartItem: { // root type
     costSnapshot?: number | null; // Float
@@ -1440,6 +1451,8 @@ export interface NexusGenObjects {
     roles: NexusGenEnums['OrgRole'][]; // [OrgRole!]!
     twitterLink?: string | null; // String
     updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    verificationExpiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    verificationStatus: NexusGenEnums['OrgVerificationStatus'][]; // [OrgVerificationStatus!]!
   }
   OrganizationReview: { // root type
     comment?: string | null; // String
@@ -2432,6 +2445,37 @@ export interface NexusGenObjects {
     orgId: number; // Int!
     rate: number; // Float!
   }
+  VerificationDashboard: { // root type
+    approvedCount: number; // Int!
+    documents: NexusGenRootTypes['BusinessVerificationDocument'][]; // [BusinessVerificationDocument!]!
+    orgVerificationStatus: NexusGenEnums['OrgVerificationStatus']; // OrgVerificationStatus!
+    progressPct: number; // Float!
+    rejectedCount: number; // Int!
+    requiredCount: number; // Int!
+    requirements: NexusGenRootTypes['VerificationRequirement'][]; // [VerificationRequirement!]!
+    submittedCount: number; // Int!
+    verificationExpiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
+  }
+  VerificationRequirement: { // root type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description?: string | null; // String
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    isRequired: boolean; // Boolean!
+    label: string; // String!
+    reminderDaysBefore: number[]; // [Int!]!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    validityDays?: number | null; // Int
+  }
+  VerificationReviewHistory: { // root type
+    documentId: string; // String!
+    id: string; // String!
+    remarks?: string | null; // String
+    reviewedAt: NexusGenScalars['DateTime']; // DateTime!
+    reviewedById?: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+  }
   VisibilityRule: { // root type
     agentTier: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -2695,20 +2739,25 @@ export interface NexusGenFieldTypes {
     userId: number | null; // Int
     year: number; // Int!
   }
-  BusinessVerification: { // field return type
+  BusinessVerificationDocument: { // field return type
+    adminRemarks: string | null; // String
+    approvedAt: NexusGenScalars['DateTime'] | null; // DateTime
     createdAt: NexusGenScalars['DateTime']; // DateTime!
-    deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
     documentType: NexusGenEnums['DocumentType']; // DocumentType!
-    environment: NexusGenEnums['Environment']; // Environment!
+    expiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+    filePath: string; // String!
     fileUrl: string; // String!
     id: string; // String!
-    notes: string | null; // String
+    isSuperseded: boolean; // Boolean!
     orgId: number; // Int!
-    organization: NexusGenRootTypes['Organization']; // Organization!
+    requirement: NexusGenRootTypes['VerificationRequirement']; // VerificationRequirement!
+    requirementId: string; // String!
     reviewedAt: NexusGenScalars['DateTime'] | null; // DateTime
     reviewedById: number | null; // Int
+    reviews: NexusGenRootTypes['VerificationReviewHistory'][]; // [VerificationReviewHistory!]!
     status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    uploadedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   CartItem: { // field return type
     costSnapshot: number | null; // Float
@@ -3532,6 +3581,7 @@ export interface NexusGenFieldTypes {
     deleteSupplierItemReview: NexusGenRootTypes['SupplierItemReview']; // SupplierItemReview!
     deleteUser: NexusGenRootTypes['User']; // User!
     deleteVatType: NexusGenRootTypes['VatType'] | null; // VatType
+    deleteVerificationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
     editScheduledPrice: NexusGenRootTypes['SupplierScheduledPrice'] | null; // SupplierScheduledPrice
     endBreak: NexusGenRootTypes['Attendance'] | null; // Attendance
     extendSubscriptionAdmin: NexusGenRootTypes['Subscription'] | null; // Subscription
@@ -3571,6 +3621,8 @@ export interface NexusGenFieldTypes {
     reserveStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
     restockOutlet: NexusGenRootTypes['RestockOutletPayload'] | null; // RestockOutletPayload
     restockReturnedItem: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
+    reviewVerificationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
+    runVerificationExpiryCheck: number; // Int!
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setPositionPermissions: NexusGenRootTypes['PositionPermission'][]; // [PositionPermission!]!
     setUserPermissionOverride: NexusGenRootTypes['UserPermissionOverride']; // UserPermissionOverride!
@@ -3628,6 +3680,7 @@ export interface NexusGenFieldTypes {
     updateUser: NexusGenRootTypes['User']; // User!
     updateUserProfile: NexusGenRootTypes['User'] | null; // User
     updateVatType: NexusGenRootTypes['VatType'] | null; // VatType
+    uploadVerificationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
     upsertSupplierCatalog: NexusGenRootTypes['SupplierCatalog']; // SupplierCatalog!
     upsertSupplierWarehouse: NexusGenRootTypes['SupplierWarehouse'] | null; // SupplierWarehouse
     verifyEmail: NexusGenRootTypes['AuthPayload']; // AuthPayload!
@@ -3685,7 +3738,7 @@ export interface NexusGenFieldTypes {
     branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
     brands: NexusGenRootTypes['Brand'][]; // [Brand!]!
     budgets: NexusGenRootTypes['Budget'][]; // [Budget!]!
-    businessVerifications: NexusGenRootTypes['BusinessVerification'][]; // [BusinessVerification!]!
+    businessVerificationsDocuments: NexusGenRootTypes['BusinessVerificationDocument'][]; // [BusinessVerificationDocument!]!
     buyerReceivedItemMaps: NexusGenRootTypes['ReceivedItemMap'][]; // [ReceivedItemMap!]!
     centers: NexusGenRootTypes['Center'][]; // [Center!]!
     contactNumber: string | null; // String
@@ -3744,6 +3797,8 @@ export interface NexusGenFieldTypes {
     updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
     users: NexusGenRootTypes['User'][]; // [User!]!
     vatTypes: NexusGenRootTypes['VatType'][]; // [VatType!]!
+    verificationExpiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+    verificationStatus: NexusGenEnums['OrgVerificationStatus'][]; // [OrgVerificationStatus!]!
     verifiedReviewsCount: number; // Int!
     wallet: NexusGenRootTypes['Wallet'] | null; // Wallet
   }
@@ -4314,6 +4369,9 @@ export interface NexusGenFieldTypes {
     userPerformanceSummary: NexusGenRootTypes['PerformanceSummary'] | null; // PerformanceSummary
     vatType: NexusGenRootTypes['VatType'] | null; // VatType
     vatTypes: Array<NexusGenRootTypes['VatType'] | null> | null; // [VatType]
+    verificationDashboard: NexusGenRootTypes['VerificationDashboard']; // VerificationDashboard!
+    verificationDocuments: NexusGenRootTypes['BusinessVerificationDocument'][]; // [BusinessVerificationDocument!]!
+    verificationRequirementsList: NexusGenRootTypes['VerificationRequirement'][]; // [VerificationRequirement!]!
   }
   RatingBreakdownItem: { // field return type
     count: number; // Int!
@@ -5045,6 +5103,37 @@ export interface NexusGenFieldTypes {
     orgId: number; // Int!
     rate: number; // Float!
   }
+  VerificationDashboard: { // field return type
+    approvedCount: number; // Int!
+    documents: NexusGenRootTypes['BusinessVerificationDocument'][]; // [BusinessVerificationDocument!]!
+    orgVerificationStatus: NexusGenEnums['OrgVerificationStatus']; // OrgVerificationStatus!
+    progressPct: number; // Float!
+    rejectedCount: number; // Int!
+    requiredCount: number; // Int!
+    requirements: NexusGenRootTypes['VerificationRequirement'][]; // [VerificationRequirement!]!
+    submittedCount: number; // Int!
+    verificationExpiresAt: NexusGenScalars['DateTime'] | null; // DateTime
+  }
+  VerificationRequirement: { // field return type
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string | null; // String
+    documentType: NexusGenEnums['DocumentType']; // DocumentType!
+    id: string; // String!
+    isActive: boolean; // Boolean!
+    isRequired: boolean; // Boolean!
+    label: string; // String!
+    reminderDaysBefore: number[]; // [Int!]!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+    validityDays: number | null; // Int
+  }
+  VerificationReviewHistory: { // field return type
+    documentId: string; // String!
+    id: string; // String!
+    remarks: string | null; // String
+    reviewedAt: NexusGenScalars['DateTime']; // DateTime!
+    reviewedById: number | null; // Int
+    status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
+  }
   VisibilityRule: { // field return type
     agentTier: string; // String!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
@@ -5298,20 +5387,25 @@ export interface NexusGenFieldTypeNames {
     userId: 'Int'
     year: 'Int'
   }
-  BusinessVerification: { // field return type name
+  BusinessVerificationDocument: { // field return type name
+    adminRemarks: 'String'
+    approvedAt: 'DateTime'
     createdAt: 'DateTime'
-    deletedAt: 'DateTime'
     documentType: 'DocumentType'
-    environment: 'Environment'
+    expiresAt: 'DateTime'
+    filePath: 'String'
     fileUrl: 'String'
     id: 'String'
-    notes: 'String'
+    isSuperseded: 'Boolean'
     orgId: 'Int'
-    organization: 'Organization'
+    requirement: 'VerificationRequirement'
+    requirementId: 'String'
     reviewedAt: 'DateTime'
     reviewedById: 'Int'
+    reviews: 'VerificationReviewHistory'
     status: 'VerificationStatus'
     updatedAt: 'DateTime'
+    uploadedAt: 'DateTime'
   }
   CartItem: { // field return type name
     costSnapshot: 'Float'
@@ -6135,6 +6229,7 @@ export interface NexusGenFieldTypeNames {
     deleteSupplierItemReview: 'SupplierItemReview'
     deleteUser: 'User'
     deleteVatType: 'VatType'
+    deleteVerificationDocument: 'BusinessVerificationDocument'
     editScheduledPrice: 'SupplierScheduledPrice'
     endBreak: 'Attendance'
     extendSubscriptionAdmin: 'Subscription'
@@ -6174,6 +6269,8 @@ export interface NexusGenFieldTypeNames {
     reserveStock: 'SupplierInventoryMovement'
     restockOutlet: 'RestockOutletPayload'
     restockReturnedItem: 'SupplierInventoryMovement'
+    reviewVerificationDocument: 'BusinessVerificationDocument'
+    runVerificationExpiryCheck: 'Int'
     setItemPrimaryMedia: 'Media'
     setPositionPermissions: 'PositionPermission'
     setUserPermissionOverride: 'UserPermissionOverride'
@@ -6231,6 +6328,7 @@ export interface NexusGenFieldTypeNames {
     updateUser: 'User'
     updateUserProfile: 'User'
     updateVatType: 'VatType'
+    uploadVerificationDocument: 'BusinessVerificationDocument'
     upsertSupplierCatalog: 'SupplierCatalog'
     upsertSupplierWarehouse: 'SupplierWarehouse'
     verifyEmail: 'AuthPayload'
@@ -6288,7 +6386,7 @@ export interface NexusGenFieldTypeNames {
     branches: 'Branch'
     brands: 'Brand'
     budgets: 'Budget'
-    businessVerifications: 'BusinessVerification'
+    businessVerificationsDocuments: 'BusinessVerificationDocument'
     buyerReceivedItemMaps: 'ReceivedItemMap'
     centers: 'Center'
     contactNumber: 'String'
@@ -6347,6 +6445,8 @@ export interface NexusGenFieldTypeNames {
     updatedAt: 'DateTime'
     users: 'User'
     vatTypes: 'VatType'
+    verificationExpiresAt: 'DateTime'
+    verificationStatus: 'OrgVerificationStatus'
     verifiedReviewsCount: 'Int'
     wallet: 'Wallet'
   }
@@ -6917,6 +7017,9 @@ export interface NexusGenFieldTypeNames {
     userPerformanceSummary: 'PerformanceSummary'
     vatType: 'VatType'
     vatTypes: 'VatType'
+    verificationDashboard: 'VerificationDashboard'
+    verificationDocuments: 'BusinessVerificationDocument'
+    verificationRequirementsList: 'VerificationRequirement'
   }
   RatingBreakdownItem: { // field return type name
     count: 'Int'
@@ -7648,6 +7751,37 @@ export interface NexusGenFieldTypeNames {
     orgId: 'Int'
     rate: 'Float'
   }
+  VerificationDashboard: { // field return type name
+    approvedCount: 'Int'
+    documents: 'BusinessVerificationDocument'
+    orgVerificationStatus: 'OrgVerificationStatus'
+    progressPct: 'Float'
+    rejectedCount: 'Int'
+    requiredCount: 'Int'
+    requirements: 'VerificationRequirement'
+    submittedCount: 'Int'
+    verificationExpiresAt: 'DateTime'
+  }
+  VerificationRequirement: { // field return type name
+    createdAt: 'DateTime'
+    description: 'String'
+    documentType: 'DocumentType'
+    id: 'String'
+    isActive: 'Boolean'
+    isRequired: 'Boolean'
+    label: 'String'
+    reminderDaysBefore: 'Int'
+    updatedAt: 'DateTime'
+    validityDays: 'Int'
+  }
+  VerificationReviewHistory: { // field return type name
+    documentId: 'String'
+    id: 'String'
+    remarks: 'String'
+    reviewedAt: 'DateTime'
+    reviewedById: 'Int'
+    status: 'VerificationStatus'
+  }
   VisibilityRule: { // field return type name
     agentTier: 'String'
     createdAt: 'DateTime'
@@ -8195,6 +8329,9 @@ export interface NexusGenArgTypes {
     deleteVatType: { // args
       id?: number | null; // Int
     }
+    deleteVerificationDocument: { // args
+      id: string; // String!
+    }
     editScheduledPrice: { // args
       effectiveAt?: NexusGenScalars['DateTime'] | null; // DateTime
       expiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
@@ -8367,6 +8504,12 @@ export interface NexusGenArgTypes {
       supplierItemId: string; // String!
       unitCost: number; // Float!
       warehouseId?: string | null; // String
+    }
+    reviewVerificationDocument: { // args
+      id: string; // String!
+      remarks?: string | null; // String
+      reviewedById?: number | null; // Int
+      status: NexusGenEnums['VerificationStatus']; // VerificationStatus!
     }
     setItemPrimaryMedia: { // args
       itemId: number; // Int!
@@ -8724,6 +8867,9 @@ export interface NexusGenArgTypes {
       id?: number | null; // Int
       name?: string | null; // String
       rate?: number | null; // Float
+    }
+    uploadVerificationDocument: { // args
+      input: NexusGenInputs['UploadVerificationDocumentInput']; // UploadVerificationDocumentInput!
     }
     upsertSupplierCatalog: { // args
       organizationId: number; // Int!
@@ -9264,6 +9410,12 @@ export interface NexusGenArgTypes {
     }
     vatType: { // args
       id?: number | null; // Int
+    }
+    verificationDashboard: { // args
+      orgId: number; // Int!
+    }
+    verificationDocuments: { // args
+      orgId: number; // Int!
     }
   }
 }

@@ -1,5 +1,9 @@
 import bcrypt from 'bcrypt';
-import { PrismaClient, Role } from '@prisma/client';
+import {
+    PrismaClient,
+    Role,
+    DocumentType,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -55,6 +59,11 @@ const pages: PageType[] = [
         label: 'Admin Page',
         sortOrder: 16,
         access: 'ADMIN',
+    },
+    {
+        key: 'verificationPage',
+        label: 'Verification',
+        sortOrder: 17,
     },
 ];
 
@@ -290,7 +299,7 @@ async function main() {
                     role: 'OWNER',
                     isVerified: true,
                     isOwner: true,
-                    orgId: newSupplierOrganization.id   
+                    orgId: newSupplierOrganization.id
                 }
             })
             console.log('Supplier organization and user created for dev sandbox.', 'Email:', "supplier@supplier.dev.com", 'Password:', "supplier123");
@@ -305,7 +314,7 @@ async function main() {
                 }
             })
             console.log('Supplier organization already exists for dev sandbox. Marked as dev seed.');
-        } 
+        }
         const seller = await prisma.organization.findFirst({
             where: {
                 name: "Dev Seller"
@@ -374,6 +383,77 @@ async function main() {
         }
         console.log('Agents created for dev sandbox: Seller Linked Agent and Standalone Agent');
         console.log('🎉 Dev sandbox data seeded successfully.');
+    }
+    console.log('📄 Seeding Verification Requirements...');
+    const verificationRequirements: {
+        documentType: DocumentType;
+        label: string;
+        description: string;
+        isRequired: boolean;
+        validityDays: number | null;
+    }[] = [
+            {
+                documentType: DocumentType.BUSINESS_PERMIT,
+                label: 'Business Permit',
+                description: 'Current and valid Business Permit',
+                isRequired: true,
+                validityDays: 365,
+            },
+            {
+                documentType: DocumentType.DTI_SEC_REGISTRATION,
+                label: 'DTI / SEC Registration',
+                description: 'DTI Certificate or SEC Registration',
+                isRequired: true,
+                validityDays: null,
+            },
+            {
+                documentType: DocumentType.BIR_2303,
+                label: 'BIR Form 2303',
+                description: 'Certificate of Registration',
+                isRequired: true,
+                validityDays: null,
+            },
+            {
+                documentType: DocumentType.VALID_ID,
+                label: 'Valid Government ID',
+                description: 'Government-issued ID',
+                isRequired: true,
+                validityDays: 365,
+            },
+            {
+                documentType: DocumentType.PROOF_OF_ADDRESS,
+                label: 'Proof of Address',
+                description: 'Utility bill or similar',
+                isRequired: true,
+                validityDays: 365,
+            },
+            {
+                documentType: DocumentType.OTHER,
+                label: 'Other',
+                description: 'Other supporting document',
+                isRequired: false,
+                validityDays: null,
+            },
+        ];
+    for (const requirement of verificationRequirements) {
+        const existing =
+            await prisma.verificationRequirement.findFirst({
+                where: {
+                    documentType: requirement.documentType as any,
+                    isActive: true,
+                },
+            });
+
+        if (!existing) {
+            await prisma.verificationRequirement.create({
+                data: {
+                    ...requirement,
+                    reminderDaysBefore: [90, 30, 14, 7],
+                },
+            });
+
+            console.log(`✅ Verification Requirement: ${requirement.label}`);
+        }
     }
 }
 

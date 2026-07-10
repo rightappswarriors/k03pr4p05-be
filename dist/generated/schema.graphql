@@ -354,20 +354,25 @@ input BulkPriceUpdateItemInput {
   supplierItemId: String!
 }
 
-type BusinessVerification {
+type BusinessVerificationDocument {
+  adminRemarks: String
+  approvedAt: DateTime
   createdAt: DateTime!
-  deletedAt: DateTime
   documentType: DocumentType!
-  environment: Environment!
+  expiresAt: DateTime
+  filePath: String!
   fileUrl: String!
   id: String!
-  notes: String
+  isSuperseded: Boolean!
   orgId: Int!
-  organization: Organization!
+  requirement: VerificationRequirement!
+  requirementId: String!
   reviewedAt: DateTime
   reviewedById: Int
+  reviews: [VerificationReviewHistory!]!
   status: VerificationStatus!
   updatedAt: DateTime!
+  uploadedAt: DateTime!
 }
 
 type CartItem {
@@ -1586,6 +1591,7 @@ type Mutation {
   deleteSupplierItemReview(id: String!): SupplierItemReview!
   deleteUser(id: ID!): User!
   deleteVatType(id: Int): VatType
+  deleteVerificationDocument(id: String!): BusinessVerificationDocument!
   editScheduledPrice(effectiveAt: DateTime, expiresAt: DateTime, id: String, price: Float, reason: String): SupplierScheduledPrice
   endBreak(noteBreakEnd: String!, photoBreakEnd: String!): Attendance
   extendSubscriptionAdmin(days: Int!, orgId: Int!): Subscription
@@ -1625,6 +1631,8 @@ type Mutation {
   reserveStock(quantity: Float!, referenceId: String, referenceType: String, supplierItemId: String!): SupplierInventoryMovement
   restockOutlet: RestockOutletPayload
   restockReturnedItem(quantity: Float!, supplierItemId: String!, unitCost: Float!, warehouseId: String): SupplierInventoryMovement
+  reviewVerificationDocument(id: String!, remarks: String, reviewedById: Int, status: VerificationStatus!): BusinessVerificationDocument!
+  runVerificationExpiryCheck: Int!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   setPositionPermissions(permissions: [PermissionInput!]!, positionId: String!): [PositionPermission!]!
   setUserPermissionOverride(canCreate: Boolean, canDelete: Boolean, canEdit: Boolean, canView: Boolean, pageId: String!, userId: Int!): UserPermissionOverride!
@@ -1682,6 +1690,7 @@ type Mutation {
   updateUser(fullname: String, id: ID!, positionId: String, role: Role, salary: Float, username: String): User!
   updateUserProfile(address: String, bio: String, city: String, country: String, dateOfBirth: String, phone: String, profilePhoto: String, state: String, userId: Int!, zipCode: String): User
   updateVatType(id: Int, name: String, rate: Float): VatType
+  uploadVerificationDocument(input: UploadVerificationDocumentInput!): BusinessVerificationDocument!
   upsertSupplierCatalog(organizationId: Int!): SupplierCatalog!
   upsertSupplierWarehouse(address: String, id: String, isDefault: Boolean, latitude: Float, longitude: Float, name: String!, organizationId: Int!): SupplierWarehouse
   verifyEmail(code: String!, email: String!): AuthPayload!
@@ -1763,6 +1772,13 @@ enum OrgRole {
   SUPPLIER
 }
 
+enum OrgVerificationStatus {
+  EXPIRED
+  PENDING
+  UNVERIFIED
+  VERIFIED
+}
+
 type Organization {
   accountTitles: [AccountTitle!]!
   attendances: [Attendance!]!
@@ -1772,7 +1788,7 @@ type Organization {
   branches: [Branch!]!
   brands: [Brand!]!
   budgets: [Budget!]!
-  businessVerifications: [BusinessVerification!]!
+  businessVerificationsDocuments: [BusinessVerificationDocument!]!
   buyerReceivedItemMaps: [ReceivedItemMap!]!
   centers: [Center!]!
   contactNumber: String
@@ -1831,6 +1847,8 @@ type Organization {
   updatedAt: DateTime
   users: [User!]!
   vatTypes: [VatType!]!
+  verificationExpiresAt: DateTime
+  verificationStatus: [OrgVerificationStatus!]!
   verifiedReviewsCount: Int!
   wallet: Wallet
 }
@@ -2576,6 +2594,9 @@ type Query {
   userPerformanceSummary(from: String!, to: String!, userId: Int!): PerformanceSummary
   vatType(id: Int): VatType
   vatTypes: [VatType]
+  verificationDashboard(orgId: Int!): VerificationDashboard!
+  verificationDocuments(orgId: Int!): [BusinessVerificationDocument!]!
+  verificationRequirementsList: [VerificationRequirement!]!
 }
 
 type RatingBreakdownItem {
@@ -3568,6 +3589,14 @@ input UpdatePromoTypeInput {
   name: String
 }
 
+input UploadVerificationDocumentInput {
+  documentType: DocumentType!
+  filePath: String!
+  fileUrl: String!
+  orgId: Int!
+  requirementId: String!
+}
+
 type User {
   address: String
   branchesOwned: [Branch!]!
@@ -3670,6 +3699,40 @@ type VatType {
   org: Organization!
   orgId: Int!
   rate: Float!
+}
+
+type VerificationDashboard {
+  approvedCount: Int!
+  documents: [BusinessVerificationDocument!]!
+  orgVerificationStatus: OrgVerificationStatus!
+  progressPct: Float!
+  rejectedCount: Int!
+  requiredCount: Int!
+  requirements: [VerificationRequirement!]!
+  submittedCount: Int!
+  verificationExpiresAt: DateTime
+}
+
+type VerificationRequirement {
+  createdAt: DateTime!
+  description: String
+  documentType: DocumentType!
+  id: String!
+  isActive: Boolean!
+  isRequired: Boolean!
+  label: String!
+  reminderDaysBefore: [Int!]!
+  updatedAt: DateTime!
+  validityDays: Int
+}
+
+type VerificationReviewHistory {
+  documentId: String!
+  id: String!
+  remarks: String
+  reviewedAt: DateTime!
+  reviewedById: Int
+  status: VerificationStatus!
 }
 
 enum VerificationStatus {

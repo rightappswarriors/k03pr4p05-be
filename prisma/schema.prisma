@@ -13,66 +13,68 @@ enum OrgRole {
 }
 
 model Organization {
-  id                    Int                        @id @default(autoincrement())
-  name                  String
-  roles                 OrgRole[]                  @default([SELLER])
-  createdAt             DateTime                   @default(now())
-  updatedAt             DateTime?                  @updatedAt
-  deletedAt             DateTime?
-  bannerImg             String?
-  profileImg            String?
-  contactNumber         String?
-  email                 String?
-  location              String?
-  profilePhoto          String?
-  facebookLink          String?
-  instagramLink         String?
-  twitterLink           String?
-  bio                   String?
-  isDevSeed             Boolean                    @default(false)
-  wallet                Wallet?
-  payoutMethods         PayoutMethod[]
-  businessVerifications BusinessVerification[]
-  paymentGatewayCreds   PaymentGatewayCredential[]
-  linkedAgents          Agent[]
-  mandateOffersReceived MandateOffer[]             @relation("SupplierMandateOffers")
-  mandateTransactions   MandateTransaction[]       @relation("SupplierMandateTransactions")
-  accountTitles         AccountTitle[]
-  attendances           Attendance[]
-  branches              Branch[]
-  brands                Brand[]
-  budgets               Budget[]
-  centers               Center[]
-  contacts              Contact[]
-  departments           Department[]
-  employees             Employee[]
-  gisRows               GISRow[]
-  inventoryItems        InventoryItem[]
-  items                 Item[]
-  itemGroups            ItemGroup[]
-  notifications         Notification[]
-  orgCategories         OrgItemCategory[]
-  outlets               Outlet[]
-  positions             Position[]
-  promoTypes            PromoType[]
-  restockCycles         RestockCycle[]
-  restockSchedules      RestockSchedule[]
-  salesOrders           SalesOrder[]
-  scPwdCustomers        ScPwdCustomer[]
-  shifts                Shift[]
-  stockBatches          StockBatch[]
-  subCenters            SubCenter[]
-  subscription          Subscription?
-  summaryRows           SummaryRow[]
-  supplierCatalog       SupplierCatalog?
-  sentPOs               PurchaseOrder[]            @relation("BuyerOrg")
-  receivedPOs           PurchaseOrder[]            @relation("SupplierOrg")
-  reviewsReceived       OrganizationReview[]       @relation("OrganizationReviewsReceived")
-  reviewsWritten        OrganizationReview[]       @relation("OrganizationReviewsWritten")
-  supplierItemReviews   SupplierItemReview[]       @relation("SupplierItemReviewReviewer")
-  buyerReceivedItemMaps ReceivedItemMap[]          @relation("BuyerReceivedItemMaps")
-  supplierLinks         SupplierOutletLink[]       @relation("SupplierLinks")
-  supplierWarehouses    SupplierWarehouse[]
+  id                             Int                            @id @default(autoincrement())
+  name                           String
+  roles                          OrgRole[]                      @default([SELLER])
+  createdAt                      DateTime                       @default(now())
+  updatedAt                      DateTime?                      @updatedAt
+  deletedAt                      DateTime?
+  bannerImg                      String?
+  profileImg                     String?
+  contactNumber                  String?
+  email                          String?
+  location                       String?
+  profilePhoto                   String?
+  facebookLink                   String?
+  instagramLink                  String?
+  twitterLink                    String?
+  bio                            String?
+  isDevSeed                      Boolean                        @default(false)
+  wallet                         Wallet?
+  payoutMethods                  PayoutMethod[]
+  businessVerificationsDocuments BusinessVerificationDocument[]
+  verificationStatus             OrgVerificationStatus          @default(UNVERIFIED)
+  verificationExpiresAt          DateTime?
+  paymentGatewayCreds            PaymentGatewayCredential[]
+  linkedAgents                   Agent[]
+  mandateOffersReceived          MandateOffer[]                 @relation("SupplierMandateOffers")
+  mandateTransactions            MandateTransaction[]           @relation("SupplierMandateTransactions")
+  accountTitles                  AccountTitle[]
+  attendances                    Attendance[]
+  branches                       Branch[]
+  brands                         Brand[]
+  budgets                        Budget[]
+  centers                        Center[]
+  contacts                       Contact[]
+  departments                    Department[]
+  employees                      Employee[]
+  gisRows                        GISRow[]
+  inventoryItems                 InventoryItem[]
+  items                          Item[]
+  itemGroups                     ItemGroup[]
+  notifications                  Notification[]
+  orgCategories                  OrgItemCategory[]
+  outlets                        Outlet[]
+  positions                      Position[]
+  promoTypes                     PromoType[]
+  restockCycles                  RestockCycle[]
+  restockSchedules               RestockSchedule[]
+  salesOrders                    SalesOrder[]
+  scPwdCustomers                 ScPwdCustomer[]
+  shifts                         Shift[]
+  stockBatches                   StockBatch[]
+  subCenters                     SubCenter[]
+  subscription                   Subscription?
+  summaryRows                    SummaryRow[]
+  supplierCatalog                SupplierCatalog?
+  sentPOs                        PurchaseOrder[]                @relation("BuyerOrg")
+  receivedPOs                    PurchaseOrder[]                @relation("SupplierOrg")
+  reviewsReceived                OrganizationReview[]           @relation("OrganizationReviewsReceived")
+  reviewsWritten                 OrganizationReview[]           @relation("OrganizationReviewsWritten")
+  supplierItemReviews            SupplierItemReview[]           @relation("SupplierItemReviewReviewer")
+  buyerReceivedItemMaps          ReceivedItemMap[]              @relation("BuyerReceivedItemMaps")
+  supplierLinks                  SupplierOutletLink[]           @relation("SupplierLinks")
+  supplierWarehouses             SupplierWarehouse[]
 
   supplierOrders SupplierOrder[]
   users          User[]
@@ -2131,16 +2133,16 @@ model SupplierItem {
 }
 
 model SupplierItemCategory {
-  id String @id @default(cuid())
-  catalogId String
-  catalog   SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  id          String          @id @default(cuid())
+  catalogId   String
+  catalog     SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  isActive Boolean @default(true)
-  items SupplierItem[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  isActive    Boolean         @default(true)
+  items       SupplierItem[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
 
   @@unique([catalogId, name])
 }
@@ -2402,7 +2404,7 @@ model OrganizationReview {
   updatedAt             DateTime  @updatedAt
   deletedAt             DateTime?
 
-  organization Organization @relation("OrganizationReviewsReceived", fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization  @relation("OrganizationReviewsReceived", fields: [organizationId], references: [id], onDelete: Cascade)
   reviewer     Organization? @relation("OrganizationReviewsWritten", fields: [reviewerOrgId], references: [id])
 
   @@index([organizationId])
@@ -2522,24 +2524,105 @@ enum VerificationStatus {
   BYPASSED_DEV // auto-set when environment = SANDBOX and KYC enforcement is off
 }
 
-/// Business-side document verification (Organizations, i.e. Suppliers
-/// primarily, but also usable for Retailer orgs if ever required).
-model BusinessVerification {
-  id           String             @id @default(cuid())
-  orgId        Int
-  documentType DocumentType
-  fileUrl      String
-  status       VerificationStatus @default(PENDING)
-  reviewedById Int?
-  reviewedAt   DateTime?
-  environment  Environment        @default(PRODUCTION)
-  notes        String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  deletedAt    DateTime?
-  organization Organization       @relation(fields: [orgId], references: [id])
+// ────────────────────────────────────────────────────────────────────────
+// VERIFICATION REQUIREMENTS — admin-configured, per document type.
+// Drives both "what documents does a supplier need to submit" (progress
+// card) and "how long does an approval stay valid" (expiration/renewal).
+// Versioned like FeeRule elsewhere in this schema: don't edit validityDays
+// in place if requirements change after suppliers are already verified
+// under the old period — insert a new row and set isActive on the old one
+// to false, so historical expirations stay explainable.
+// ────────────────────────────────────────────────────────────────────────
+model VerificationRequirement {
+  id                 String       @id @default(cuid())
+  documentType       DocumentType
+  label              String // display name, e.g. "Business Permit"
+  description        String?
+  isRequired         Boolean      @default(true)
+  validityDays       Int? // null = does not expire
+  reminderDaysBefore Int[]        @default([90, 30, 14, 7]) // configurable, not hardcoded to exactly these
+  isActive           Boolean      @default(true)
+  createdById        Int?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+
+  documents BusinessVerificationDocument[]
+
+  @@unique([documentType, isActive])
+  @@index([isActive])
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// BUSINESS VERIFICATION DOCUMENT — supersedes BusinessVerification.
+// One row per uploaded document (a resubmission after rejection creates
+// a new row rather than overwriting, so document history and review
+// history both stay intact without extra joins).
+// ────────────────────────────────────────────────────────────────────────
+model BusinessVerificationDocument {
+  id            String             @id @default(cuid())
+  orgId         Int
+  requirementId String
+  documentType  DocumentType
+  fileUrl       String // public URL, from MediaService
+  filePath      String // storage path, from MediaService — required for delete/replace
+  status        VerificationStatus @default(PENDING)
+  uploadedAt    DateTime           @default(now())
+  approvedAt    DateTime?
+  expiresAt     DateTime? // computed at approval time from requirement.validityDays
+  reviewedById  Int?
+  reviewedAt    DateTime?
+  adminRemarks  String?
+  environment   Environment        @default(PRODUCTION)
+  isSuperseded  Boolean            @default(false) // true once replaced by a newer upload of the same type
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  deletedAt     DateTime?
+
+  organization Organization                @relation(fields: [orgId], references: [id])
+  requirement  VerificationRequirement     @relation(fields: [requirementId], references: [id])
+  reviews      VerificationReviewHistory[]
 
   @@index([orgId, status])
+  @@index([orgId, documentType])
+  @@index([expiresAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// REVIEW HISTORY — append-only. Every status change (approve, reject,
+// re-review after resubmission) gets its own row rather than overwriting
+// the document's reviewedAt/adminRemarks, so the Review History timeline
+// on the dashboard has something real to render.
+// ────────────────────────────────────────────────────────────────────────
+model VerificationReviewHistory {
+  id           String             @id @default(cuid())
+  documentId   String
+  status       VerificationStatus
+  remarks      String?
+  reviewedById Int?
+  reviewedAt   DateTime           @default(now())
+
+  document BusinessVerificationDocument @relation(fields: [documentId], references: [id])
+
+  @@index([documentId, reviewedAt])
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Organization gets the renamed relation + a denormalized rollup for fast
+// "is this org currently verified" checks without aggregating documents
+// on every read (mirrors the SupplierItem.currentCost caching pattern
+// used elsewhere in this schema).
+// ────────────────────────────────────────────────────────────────────────
+// Add to Organization model:
+//   businessVerificationDocuments BusinessVerificationDocument[]
+//   verificationStatus            OrgVerificationStatus @default(UNVERIFIED)
+//   verificationExpiresAt         DateTime?
+
+enum OrgVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  EXPIRED
 }
 
 // ────────────────────────────────────────────────────────────────────────

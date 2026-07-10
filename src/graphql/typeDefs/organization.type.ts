@@ -20,6 +20,8 @@ export const Organization = objectType({
         t.nullable.string('bio')
         t.nonNull.list.nonNull.field('roles', { type: 'OrgRole' });
         t.nonNull.boolean('isDevSeed');
+        t.nonNull.list.nonNull.field('verificationStatus', { type: 'OrgVerificationStatus'})
+        t.nullable.dateTime('verificationExpiresAt')
         t.nonNull.float('averageRating', {
             resolve: async (parent, _, ctx) => {
                 const aggregate = await ctx.prisma.organizationReview.aggregate({
@@ -82,11 +84,11 @@ export const Organization = objectType({
                 return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).payoutMethods();
             },
         });
-
-        t.nonNull.list.nonNull.field('businessVerifications', {
-            type: 'BusinessVerification',
+        
+        t.nonNull.list.nonNull.field('businessVerificationsDocuments', {
+            type: 'BusinessVerificationDocument',
             resolve: (parent, _, ctx) => {
-                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).businessVerifications();
+                return ctx.prisma.organization.findUnique({ where: { id: parent.id } }).businessVerificationsDocuments();
             },
         });
 

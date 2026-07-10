@@ -1,6 +1,7 @@
 // lib/permissions.map.ts
 import { requireAuth, requireControlPermission, requirePagePermission } from "../middleware/auth.middleware.js";
 export const PAGE_PERMISSIONS = {
+    //Retailer
     //Dashboard
     dashboard: {
         view: (ctx) => requirePagePermission(ctx, 'dashboardPage', 'canView')
@@ -116,6 +117,13 @@ export const PAGE_PERMISSIONS = {
         edit: (ctx) => requirePagePermission(ctx, 'adminPage', 'canEdit'),
         delete: (ctx) => requirePagePermission(ctx, 'adminPage', 'canDelete'),
     },
+    // SUPPLIER
+    verification: {
+        view: (ctx) => requirePagePermission(ctx, 'verificationPage', 'canView'),
+        create: (ctx) => requirePagePermission(ctx, 'verificationPage', 'canCreate'),
+        edit: (ctx) => requirePagePermission(ctx, 'verificationPage', 'canEdit'),
+        delete: (ctx) => requirePagePermission(ctx, 'verificationPage', 'canDelete')
+    }
 };
 // Control permissions map
 export const CONTROL_PERMISSIONS = {
