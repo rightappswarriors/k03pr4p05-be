@@ -37,6 +37,52 @@ import { requireAuth } from '../../../middleware/auth.middleware.js';
 export const SupplierQuery = extendType({
   type: 'Query',
   definition(t) {
+    // Query pending supplier registrations (admin only)
+    t.list.field('pendingSuppliers', {
+      type: 'SupplierProfile',
+      async resolve(_, __, ctx) {
+        requireAuth(ctx)
+        const user = ctx.user
+        if (user?.role !== 'ADMIN') {
+          throw new Error('Only ADMIN can view pending suppliers')
+        }
+        return ctx.prisma.supplierProfile.findMany({
+          where: { status: 'PENDING' },
+          orderBy: { createdAt: 'desc' }
+        })
+      },
+    })
+
+    // Get current supplier's own profile
+    t.field('mySupplierProfile', {
+      type: 'SupplierProfile',
+      async resolve(_, __, ctx) {
+        requireAuth(ctx)
+        const profile = await ctx.prisma.supplierProfile.findUnique({
+          where: { userId: ctx.user?.userId }
+        })
+        if (!profile) {
+          throw new Error('Supplier profile not found')
+        }
+        return profile
+      },
+    })
+
+    // Get current customer's own profile
+    t.field('myCustomerProfile', {
+      type: 'CustomerProfile',
+      async resolve(_, __, ctx) {
+        requireAuth(ctx)
+        const profile = await ctx.prisma.customerProfile.findUnique({
+          where: { userId: ctx.user?.userId }
+        })
+        if (!profile) {
+          throw new Error('Customer profile not found')
+        }
+        return profile
+      },
+    })
+
     t.field('getSupplierOrder', {
       type: 'SupplierOrder',
       args: { token: nonNull(stringArg()) },

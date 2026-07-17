@@ -3,7 +3,7 @@ import { objectType, enumType } from 'nexus'
 
 export const Role = enumType({
      name: 'Role',
-     members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER", "OWNER"]
+     members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER", "OWNER", "SUPPLIER", "CUSTOMER"]
 })
 
 export const TimeInStatus = objectType({
@@ -57,7 +57,24 @@ export const User = objectType({
                          .department()
                }
           })
+          t.nullable.field('approvalStatus', { type: 'ApprovalStatus' })
           t.nullable.int('orgId') // Added for multi-tenancy, onboarding may set after org creation
+          t.nullable.field('supplierProfile', {
+               type: 'SupplierProfile',
+               resolve: (parent, _, ctx) => {
+                    return ctx.prisma.user
+                         .findUnique({ where: { id: parent.id } })
+                         .supplierProfile()
+               }
+          })
+          t.nullable.field('customerProfile', {
+               type: 'CustomerProfile',
+               resolve: (parent, _, ctx) => {
+                    return ctx.prisma.user
+                         .findUnique({ where: { id: parent.id } })
+                         .customerProfile()
+               }
+          })
           t.nullable.field('org', { // Added relation - nullable during onboarding
                type: 'Organization',
                resolve: (parent, _, ctx) => {

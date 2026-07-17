@@ -17,10 +17,11 @@ export interface ContextUser {
     email: string;
     fullname?: string | null;
     username?: string | null;
-    role: 'OWNER' | 'CASHIER' | 'STAFF' | 'MANAGER' | 'ADMIN';
+    role: 'OWNER' | 'CASHIER' | 'STAFF' | 'MANAGER' | 'ADMIN' | 'SUPPLIER' | 'CUSTOMER';
     isVerified?: boolean;
     isOwner: boolean;
     orgId: number;
+    approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
     position?: {
         id: string;
         name: string;

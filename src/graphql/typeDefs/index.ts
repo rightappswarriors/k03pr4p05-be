@@ -73,3 +73,4 @@ export * from './systemConfig.type.js';
 export * from './notification.type.js';
 export * from './stockBatch.type.js'
 export * from './supplier/supplierOutletLink.type.js'
+export * from './supplierProfile.type.js'

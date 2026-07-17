@@ -90,6 +90,187 @@ import { requireAuth } from '../../../middleware/auth.middleware.js';
 export const SupplierMutation = extendType({
     type: 'Mutation',
     definition(t) {
+        // Register supplier (without authentication - public endpoint)
+        t.field('registerSupplier', {
+            type: 'SupplierProfile',
+            args: {
+                companyName: nonNull(stringArg()),
+                contactPerson: nonNull(stringArg()),
+                email: nonNull(stringArg()),
+                phone: nonNull(stringArg()),
+                productCategories: nonNull(list(nonNull(stringArg()))),
+                taxId: stringArg(),
+                businessRegNumber: stringArg(),
+                businessDocuments: list(stringArg()),
+                address: stringArg(),
+                city: stringArg(),
+                province: stringArg(),
+                zipCode: stringArg(),
+            },
+            async resolve(_, args, ctx) {
+                // Check if email already exists
+                const existing = await prisma.supplierProfile.findUnique({
+                    where: { email: args.email }
+                });
+                if (existing) {
+                    throw new Error('A supplier registration with this email already exists');
+                }
+                // Create the supplier profile
+                const profile = await prisma.supplierProfile.create({
+                    data: {
+                        companyName: args.companyName,
+                        contactPerson: args.contactPerson,
+                        email: args.email,
+                        phone: args.phone,
+                        productCategories: args.productCategories,
+                        taxId: args.taxId ?? null,
+                        businessRegNumber: args.businessRegNumber ?? null,
+                        businessDocuments: args.businessDocuments ?? [],
+                        address: args.address ?? null,
+                        city: args.city ?? null,
+                        province: args.province ?? null,
+                        zipCode: args.zipCode ?? null,
+                    }
+                });
+                // Notify admins of new registration
+                const adminUsers = await prisma.user.findMany({
+                    where: { role: 'ADMIN' }
+                });
+                if (adminUsers.length > 0) {
+                    await Promise.all(adminUsers.map(admin => sendEmail({
+                        to: admin.email,
+                        from: 'noreply@yourdomain.com',
+                        subject: 'New Supplier Registration',
+                        html: `
+                  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                    <h2>New Supplier Registration</h2>
+                    <p>A new supplier has registered and is pending approval:</p>
+                    <ul>
+                      <li><strong>Company:</strong> ${args.companyName}</li>
+                      <li><strong>Contact:</strong> ${args.contactPerson}</li>
+                      <li><strong>Email:</strong> ${args.email}</li>
+                    </ul>
+                    <p>Please review the registration in the admin panel.</p>
+                  </div>
+                `,
+                    })));
+                }
+                return profile;
+            },
+        });
+        // Approve supplier - creates User record
+        t.field('approveSupplier', {
+            type: 'SupplierProfile',
+            args: {
+                supplierId: nonNull(intArg()),
+                orgId: nonNull(intArg()),
+            },
+            async resolve(_, { supplierId, orgId }, ctx) {
+                requireAuth(ctx);
+                const admin = ctx.user;
+                if (admin?.role !== 'ADMIN') {
+                    throw new Error('Only ADMIN can approve suppliers');
+                }
+                const profile = await prisma.supplierProfile.findUnique({
+                    where: { id: supplierId }
+                });
+                if (!profile) {
+                    throw new Error('Supplier profile not found');
+                }
+                if (profile.status === 'APPROVED') {
+                    throw new Error('Supplier already approved');
+                }
+                // Generate random password
+                const tempPassword = Math.random().toString(36).slice(-12);
+                return await prisma.$transaction(async (tx) => {
+                    // Create User record with SUPPLIER role
+                    const user = await tx.user.create({
+                        data: {
+                            fullname: profile.contactPerson,
+                            username: `supplier_${profile.id}`,
+                            email: profile.email,
+                            password: tempPassword, // Will be hashed by auth service
+                            role: 'SUPPLIER',
+                            orgId: orgId,
+                            approvalStatus: 'APPROVED',
+                        }
+                    });
+                    // Update profile with userId and status
+                    await tx.supplierProfile.update({
+                        where: { id: supplierId },
+                        data: {
+                            status: 'APPROVED',
+                            userId: user.id,
+                            reviewedBy: admin.userId,
+                            reviewedAt: new Date(),
+                        }
+                    });
+                    // Notify supplier of approval
+                    await sendEmail({
+                        to: profile.email,
+                        from: 'noreply@yourdomain.com',
+                        subject: 'Supplier Application Approved',
+                        html: `
+              <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                <h2>Application Approved!</h2>
+                <p>Your supplier registration has been approved.</p>
+                <p>You can now log in with your email and the following temporary password:</p>
+                <p><strong>${tempPassword}</strong></p>
+                <p>Please change your password after logging in.</p>
+              </div>
+            `,
+                    });
+                    return tx.supplierProfile.findUnique({ where: { id: supplierId } });
+                });
+            },
+        });
+        // Reject supplier
+        t.field('rejectSupplier', {
+            type: 'SupplierProfile',
+            args: {
+                supplierId: nonNull(intArg()),
+                reason: stringArg(),
+            },
+            async resolve(_, { supplierId, reason }, ctx) {
+                requireAuth(ctx);
+                const admin = ctx.user;
+                if (admin?.role !== 'ADMIN') {
+                    throw new Error('Only ADMIN can reject suppliers');
+                }
+                const profile = await prisma.supplierProfile.findUnique({
+                    where: { id: supplierId }
+                });
+                if (!profile) {
+                    throw new Error('Supplier profile not found');
+                }
+                await prisma.supplierProfile.update({
+                    where: { id: supplierId },
+                    data: {
+                        status: 'REJECTED',
+                        rejectionReason: reason ?? null,
+                        reviewedBy: admin.userId,
+                        reviewedAt: new Date(),
+                    }
+                });
+                // Notify supplier of rejection
+                if (profile.email) {
+                    await sendEmail({
+                        to: profile.email,
+                        from: 'noreply@yourdomain.com',
+                        subject: 'Supplier Application Update',
+                        html: `
+              <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                <h2>Application Status Update</h2>
+                <p>Your supplier registration has been reviewed.</p>
+                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                <p>You may re-apply or contact support for more information.</p>
+              </div>
+            `,
+                    });
+                }
+                return prisma.supplierProfile.findUnique({ where: { id: supplierId } });
+            },
+        });
         // Called when supplier opens the portal — marks as acknowledged
         t.field('supplierAcknowledgeOrder', {
             type: 'SupplierOrder',

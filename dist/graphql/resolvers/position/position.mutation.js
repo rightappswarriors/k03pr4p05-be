@@ -1,3 +1,4 @@
+// k03pr4p05-be/src/graphql/resolvers/position/position.mutation.ts
 import { arg, extendType, nonNull, nullable, stringArg, intArg, list } from "nexus";
 import { requireAuth, requireRole } from "../../../middleware/auth.middleware.js";
 import { PAGE_PERMISSIONS } from "../../../lib/permissions.map.js";

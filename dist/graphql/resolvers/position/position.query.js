@@ -1,3 +1,4 @@
+// k03pr4p05-be/src/graphql/resolvers/position/position.query.ts
 import { extendType, nonNull, stringArg, list } from "nexus";
 import { requireAuth } from "../../../middleware/auth.middleware.js";
 import { PAGE_PERMISSIONS, requireAny } from "../../../lib/permissions.map.js";
@@ -38,6 +39,7 @@ export const positionQuery = extendType({
                 });
             }
         });
+        // add query to get the userPermissionOverride query
         t.nonNull.list.nonNull.field("pages", {
             type: "Page",
             args: {

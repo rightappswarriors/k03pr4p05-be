@@ -32,6 +32,14 @@ export const SupplierItemReview = objectType({
             type: 'Organization',
             resolve: (parent, _, ctx) => ctx.prisma.organization.findUniqueOrThrow({ where: { id: parent.reviewerOrgId } }),
         });
+        // Review images for Alibaba-style review display
+        t.nonNull.list.nonNull.field('images', {
+            type: 'SupplierItemReviewImage',
+            resolve: (parent, _, ctx) => ctx.prisma.supplierItemReviewImage.findMany({
+                where: { supplierItemReviewId: parent.id, deletedAt: null },
+                orderBy: { sortOrder: 'asc' },
+            }),
+        });
     },
 });
 export const OrganizationReview = objectType({

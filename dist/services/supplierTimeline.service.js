@@ -120,7 +120,7 @@ export async function getSupplierOrderTimeline(prisma, filters) {
         enabledTypes.has('PURCHASE_ORDER')
             ? prisma.purchaseOrder.findMany({
                 where: { supplierOrgId, ...(dateRange?.start || dateRange?.end ? { createdAt: { gte: dateRange?.start ?? undefined, lte: dateRange?.end ?? undefined } } : {}) },
-                include: { buyerOrg: true, outlet: true },
+                include: { buyerOrg: true, },
                 orderBy,
                 take,
             })
@@ -131,7 +131,7 @@ export async function getSupplierOrderTimeline(prisma, filters) {
                     po: { supplierOrgId },
                     ...(dateRange?.start || dateRange?.end ? { createdAt: { gte: dateRange?.start ?? undefined, lte: dateRange?.end ?? undefined } } : {}),
                 },
-                include: { po: { include: { buyerOrg: true, outlet: true } } },
+                include: { po: { include: { buyerOrg: true, } } },
                 orderBy,
                 take,
             })

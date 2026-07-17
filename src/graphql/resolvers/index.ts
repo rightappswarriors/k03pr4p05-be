@@ -112,6 +112,8 @@ export * from "./orgItemCategory/orgItemCat.mutation.js"
 // Supplier Catalog & Items
 export * from './supplierItem/supplierItem.query.js';
 export * from './supplierItem/supplierItem.mutation.js';
+export * from './supplierItem/supplierItemVariant.query.js';
+export * from './supplierItem/supplierItemVariant.mutation.js';
 // Purchase Orders
 export * from './purchaseOrder/purchaseOrder.query.js';
 export * from './purchaseOrder/purchaseOrder.mutation.js';
@@ -160,3 +162,12 @@ export * from './organization/organization.query.js'
 export * from './supplierInventory/supplierInventory.mutation.js'
 export * from './supplierInventory/supplierInventory.query.js'
 export * from './priceTier/priceTier.resolver.js'
+export * from './supplierLink/supplierLink.resolver.js'
+// Marketplace Publishing
+export * from './marketplace/marketplace.types.js'
+export * from './marketplace/marketplace.query.js'
+export * from './marketplace/marketplace.mutation.js'
+// Wholesale product resolvers
+export * from './wholesale.resolver.js'
+// Image resolvers
+export * from './image.image.js'

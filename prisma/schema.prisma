@@ -7,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum OrgRole {
-  SELLER
-  SUPPLIER
-}
-
 model Organization {
   id                             Int                            @id @default(autoincrement())
   name                           String
@@ -30,20 +25,15 @@ model Organization {
   twitterLink                    String?
   bio                            String?
   isDevSeed                      Boolean                        @default(false)
-  wallet                         Wallet?
-  payoutMethods                  PayoutMethod[]
-  businessVerificationsDocuments BusinessVerificationDocument[]
-  verificationStatus             OrgVerificationStatus          @default(UNVERIFIED)
   verificationExpiresAt          DateTime?
-  paymentGatewayCreds            PaymentGatewayCredential[]
-  linkedAgents                   Agent[]
-  mandateOffersReceived          MandateOffer[]                 @relation("SupplierMandateOffers")
-  mandateTransactions            MandateTransaction[]           @relation("SupplierMandateTransactions")
+  verificationStatus             OrgVerificationStatus          @default(UNVERIFIED)
   accountTitles                  AccountTitle[]
+  linkedAgents                   Agent[]
   attendances                    Attendance[]
   branches                       Branch[]
   brands                         Brand[]
   budgets                        Budget[]
+  businessVerificationsDocuments BusinessVerificationDocument[]
   centers                        Center[]
   contacts                       Contact[]
   departments                    Department[]
@@ -52,11 +42,20 @@ model Organization {
   inventoryItems                 InventoryItem[]
   items                          Item[]
   itemGroups                     ItemGroup[]
+  mandateOffersReceived          MandateOffer[]                 @relation("SupplierMandateOffers")
+  mandateTransactions            MandateTransaction[]           @relation("SupplierMandateTransactions")
   notifications                  Notification[]
   orgCategories                  OrgItemCategory[]
+  reviewsReceived                OrganizationReview[]           @relation("OrganizationReviewsReceived")
+  reviewsWritten                 OrganizationReview[]           @relation("OrganizationReviewsWritten")
   outlets                        Outlet[]
+  paymentGatewayCreds            PaymentGatewayCredential[]
+  payoutMethods                  PayoutMethod[]
   positions                      Position[]
   promoTypes                     PromoType[]
+  sentPOs                        PurchaseOrder[]                @relation("BuyerOrg")
+  receivedPOs                    PurchaseOrder[]                @relation("SupplierOrg")
+  buyerReceivedItemMaps          ReceivedItemMap[]              @relation("BuyerReceivedItemMaps")
   restockCycles                  RestockCycle[]
   restockSchedules               RestockSchedule[]
   salesOrders                    SalesOrder[]
@@ -66,19 +65,17 @@ model Organization {
   subCenters                     SubCenter[]
   subscription                   Subscription?
   summaryRows                    SummaryRow[]
+  SupplierCapability             SupplierCapability[]
   supplierCatalog                SupplierCatalog?
-  sentPOs                        PurchaseOrder[]                @relation("BuyerOrg")
-  receivedPOs                    PurchaseOrder[]                @relation("SupplierOrg")
-  reviewsReceived                OrganizationReview[]           @relation("OrganizationReviewsReceived")
-  reviewsWritten                 OrganizationReview[]           @relation("OrganizationReviewsWritten")
   supplierItemReviews            SupplierItemReview[]           @relation("SupplierItemReviewReviewer")
-  buyerReceivedItemMaps          ReceivedItemMap[]              @relation("BuyerReceivedItemMaps")
-  supplierLinks                  SupplierOutletLink[]           @relation("SupplierLinks")
+  supplierOrders                 SupplierOrder[]
+  retailerOrganizationLinks      SupplierOrganizationLink[]     @relation("RetailerOrganizationLinks")
+  supplierOrganizationLinks      SupplierOrganizationLink[]     @relation("SupplierOrganizationLinks")
+  supplierOutletLinks            SupplierOutletLink[]           @relation("SupplierOutletLinks")
   supplierWarehouses             SupplierWarehouse[]
-
-  supplierOrders SupplierOrder[]
-  users          User[]
-  vatTypes       VatType[]
+  users                          User[]
+  vatTypes                       VatType[]
+  wallet                         Wallet?
 }
 
 model Subscription {
@@ -90,12 +87,6 @@ model Subscription {
   createdAt DateTime         @default(now())
   deletedAt DateTime?
   org       Organization     @relation(fields: [orgId], references: [id])
-}
-
-enum SubscriptionPlan {
-  FREE
-  BASIC
-  GOLD
 }
 
 model User {
@@ -113,7 +104,6 @@ model User {
   contactNumber        String?
   orgId                Int?
   salary               Float?
-  salaryHistory        SalaryHistory[]
   isVerified           Boolean                  @default(false)
   verificationCode     String?
   country              String?
@@ -124,11 +114,15 @@ model User {
   isOwner              Boolean                  @default(false)
   positionId           String?
   departmentId         Int?
+  updatedAt            DateTime?                @updatedAt
+  deletedAt            DateTime?
+  approvalStatus       ApprovalStatus           @default(PENDING)
   attendances          Attendance[]
   auditLogs            AuditLog[]
-  discountAudits       DiscountAudit[]          @relation("DiscountAuditUser")
   branchesOwned        Branch[]                 @relation("UserBranches")
   budgets              Budget[]
+  customerProfile      CustomerProfile?
+  discountAudits       DiscountAudit[]          @relation("DiscountAuditUser")
   employees            Employee[]
   gisRows              GISRow[]
   inventoryItems       InventoryItem[]
@@ -137,8 +131,10 @@ model User {
   outletStaff          OutletStaff[]
   paymongoAPIKeys      PaymongoAPIKeys?
   promoType            PromoType[]              @relation("UserPromoTypes")
+  salaryHistory        SalaryHistory[]
   salesOrders          SalesOrder[]
   summaryRows          SummaryRow[]
+  supplierProfile      SupplierProfile?
   Transaction          Transaction[]
   department           Department?              @relation(fields: [departmentId], references: [id])
   manager              User?                    @relation("ManagerToStaff", fields: [managerId], references: [id])
@@ -147,8 +143,7 @@ model User {
   position             Position?                @relation(fields: [positionId], references: [id])
   permissionOverrides  UserPermissionOverride[]
   userShifts           UserShift[]
-  updatedAt            DateTime?                @updatedAt
-  deletedAt            DateTime?
+  wholesaleDocuments   WholesaleDocument[]
 
   @@unique([orgId, username])
   @@unique([orgId, email])
@@ -260,14 +255,13 @@ model Outlet {
   itemSearchIndex       OutletItemSearchIndex[]
   outletPromos          OutletPromo[]
   staff                 OutletStaff[]
+  purchaseOrders        PurchaseOrder[]
+  receivedItemMaps      ReceivedItemMap[]
   restockCycles         RestockCycle[]
   restockSchedules      RestockSchedule[]
-  Transaction           Transaction[]
   salesOrders           SalesOrder[]
-
-  purchaseOrders      PurchaseOrder[]
-  supplierOutletLinks SupplierOutletLink[]
-  receivedItemMaps    ReceivedItemMap[]
+  supplierLinks         SupplierOutletLink[]    @relation("OutletSupplierLinks")
+  Transaction           Transaction[]
 
   @@unique([orgId, code])
 }
@@ -496,6 +490,7 @@ model Item {
   stockLabel                 String?
   cartItems                  CartItem[]
   costLines                  CostLines[]
+  discountAudits             DiscountAudit[]         @relation("DiscountAuditItem")
   InventoryItems             InventoryItems[]
   brandDetails               Brand?                  @relation(fields: [brandId], references: [id])
   category                   ItemCategory?           @relation("GlobalItemCategory", fields: [categoryId], references: [id])
@@ -503,24 +498,22 @@ model Item {
   org                        Organization            @relation(fields: [orgId], references: [id])
   vatType                    VatType?                @relation(fields: [vatTypeId], references: [id])
   categories                 ItemCategoryMap[]
+  costHistory                ItemCostHistory[]
+  priceHistory               ItemPriceHistory[]
   orderItems                 KompraCOrderItem[]
   media                      Media[]
   notifications              Notification[]
   searchIndex                OutletItemSearchIndex[]
+  receivedItemMaps           ReceivedItemMap[]       @relation("ReceivedItemMaps")
   restockCycleItems          RestockCycleItem[]
   restockScheduleItems       RestockScheduleItem[]
+  salesOrderItems            SalesOrderItem[]
   stockBatches               StockBatch[]
   stockMovements             StockMovement[]
   summaryRows                SummaryRow[]
   supplierOrderItems         SupplierOrderItem[]
-  discountAudits             DiscountAudit[]         @relation("DiscountAuditItem")
   color                      Color[]                 @relation("ColorToItem")
   purchaseUnit               ItemUnit[]              @relation("ItemToItemUnit")
-  salesOrderItems            SalesOrderItem[]
-  costHistory                ItemCostHistory[] // relation to track cost history
-  priceHistory               ItemPriceHistory[] // relation to track price history
-
-  receivedItemMaps ReceivedItemMap[] @relation("ReceivedItemMaps")
 
   @@unique([orgId, name])
 }
@@ -529,10 +522,10 @@ model ItemCostHistory {
   id          Int      @id @default(autoincrement())
   itemId      Int
   totalCost   Float
-  costLines   Json // snapshot of costLines at that point
+  costLines   Json
   effectiveAt DateTime @default(now())
-  changedBy   Int? // userId
-  reason      String? // "manual update", "supplier price change", etc.
+  changedBy   Int?
+  reason      String?
   item        Item     @relation(fields: [itemId], references: [id])
 }
 
@@ -541,41 +534,23 @@ model ItemPriceHistory {
   itemId         Int
   price          Float
   effectiveAt    DateTime      @default(now())
-  changedBy      Int? // userId
-  reason         String? // "manual update", "supplier price change", etc.
+  changedBy      Int?
+  reason         String?
+  supplierItemId String?
   item           Item          @relation(fields: [itemId], references: [id])
   supplierItem   SupplierItem? @relation(fields: [supplierItemId], references: [id])
-  supplierItemId String?
 
   @@index([itemId, effectiveAt])
 }
 
-enum OrderMode {
-  WALK_IN
-  PICK_UP
-  DELIVERY
-}
-
-enum SalesOrderStatus {
-  PENDING
-  PROCESSING
-  READY_FOR_PICKUP
-  OUT_FOR_DELIVERY
-  COMPLETED
-  ORDERED
-  SHIPPED
-  RECEIVED
-  CANCELLED
-}
-
 model SalesOrder {
-  id                  String           @id @default(cuid())
-  orderNumber         String           @unique
+  id                  String              @id @default(cuid())
+  orderNumber         String              @unique
   customer            String
-  orderMode           OrderMode        @default(WALK_IN)
-  status              SalesOrderStatus @default(PENDING)
-  date                DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  orderMode           OrderMode           @default(WALK_IN)
+  status              SalesOrderStatus    @default(PENDING)
+  date                DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
   inventoryDeductedAt DateTime?
   deletedAt           DateTime?
   orgId               Int
@@ -584,36 +559,31 @@ model SalesOrder {
   branchId            Int?
   customerName        String?
   customerContact     String?
-  customerType        CustomerType     @default(REGULAR)
-  discountType        DiscountType     @default(NONE)
-  vatExemptSale       Float            @default(0)
+  customerType        CustomerType        @default(REGULAR)
+  discountType        DiscountType        @default(NONE)
+  vatExemptSale       Float               @default(0)
   totalPax            Int?
   scPwdPax            Int?
   scPwdCustomerId     String?
   deliveryAddress     String?
   deliveryNotes       String?
-  // Pricing
-  subtotal            Float            @default(0)
-  discountAmount      Float            @default(0)
-  vatAmount           Float            @default(0)
-  total               Float            @default(0)
-  vatRate             Float            @default(0)
-  discountRate        Float            @default(0)
-  extraChargesTotal   Float            @default(0)
-  grandTotal          Float            @default(0)
+  subtotal            Float               @default(0)
+  discountAmount      Float               @default(0)
+  vatAmount           Float               @default(0)
+  total               Float               @default(0)
+  vatRate             Float               @default(0)
+  discountRate        Float               @default(0)
+  extraChargesTotal   Float               @default(0)
+  grandTotal          Float               @default(0)
   outletPromoId       Int?
-
-  // Delivery details (filled when moving Processing → Shipped)
-  delivery SalesOrderDelivery?
-
-  // Relations
-  items         SalesOrderItem[]
-  extraCharges  ExtraCharge[]
-  org           Organization     @relation(fields: [orgId], references: [id])
-  user          User?            @relation(fields: [userId], references: [id])
-  outlet        Outlet?          @relation(fields: [outletId], references: [id])
-  branch        Branch?          @relation(fields: [branchId], references: [id])
-  scPwdCustomer ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
+  extraCharges        ExtraCharge[]
+  branch              Branch?             @relation(fields: [branchId], references: [id])
+  org                 Organization        @relation(fields: [orgId], references: [id])
+  outlet              Outlet?             @relation(fields: [outletId], references: [id])
+  scPwdCustomer       ScPwdCustomer?      @relation(fields: [scPwdCustomerId], references: [id])
+  user                User?               @relation(fields: [userId], references: [id])
+  delivery            SalesOrderDelivery?
+  items               SalesOrderItem[]
 
   @@index([orgId])
   @@index([orgId, status])
@@ -648,15 +618,13 @@ model SalesOrderItem {
   discountType     DiscountType @default(NONE)
   unitId           Int?
   unitName         String?
-  costSnapshot     Float? // cost at time of  Sales Order
-  priceSnapshot    Float? // not implemented yet; for future use if we want to snapshot the price at time of transaction
-  // ── Custom / manual item fields ──────────────────────────────────────────
-  isCustomItem     Boolean      @default(false) // true = manually entered, not from inventory
-  customItemName   String? // display name for custom items
-  vatExempt        Boolean      @default(false) // VAT override; used when isCustomItem = true
-
-  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-  item       Item?      @relation(fields: [itemId], references: [id]) // ← nullable relation
+  costSnapshot     Float?
+  priceSnapshot    Float?
+  isCustomItem     Boolean      @default(false)
+  customItemName   String?
+  vatExempt        Boolean      @default(false)
+  item             Item?        @relation(fields: [itemId], references: [id])
+  salesOrder       SalesOrder   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
 
   @@index([salesOrderId])
 }
@@ -764,16 +732,16 @@ model KompraCOrder {
   discountAmount         Float?                    @default(0)
   vatAmount              Float?                    @default(0)
   grandTotal             Float?
+  checkoutGroupId        String?
   tracking               KompraCDeliveryTracking[]
   courier                Courier?                  @relation(fields: [courierId], references: [id])
   customer               KompraCustomer            @relation(fields: [customerId], references: [id])
   deliveryAddress        DeliveryAddress           @relation(fields: [deliveryAddressId], references: [id])
   outlet                 Outlet                    @relation(fields: [outletId], references: [id])
+  scPwdCustomer          ScPwdCustomer?            @relation(fields: [scPwdCustomerId], references: [id])
   fees                   KompraCOrderFee[]
-  checkoutGroupId        String?
   items                  KompraCOrderItem[]
   OrderCourierPreference OrderCourierPreference[]
-  scPwdCustomer          ScPwdCustomer?            @relation(fields: [scPwdCustomerId], references: [id])
 
   @@index([scPwdCustomerId])
 }
@@ -788,11 +756,11 @@ model KompraCOrderItem {
   priceSnapshot   Float
   subtotal        Float
   unitId          Int?
+  costSnapshot    Float?
   inventoryItem   InventoryItems     @relation(fields: [inventoryItemId], references: [id])
   item            Item               @relation(fields: [itemId], references: [id])
   order           KompraCOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   unit            InventoryItemUnit? @relation(fields: [unitId], references: [id])
-  costSnapshot    Float? // cost at time of transaction
 
   @@unique([orderId, inventoryItemId])
 }
@@ -853,17 +821,6 @@ model OutletItemSearchIndex {
   @@unique([outletId, itemId])
   @@index([itemId, quantity])
   @@index([outletId])
-}
-
-enum OrderStatus {
-  pending
-  confirmed
-  preparing
-  in_delivery
-  received
-  cancelled
-  returned
-  packed
 }
 
 model Courier {
@@ -1108,7 +1065,6 @@ model Brand {
   @@unique([orgId, name])
 }
 
-// used in pos terminal to track items in a transaction, separate from inventory which tracks stock levels. this allows us to record the price and quantity of each item at the time of sale, even if the inventory levels change later. it also allows us to track the unit of measurement used for each item in the transaction, which may be different from the base unit used in inventory.
 model CartItem {
   transactionId     Int
   itemId            Int
@@ -1117,16 +1073,16 @@ model CartItem {
   unitId            Int?
   unitName          String?
   discountAmount    Float?             @default(0)
-  discountQuantity  Float?             @default(0) // ← NEW: quantity that gets the discount
-  discountRate      Float?             @default(0) // ← NEW: discount percentage (0.0 - 1.0)
+  discountQuantity  Float?             @default(0)
+  discountRate      Float?             @default(0)
   discountType      DiscountType       @default(NONE)
   originalPrice     Float              @default(0)
   vatExclusivePrice Float              @default(0)
   finalPrice        Float              @default(0)
+  costSnapshot      Float?
+  priceSnapshot     Float?
   item              Item               @relation(fields: [itemId], references: [id])
   transaction       Transaction        @relation(fields: [transactionId], references: [id])
-  costSnapshot      Float? // cost at time of transaction
-  priceSnapshot     Float? // Not implemented yet, but can be used to store the price of the item at the time of transaction for historical purposes
   unit              InventoryItemUnit? @relation(fields: [unitId], references: [id])
 
   @@id([transactionId, itemId])
@@ -1155,10 +1111,6 @@ model Transaction {
   vatExemptSale     Float            @default(0)
   vatExemptRefNo    String?
   vatExemptType     VatExemptType?
-  items             CartItem[]
-  customerDetails   CustomerDetails?
-  scPwdCustomer     ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
-  cashier           User?            @relation(fields: [cashierId], references: [id])
   discountType      DiscountType     @default(NONE)
   discountRate      Float            @default(0)
   discountAmount    Float            @default(0)
@@ -1166,8 +1118,12 @@ model Transaction {
   scPwdPax          Int?
   outletPromoId     Int?
   promoDiscountAmt  Float?
-  outletPromo       OutletPromo?     @relation(fields: [outletPromoId], references: [id])
+  items             CartItem[]
+  customerDetails   CustomerDetails?
+  cashier           User?            @relation(fields: [cashierId], references: [id])
   outlet            Outlet           @relation(fields: [outletId], references: [id])
+  outletPromo       OutletPromo?     @relation(fields: [outletPromoId], references: [id])
+  scPwdCustomer     ScPwdCustomer?   @relation(fields: [scPwdCustomerId], references: [id])
 }
 
 model ScPwdCustomer {
@@ -1190,10 +1146,10 @@ model ScPwdCustomer {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
   deletedAt              DateTime?
+  kompraCOrders          KompraCOrder[]
+  salesOrders            SalesOrder[]
   org                    Organization?  @relation(fields: [orgId], references: [id])
   transactions           Transaction[]
-  salesOrders            SalesOrder[]
-  kompraCOrders          KompraCOrder[]
 
   @@unique([orgId, fullName, contactNumber, dateOfBirth, oscaId])
   @@unique([orgId, fullName, contactNumber, dateOfBirth, govId])
@@ -1332,13 +1288,12 @@ model Employee {
   @@index([department])
 }
 
-// For history tracking
 model SalaryHistory {
   id          String    @id
   ammount     Float
   effectiveAt DateTime
   deletedAt   DateTime?
-  userId      Int // ← add this
+  userId      Int
   user        User      @relation(fields: [userId], references: [id])
 }
 
@@ -1790,13 +1745,6 @@ model django_migrations {
   applied DateTime @db.Timestamptz(6)
 }
 
-enum Access {
-  SELLER
-  SUPPLIER
-  POSTERMINAL
-  ADMIN
-}
-
 model Page {
   id                  String                   @id @default(cuid())
   deletedAt           DateTime?
@@ -1878,9 +1826,8 @@ model DiscountAudit {
   voidReason             String?
   createdAt              DateTime     @default(now())
   deletedAt              DateTime?
-
-  user User? @relation(fields: [userId], references: [id], name: "DiscountAuditUser")
-  item Item? @relation(fields: [itemId], references: [id], name: "DiscountAuditItem")
+  item                   Item?        @relation("DiscountAuditItem", fields: [itemId], references: [id])
+  user                   User         @relation("DiscountAuditUser", fields: [userId], references: [id])
 
   @@index([oscaGovId])
   @@index([customerId])
@@ -1898,6 +1845,1163 @@ model OrderCourierPreference {
   courier_id   Int
   Courier      Courier      @relation(fields: [courier_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_courier")
   KompraCOrder KompraCOrder @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order")
+}
+
+model SupplierCatalog {
+  id                     String                 @id @default(cuid())
+  organizationId         Int                    @unique
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  deletedAt              DateTime?
+  organization           Organization           @relation(fields: [organizationId], references: [id])
+  items                  SupplierItem[]
+  supplierItemCategories SupplierItemCategory[]
+  supplierItemGroups     SupplierItemGroup[]
+}
+
+model SupplierItem {
+  id                         String                      @id @default(cuid())
+  catalogId                  String
+  name                       String
+  description                String?
+  sku                        String?
+  unit                       String
+  unitPrice                  Float
+  isVatExempt                Boolean                     @default(false)
+  vatRate                    Float                       @default(0.12)
+  moq                        Int                         @default(1)
+  availableQty               Int                         @default(0)
+  isActive                   Boolean                     @default(true)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  damagedQty                 Float                       @default(0)
+  image                      String?
+  incomingQty                Float                       @default(0)
+  reorderLevel               Float?
+  reorderQty                 Float?
+  reservedQty                Float                       @default(0)
+  returnedQty                Float                       @default(0)
+  deletedAt                  DateTime?
+  currentCost                Float                       @default(0)
+  categoryId                 String?
+  groupId                    String?
+  leadTime                   String?
+  sampleAvailable            Boolean                     @default(false)
+  samplePrice                Float?
+  shippingFrom               String?
+  priceHistory               ItemPriceHistory[]
+  marketplaceListing         MarketplaceListing?
+  poLineItems                POLineItem[]
+  priceTiers                 PriceTier[]
+  productSpecifications      ProductSpecification[]
+  productWholesaleSettings   ProductWholesaleSettings?
+  receivedItemMap            ReceivedItemMap[]
+  supplierIncomingStock      SupplierIncomingStock[]
+  supplierInventoryMovements SupplierInventoryMovement[]
+  catalog                    SupplierCatalog             @relation(fields: [catalogId], references: [id])
+  category                   SupplierItemCategory?       @relation(fields: [categoryId], references: [id])
+  group                      SupplierItemGroup?          @relation(fields: [groupId], references: [id])
+  supplierItemCostHistories  SupplierItemCostHistory[]
+  SupplierItemImage          SupplierItemImage[]
+  supplierItemPriceHistories SupplierItemPriceHistory[]
+  reviews                    SupplierItemReview[]
+  variants                   SupplierItemVariant[]
+  variantGroups              SupplierItemVariantGroup[]
+  supplierScheduledPrices    SupplierScheduledPrice[]
+  supplierStockBatches       SupplierStockBatch[]
+  WholesaleCustomization     WholesaleCustomization[]
+  WholesaleDocument          WholesaleDocument[]
+  WholesalePackaging         WholesalePackaging?
+  WholesaleQuote             WholesaleQuote[]
+  WholesaleShipping          WholesaleShipping?
+
+  @@unique([catalogId, sku])
+}
+
+/// A dimension along which a product varies — e.g. "Color", "Size".
+/// One parent item can have multiple groups.
+model SupplierItemVariantGroup {
+  id             String                      @id @default(cuid())
+  supplierItemId String
+  name           String
+  sortOrder      Int                         @default(0)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  supplierItem   SupplierItem                @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+  options        SupplierItemVariantOption[]
+
+  @@index([supplierItemId])
+}
+
+/// A single value within a variant group — e.g. "Black", "XL", "Cotton".
+model SupplierItemVariantOption {
+  id             String                     @id @default(cuid())
+  variantGroupId String
+  value          String
+  colorHex       String?
+  image          String?
+  sortOrder      Int                        @default(0)
+  variantGroup   SupplierItemVariantGroup   @relation(fields: [variantGroupId], references: [id], onDelete: Cascade)
+  variantValues  SupplierItemVariantValue[]
+
+  @@index([variantGroupId])
+}
+
+/// A single purchasable SKU — the intersection of one option from each group.
+/// Example: Black + XL + Cotton → one SupplierItemVariant.
+model SupplierItemVariant {
+  id                       String                     @id @default(cuid())
+  supplierItemId           String
+  sku                      String?
+  barcode                  String?
+  name                     String
+  price                    Float                      @default(0)
+  cost                     Float                      @default(0)
+  availableQty             Float                      @default(0)
+  reservedQty              Float                      @default(0)
+  incomingQty              Float                      @default(0)
+  damagedQty               Float                      @default(0)
+  returnedQty              Float                      @default(0)
+  reorderLevel             Float?
+  reorderQty               Float?
+  weight                   Float?
+  length                   Float?
+  width                    Float?
+  height                   Float?
+  image                    String?
+  isDefault                Boolean                    @default(false)
+  isActive                 Boolean                    @default(true)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  deletedAt                DateTime?
+  supplierItem             SupplierItem               @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+  SupplierItemVariantImage SupplierItemVariantImage[]
+  variantValues            SupplierItemVariantValue[]
+
+  @@index([supplierItemId])
+  @@index([supplierItemId, isActive])
+}
+
+/// Join table — links a variant to the specific option values that define it.
+model SupplierItemVariantValue {
+  variantId String
+  optionId  String
+  option    SupplierItemVariantOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  variant   SupplierItemVariant       @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, optionId])
+  @@index([optionId])
+}
+
+model MarketplaceListing {
+  id             String                   @id @default(cuid())
+  supplierItemId String                   @unique
+  status         MarketplaceListingStatus @default(DRAFT)
+  publishedAt    DateTime?
+  unpublishedAt  DateTime?
+  featured       Boolean                  @default(false)
+  searchRank     Int                      @default(0)
+  views          Int                      @default(0)
+  clicks         Int                      @default(0)
+  inquiries      Int                      @default(0)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  deletedAt      DateTime?
+  supplierItem   SupplierItem             @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([supplierItemId])
+}
+
+model SupplierItemCategory {
+  id          String          @id @default(cuid())
+  catalogId   String
+  name        String
+  description String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+  items       SupplierItem[]
+  catalog     SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogId, name])
+}
+
+model SupplierItemGroup {
+  id          String          @id @default(cuid())
+  catalogId   String
+  name        String
+  description String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+  items       SupplierItem[]
+  catalog     SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogId, name])
+}
+
+model SupplierScheduledPrice {
+  id             String               @id @default(cuid())
+  supplierItemId String
+  price          Float
+  effectiveAt    DateTime
+  expiresAt      DateTime?
+  status         ScheduledPriceStatus @default(PENDING)
+  createdById    Int?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  deletedAt      DateTime?
+  supplierItem   SupplierItem         @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemId, status])
+  @@index([effectiveAt, status])
+}
+
+model SupplierWarehouse {
+  id             String                      @id @default(cuid())
+  organizationId Int
+  name           String
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  isDefault      Boolean                     @default(false)
+  isActive       Boolean                     @default(true)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  deletedAt      DateTime?
+  incoming       SupplierIncomingStock[]
+  movements      SupplierInventoryMovement[]
+  stockBatches   SupplierStockBatch[]
+  organization   Organization                @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+/// FIFO-consumable batches for a Supplier's own inventory. Parallel to
+/// StockBatch (which is Item/retailer-scoped) — kept separate rather than
+/// reused, since a supplier's warehouse stock and a retailer's shelf stock
+/// are different sides of the same transaction and shouldn't share a table.
+model SupplierStockBatch {
+  id             String                      @id @default(cuid())
+  supplierItemId String
+  warehouseId    String?
+  batchNumber    String?
+  quantity       Float
+  remainingQty   Float
+  unitCost       Float
+  expiryDate     DateTime?
+  receivedAt     DateTime                    @default(now())
+  status         SupplierStockBatchStatus    @default(ACTIVE)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  deletedAt      DateTime?
+  movements      SupplierInventoryMovement[]
+  supplierItem   SupplierItem                @relation(fields: [supplierItemId], references: [id])
+  warehouse      SupplierWarehouse?          @relation(fields: [warehouseId], references: [id])
+
+  @@index([supplierItemId, status])
+  @@index([supplierItemId, expiryDate])
+  @@index([warehouseId])
+}
+
+/// Append-only ledger — mirrors the WalletLedgerEntry pattern already used
+/// elsewhere in this schema. This is the audit trail AND the source of truth
+/// for reservedQty/damagedQty/returnedQty/availableQty on SupplierItem; those
+/// fields are a cached rollup, reconciled against this table, never edited
+/// in place — post a corrective movement instead.
+model SupplierInventoryMovement {
+  id              String                        @id @default(cuid())
+  supplierItemId  String
+  warehouseId     String?
+  batchId         String?
+  type            SupplierInventoryMovementType
+  quantity        Float
+  quantityBefore  Float
+  quantityAfter   Float
+  unitCost        Float?
+  referenceType   String?
+  referenceId     String?
+  transferGroupId String?
+  reason          String?
+  createdById     Int?
+  createdAt       DateTime                      @default(now())
+  deletedAt       DateTime?
+  batch           SupplierStockBatch?           @relation(fields: [batchId], references: [id])
+  supplierItem    SupplierItem                  @relation(fields: [supplierItemId], references: [id])
+  warehouse       SupplierWarehouse?            @relation(fields: [warehouseId], references: [id])
+
+  @@index([supplierItemId, createdAt])
+  @@index([supplierItemId, type])
+  @@index([transferGroupId])
+}
+
+/// Lightweight expected-shipment tracking — deliberately not a full upstream
+/// procurement/PO system (that would be a much bigger feature: the supplier
+/// placing orders with THEIR OWN vendors). This just lets a supplier log
+/// "X units arriving on Y date from Z source" so the Incoming Stock KPI and
+/// forecast have real data instead of a placeholder.
+model SupplierIncomingStock {
+  id              String                 @id @default(cuid())
+  supplierItemId  String
+  warehouseId     String?
+  expectedQty     Float
+  expectedDate    DateTime?
+  sourceLabel     String?
+  status          SupplierIncomingStatus @default(PENDING)
+  receivedBatchId String?
+  notes           String?
+  createdById     Int?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  deletedAt       DateTime?
+  supplierItem    SupplierItem           @relation(fields: [supplierItemId], references: [id])
+  warehouse       SupplierWarehouse?     @relation(fields: [warehouseId], references: [id])
+
+  @@index([supplierItemId, status])
+}
+
+model SupplierItemPriceHistory {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  oldPrice       Float
+  newPrice       Float
+  effectiveAt    DateTime     @default(now())
+  changedById    Int?
+  reason         String?
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id])
+
+  @@index([supplierItemId, effectiveAt])
+}
+
+model SupplierItemCostHistory {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  oldCost        Float
+  newCost        Float
+  effectiveAt    DateTime     @default(now())
+  changedById    Int?
+  reason         String?
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id])
+}
+
+model PriceTier {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  minQty         Int
+  price          Float
+  createdAt      DateTime     @default(now())
+  currency       String       @default("PHP")
+  deletedAt      DateTime?
+  maxQty         Int?
+  updatedAt      DateTime     @updatedAt
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemId])
+}
+
+model SupplierItemReview {
+  id                      String                    @id @default(cuid())
+  supplierItemId          String
+  reviewerOrgId           Int
+  rating                  Int
+  title                   String?
+  comment                 String?
+  isVerifiedPurchase      Boolean                   @default(false)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  deletedAt               DateTime?
+  reviewer                Organization              @relation("SupplierItemReviewReviewer", fields: [reviewerOrgId], references: [id])
+  supplierItem            SupplierItem              @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+  SupplierItemReviewImage SupplierItemReviewImage[]
+
+  @@index([supplierItemId])
+  @@index([reviewerOrgId])
+  @@index([rating])
+}
+
+model OrganizationReview {
+  id                    String        @id @default(cuid())
+  organizationId        Int
+  reviewerOrgId         Int?
+  reviewerCustomerId    Int?
+  reviewerName          String?
+  rating                Int
+  title                 String?
+  comment               String?
+  isVerifiedTransaction Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+  organization          Organization  @relation("OrganizationReviewsReceived", fields: [organizationId], references: [id], onDelete: Cascade)
+  reviewer              Organization? @relation("OrganizationReviewsWritten", fields: [reviewerOrgId], references: [id])
+
+  @@index([organizationId])
+  @@index([reviewerOrgId])
+  @@index([reviewerCustomerId])
+  @@index([rating])
+}
+
+model ReceivedItemMap {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  buyerOrgId     Int
+  itemId         Int
+  outletId       Int?
+  createdAt      DateTime     @default(now())
+  buyerOrg       Organization @relation("BuyerReceivedItemMaps", fields: [buyerOrgId], references: [id])
+  item           Item         @relation("ReceivedItemMaps", fields: [itemId], references: [id])
+  outlet         Outlet?      @relation(fields: [outletId], references: [id])
+  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id])
+
+  @@unique([supplierItemId, buyerOrgId, outletId])
+}
+
+model PurchaseOrder {
+  id                         String                    @id @default(cuid())
+  poNumber                   String                    @unique
+  buyerOrgId                 Int
+  supplierOrgId              Int
+  status                     POStatus                  @default(PENDING)
+  notes                      String?
+  requestedDate              DateTime?
+  totalAmount                Float
+  vatAmount                  Float                     @default(0)
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+  deliveryOutletId           Int
+  supplierOrganizationLinkId String?
+  delivery                   Delivery?
+  lineItems                  POLineItem[]
+  buyerOrg                   Organization              @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
+  deliveryOutlet             Outlet                    @relation(fields: [deliveryOutletId], references: [id])
+  supplierOrg                Organization              @relation("SupplierOrg", fields: [supplierOrgId], references: [id])
+  supplierOrganizationLink   SupplierOrganizationLink? @relation(fields: [supplierOrganizationLinkId], references: [id])
+}
+
+model POLineItem {
+  id             String        @id @default(cuid())
+  poId           String
+  supplierItemId String
+  qty            Int
+  unitPrice      Float
+  subtotal       Float
+  po             PurchaseOrder @relation(fields: [poId], references: [id])
+  supplierItem   SupplierItem  @relation(fields: [supplierItemId], references: [id])
+}
+
+model Delivery {
+  id            String         @id @default(cuid())
+  poId          String         @unique
+  scheduledDate DateTime
+  deliveredAt   DateTime?
+  status        DeliveryStatus @default(SCHEDULED)
+  driverName    String?
+  driverContact String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  po            PurchaseOrder  @relation(fields: [poId], references: [id])
+}
+
+model SupplierOrganizationLink {
+  id                   String             @id @default(cuid())
+  supplierOrgId        Int
+  retailerOrgId        Int
+  /// Retained for backwards compatibility; status is the source of truth.
+  isApproved           Boolean            @default(false)
+  status               SupplierLinkStatus @default(REQUESTED)
+  assignedAgentId      String?
+  preferredWarehouseId String?
+  deliveryInstructions String?
+  receivingHours       String?
+  creditTerms          String?
+  notes                String?
+  linkedAt             DateTime?
+  pausedAt             DateTime?
+  archivedAt           DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  purchaseOrders       PurchaseOrder[]
+  assignedAgent        Agent?             @relation(fields: [assignedAgentId], references: [id])
+  retailerOrg          Organization       @relation("RetailerOrganizationLinks", fields: [retailerOrgId], references: [id])
+  supplierOrg          Organization       @relation("SupplierOrganizationLinks", fields: [supplierOrgId], references: [id])
+
+  @@unique([supplierOrgId, retailerOrgId])
+  @@index([supplierOrgId, status])
+  @@index([retailerOrgId, status])
+  @@index([assignedAgentId])
+}
+
+model SupplierOutletLink {
+  id                   String             @id @default(cuid())
+  supplierOrgId        Int
+  outletId             Int
+  isApproved           Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  status               SupplierLinkStatus @default(REQUESTED)
+  assignedAgentId      String?
+  preferredWarehouseId String?
+  deliveryInstructions String?
+  receivingHours       String?
+  creditTerms          String?
+  notes                String?
+  linkedAt             DateTime?
+  pausedAt             DateTime?
+  archivedAt           DateTime?
+  deletedAt            DateTime?
+  updatedAt            DateTime           @updatedAt
+  assignedAgent        Agent?             @relation("AgentSupplierLinks", fields: [assignedAgentId], references: [id])
+  outlet               Outlet             @relation("OutletSupplierLinks", fields: [outletId], references: [id])
+  supplierOrg          Organization       @relation("SupplierOutletLinks", fields: [supplierOrgId], references: [id])
+
+  @@unique([supplierOrgId, outletId])
+  @@index([supplierOrgId, status])
+  @@index([outletId, status])
+  @@index([assignedAgentId])
+}
+
+/// Generic runtime config / feature-flag store. Read through a cached
+/// service (Redis-backed) so toggling doesn't require a redeploy.
+/// Seed rows: subscriptionBillingEnabled, kycEnforcementProdOnly,
+/// visibilityMatrixEnabled, defaultPaymentEnvironment.
+model SystemConfig {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  value       Json
+  description String?
+  updatedAt   DateTime  @updatedAt
+  updatedById Int?
+  deletedAt   DateTime?
+}
+
+model VerificationRequirement {
+  id                 String                         @id @default(cuid())
+  documentType       DocumentType
+  label              String
+  description        String?
+  isRequired         Boolean                        @default(true)
+  validityDays       Int?
+  reminderDaysBefore Int[]                          @default([90, 30, 14, 7])
+  isActive           Boolean                        @default(true)
+  createdById        Int?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  deletedAt          DateTime?
+  documents          BusinessVerificationDocument[]
+
+  @@unique([documentType, isActive])
+  @@index([isActive])
+}
+
+model BusinessVerificationDocument {
+  id            String                      @id @default(cuid())
+  orgId         Int
+  requirementId String
+  documentType  DocumentType
+  fileUrl       String
+  filePath      String
+  status        VerificationStatus          @default(PENDING)
+  uploadedAt    DateTime                    @default(now())
+  approvedAt    DateTime?
+  expiresAt     DateTime?
+  reviewedById  Int?
+  reviewedAt    DateTime?
+  adminRemarks  String?
+  environment   Environment                 @default(PRODUCTION)
+  isSuperseded  Boolean                     @default(false)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  deletedAt     DateTime?
+  organization  Organization                @relation(fields: [orgId], references: [id])
+  requirement   VerificationRequirement     @relation(fields: [requirementId], references: [id])
+  reviews       VerificationReviewHistory[]
+
+  @@index([orgId, status])
+  @@index([orgId, documentType])
+  @@index([expiresAt])
+}
+
+model VerificationReviewHistory {
+  id           String                       @id @default(cuid())
+  documentId   String
+  status       VerificationStatus
+  remarks      String?
+  reviewedById Int?
+  reviewedAt   DateTime                     @default(now())
+  document     BusinessVerificationDocument @relation(fields: [documentId], references: [id])
+
+  @@index([documentId, reviewedAt])
+}
+
+/// A Mandate/Agent user. If agentType = ORG_LINKED, organizationId points at
+/// an existing, verified Organization (resolved during registration search).
+/// If STANDALONE, organizationId is null and the agent carries its own
+/// identity + verification instead of an org's.
+model Agent {
+  id                        String                     @id @default(cuid())
+  agentType                 AgentType
+  organizationId            Int?
+  email                     String                     @unique
+  phone                     String?
+  passwordHash              String
+  isVerified                Boolean                    @default(false)
+  verificationStatus        VerificationStatus         @default(PENDING)
+  trustTier                 String                     @default("FREE")
+  environment               Environment                @default(PRODUCTION)
+  isDevSeed                 Boolean                    @default(false)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  deletedAt                 DateTime?
+  fullname                  String
+  organization              Organization?              @relation(fields: [organizationId], references: [id])
+  verifications             AgentVerification[]
+  mandates                  Mandate[]
+  assignedOrganizationLinks SupplierOrganizationLink[]
+  assignedSupplierLinks     SupplierOutletLink[]       @relation("AgentSupplierLinks")
+
+  @@index([organizationId])
+  @@index([agentType, verificationStatus])
+}
+
+/// ID / clearance uploads for STANDALONE agents (and org-linked agents who
+/// still need personal ID confirmation before acting on behalf of the org).
+model AgentVerification {
+  id           String             @id @default(cuid())
+  agentId      String
+  documentType DocumentType
+  fileUrl      String
+  status       VerificationStatus @default(PENDING)
+  reviewedById Int?
+  reviewedAt   DateTime?
+  environment  Environment        @default(PRODUCTION)
+  createdAt    DateTime           @default(now())
+  deletedAt    DateTime?
+  agent        Agent              @relation(fields: [agentId], references: [id])
+
+  @@index([agentId, status])
+}
+
+/// A demand request created by an Agent. lat/lng + radiusKm drive the
+/// Google-Maps-backed supplier search (mirrors OutletItemSearchIndex's
+/// lat/lng pattern already used elsewhere in this schema).
+model Mandate {
+  id          String              @id @default(cuid())
+  agentId     String
+  category    String
+  unitType    String
+  quantity    Float
+  targetPrice Float?
+  latitude    Float?
+  longitude   Float?
+  radiusKm    Float?              @default(10)
+  status      MandateStatus       @default(DRAFT)
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+  agent       Agent               @relation(fields: [agentId], references: [id])
+  offers      MandateOffer[]
+  transaction MandateTransaction?
+
+  @@index([agentId, status])
+  @@index([category, unitType])
+}
+
+model MandateOffer {
+  id            String             @id @default(cuid())
+  mandateId     String
+  supplierOrgId Int
+  price         Float
+  availableQty  Float
+  terms         String?
+  status        MandateOfferStatus @default(PENDING)
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  deletedAt     DateTime?
+  mandate       Mandate            @relation(fields: [mandateId], references: [id])
+  supplierOrg   Organization       @relation("SupplierMandateOffers", fields: [supplierOrgId], references: [id])
+
+  @@index([mandateId, status])
+  @@index([supplierOrgId, status])
+}
+
+/// One wallet per Organization (works for orgs with SELLER role, SUPPLIER
+/// role, or both — money in from retail checkout AND mandate settlement
+/// lands in the same place).
+model Wallet {
+  id            Int                 @id @default(autoincrement())
+  orgId         Int                 @unique
+  balance       Float               @default(0)
+  heldBalance   Float               @default(0)
+  currency      String              @default("PHP")
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  organization  Organization        @relation(fields: [orgId], references: [id])
+  ledgerEntries WalletLedgerEntry[]
+  withdrawals   Withdrawal[]
+}
+
+/// Append-only. Never update amount/type on an existing row — post a
+/// REVERSED counter-entry instead. Background job verifies wallet.balance
+/// always equals the sum of AVAILABLE ledger entries for that wallet.
+model WalletLedgerEntry {
+  id           Int               @id @default(autoincrement())
+  walletId     Int
+  type         LedgerEntryType
+  sourceType   LedgerSourceType
+  referenceId  String?
+  amount       Float
+  balanceAfter Float
+  status       LedgerEntryStatus @default(AVAILABLE)
+  environment  Environment       @default(PRODUCTION)
+  createdAt    DateTime          @default(now())
+  deletedAt    DateTime?
+  wallet       Wallet            @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt])
+  @@index([sourceType, referenceId])
+}
+
+model PayoutMethod {
+  id                  Int              @id @default(autoincrement())
+  orgId               Int
+  type                PayoutMethodType
+  accountName         String
+  maskedAccountNumber String
+  bankName            String?
+  isVerified          Boolean          @default(false)
+  isDefault           Boolean          @default(false)
+  verifiedAt          DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  deletedAt           DateTime?
+  organization        Organization     @relation(fields: [orgId], references: [id])
+  withdrawals         Withdrawal[]
+
+  @@index([orgId])
+}
+
+/// Maker-checker: requestedById and approvedById must differ for amounts
+/// above the configurable auto-approve threshold (see SystemConfig).
+model Withdrawal {
+  id              Int              @id @default(autoincrement())
+  walletId        Int
+  payoutMethodId  Int
+  amount          Float
+  status          WithdrawalStatus @default(PENDING)
+  requestedById   Int
+  approvedById    Int?
+  requestedAt     DateTime         @default(now())
+  approvedAt      DateTime?
+  completedAt     DateTime?
+  rejectionReason String?
+  environment     Environment      @default(PRODUCTION)
+  deletedAt       DateTime?
+  payoutMethod    PayoutMethod     @relation(fields: [payoutMethodId], references: [id])
+  wallet          Wallet           @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, status])
+}
+
+/// Generalizes the existing PaymongoAPIKeys model to support multiple
+/// providers AND both environments side by side, so a supplier can have a
+/// SANDBOX credential set (used automatically while environment=SANDBOX)
+/// and a PRODUCTION set, without ever touching the wrong one.
+model PaymentGatewayCredential {
+  id                 Int                    @id @default(autoincrement())
+  orgId              Int?
+  provider           PaymentGatewayProvider
+  environment        Environment
+  publicKey          String?
+  secretKeyEncrypted String
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  deletedAt          DateTime?
+  organization       Organization?          @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, provider, environment])
+}
+
+/// Every online payment attempt, gateway-agnostic — this is what sandbox
+/// testing exercises end-to-end (webhook in, ledger entry out) without ever
+/// touching PRODUCTION credentials or counting toward real revenue.
+model PaymentTransaction {
+  id               String                   @id @default(cuid())
+  provider         PaymentGatewayProvider
+  environment      Environment
+  gatewayReference String?                  @unique
+  amount           Float
+  feeAmount        Float                    @default(0)
+  status           PaymentTransactionStatus @default(PENDING)
+  relatedType      PaymentRelatedType
+  relatedId        String
+  payerOrgId       Int?
+  payerAgentId     String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  deletedAt        DateTime?
+
+  @@index([relatedType, relatedId])
+  @@index([provider, environment, status])
+}
+
+model MandateTransaction {
+  id                   String                   @id @default(cuid())
+  mandateId            String                   @unique
+  offerId              String
+  agentId              String
+  supplierOrgId        Int
+  amount               Float
+  feeAmount            Float
+  netAmount            Float
+  settlementType       SettlementType           @default(INSTANT)
+  status               MandateTransactionStatus @default(PENDING)
+  paymentTransactionId String?
+  linkedPoId           String?
+  environment          Environment              @default(PRODUCTION)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  deletedAt            DateTime?
+  escrow               EscrowRelease?
+  mandate              Mandate                  @relation(fields: [mandateId], references: [id])
+  supplierOrg          Organization             @relation("SupplierMandateTransactions", fields: [supplierOrgId], references: [id])
+
+  @@index([supplierOrgId, status])
+  @@index([agentId, status])
+}
+
+/// Inert while settlementType = INSTANT (Phase 1). Becomes the active
+/// release-gate once escrow ships (Phase 2) — same MandateTransaction row,
+/// no data migration needed to turn it on.
+model EscrowRelease {
+  id                   String             @id @default(cuid())
+  mandateTransactionId String             @unique
+  buyerProofUrl        String?
+  sellerProofUrl       String?
+  buyerConfirmedAt     DateTime?
+  sellerConfirmedAt    DateTime?
+  autoReleaseAt        DateTime?
+  releasedAt           DateTime?
+  disputeStatus        DisputeStatus      @default(NONE)
+  disputeReason        String?
+  resolvedById         Int?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  mandateTransaction   MandateTransaction @relation(fields: [mandateTransactionId], references: [id])
+}
+
+/// Versioned — never edit rate in place, insert a new row with a fresh
+/// effectiveFrom so historical transactions stay auditable at the rate
+/// that actually applied to them.
+model FeeRule {
+  id            String         @id @default(cuid())
+  appliesTo     FeeApplication
+  category      String?
+  unitType      String?
+  rateType      FeeRateType
+  rate          Float
+  tierModifier  Float?         @default(0)
+  effectiveFrom DateTime       @default(now())
+  effectiveTo   DateTime?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?
+
+  @@index([appliesTo, category, unitType, isActive])
+}
+
+/// Phase 2 only. agentTier mirrors Agent.trustTier; supplierPlan mirrors
+/// SubscriptionPlan. Search/matching service checks this table only when
+/// SystemConfig["visibilityMatrixEnabled"] = true — Phase 1 search ignores it.
+model VisibilityRule {
+  id           String           @id @default(cuid())
+  agentTier    String
+  supplierPlan SubscriptionPlan
+  isVisible    Boolean          @default(true)
+  rankBoost    Float            @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  deletedAt    DateTime?
+
+  @@unique([agentTier, supplierPlan])
+}
+
+model SupplierCapability {
+  id             String                 @id @default(cuid())
+  organizationId Int
+  type           SupplierCapabilityType
+  name           String
+  icon           String?
+  available      Boolean                @default(true)
+  description    String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  deletedAt      DateTime?
+  Organization   Organization           @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+model WholesaleCustomization {
+  id              String       @id
+  supplierItemId  String
+  title           String
+  type            String
+  minimumQuantity Int
+  additionalCost  String?
+  description     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime?    @updatedAt
+  deletedAt       DateTime?
+  SupplierItem    SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemId])
+}
+
+model WholesaleQuote {
+  id            String       @id
+  productId     String
+  productName   String?
+  quantity      String
+  targetPrice   String?
+  quotedPrice   String?
+  status        String       @default("pending")
+  notes         String?
+  currency      String       @default("PHP")
+  expiryDate    DateTime?
+  submittedDate DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime?    @updatedAt
+  deletedAt     DateTime?
+  SupplierItem  SupplierItem @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([status])
+}
+
+model WholesaleShipping {
+  id             String       @id @default(cuid())
+  supplierItemId String       @unique
+  originCountry  String?
+  originProvince String?
+  originCity     String?
+  shippingMethod String?
+  estimatedDays  Int?
+  shippingNotes  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime?    @updatedAt
+  deletedAt      DateTime?
+  SupplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+}
+
+/// ProductWholesaleSettings — Alibaba-style wholesale configuration per product
+model ProductWholesaleSettings {
+  id              String       @id @default(cuid())
+  supplierItemId  String       @unique
+  minimumOrderQty Int?
+  sampleAvailable Boolean      @default(false)
+  samplePrice     Float?
+  leadTime        String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime?    @updatedAt
+  deletedAt       DateTime?
+  SupplierItem    SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+}
+
+/// ProductSpecification — normalized Alibaba-style product specifications
+model ProductSpecification {
+  id             String       @id @default(cuid())
+  supplierItemId String
+  category       String?
+  groupName      String?
+  name           String
+  value          String
+  unit           String?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime?    @updatedAt
+  deletedAt      DateTime?
+  SupplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemId, sortOrder])
+}
+
+/// WholesaleDocument — product certification and documentation
+model WholesaleDocument {
+  id             String           @id @default(cuid())
+  supplierItemId String
+  title          String?
+  type           WholesaleDocType
+  fileUrl        String
+  verified       Boolean          @default(false)
+  verifiedById   Int?
+  verifiedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  deletedAt      DateTime?
+  SupplierItem   SupplierItem     @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+  verifiedBy     User?            @relation(fields: [verifiedById], references: [id])
+
+  @@index([supplierItemId])
+  @@index([verified])
+}
+
+/// WholesalePackaging — product packaging dimensions and weight
+model WholesalePackaging {
+  id             String       @id @default(cuid())
+  supplierItemId String       @unique
+  sellingUnit    String?
+  packageLength  Float?
+  packageWidth   Float?
+  packageHeight  Float?
+  grossWeight    Float?
+  netWeight      Float?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  SupplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+}
+
+model SupplierProfile {
+  id                Int            @id @default(autoincrement())
+  companyName       String
+  contactPerson     String
+  email             String         @unique
+  phone             String
+  productCategories String[]
+  taxId             String?
+  businessRegNumber String?
+  businessDocuments String[]
+  address           String?
+  city              String?
+  province          String?
+  zipCode           String?
+  status            SupplierStatus @default(PENDING)
+  rejectionReason   String?
+  reviewedBy        Int?
+  reviewedAt        DateTime?
+  userId            Int?           @unique
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  user              User?          @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([email])
+}
+
+model CustomerProfile {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  phone       String?
+  address     String?
+  city        String?
+  province    String?
+  zipCode     String?
+  dateOfBirth DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model SearchQuery {
+  id             String    @id
+  term           String
+  normalizedTerm String
+  userId         Int?
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime?
+
+  @@index([createdAt])
+  @@index([normalizedTerm, createdAt])
+}
+
+model SupplierItemImage {
+  id             Int          @id @default(autoincrement())
+  supplierItemId String
+  url            String
+  sortOrder      Int          @default(0)
+  deletedAt      DateTime?
+  SupplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemId, sortOrder])
+}
+
+model SupplierItemReviewImage {
+  id                   Int                @id @default(autoincrement())
+  supplierItemReviewId String
+  url                  String
+  sortOrder            Int                @default(0)
+  deletedAt            DateTime?
+  SupplierItemReview   SupplierItemReview @relation(fields: [supplierItemReviewId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemReviewId, sortOrder])
+}
+
+model SupplierItemVariantImage {
+  id                    Int                 @id @default(autoincrement())
+  supplierItemVariantId String
+  url                   String
+  sortOrder             Int                 @default(0)
+  deletedAt             DateTime?
+  SupplierItemVariant   SupplierItemVariant @relation(fields: [supplierItemVariantId], references: [id], onDelete: Cascade)
+
+  @@index([supplierItemVariantId, sortOrder])
+}
+
+enum OrgRole {
+  SELLER
+  SUPPLIER
+}
+
+enum SubscriptionPlan {
+  FREE
+  BASIC
+  GOLD
+}
+
+enum OrderMode {
+  WALK_IN
+  PICK_UP
+  DELIVERY
+}
+
+enum SalesOrderStatus {
+  PENDING
+  PROCESSING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+  ORDERED
+  SHIPPED
+  RECEIVED
+  CANCELLED
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  in_delivery
+  received
+  cancelled
+  returned
+  packed
+}
+
+enum Access {
+  SELLER
+  SUPPLIER
+  POSTERMINAL
+  ADMIN
 }
 
 enum StockMovementType {
@@ -1956,6 +3060,8 @@ enum AuditAction {
   LOGOUT
   PERMISSION_CHANGE
   STATUS_CHANGE
+  MARKETPLACE_PUBLISH
+  MARKETPLACE_UNPUBLISH
 }
 
 enum EmployeeStatus {
@@ -1970,6 +3076,8 @@ enum Role {
   STAFF
   CASHIER
   OWNER
+  SUPPLIER
+  CUSTOMER
 }
 
 enum OutletType {
@@ -2056,8 +3164,6 @@ enum KompraCPaymentMethod {
   qrph
 }
 
-// ─── Stage 3: Supplier Catalog ──────────────────────────────────────────────
-
 enum POStatus {
   PENDING
   ACCEPTED
@@ -2074,97 +3180,12 @@ enum DeliveryStatus {
   FAILED
 }
 
-model SupplierCatalog {
-  id                     String                 @id @default(cuid())
-  organizationId         Int                    @unique
-  organization           Organization           @relation(fields: [organizationId], references: [id])
-  items                  SupplierItem[]
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
-  deletedAt              DateTime?
-  supplierItemCategories SupplierItemCategory[]
-  supplierItemGroups     SupplierItemGroup[]
-}
-
-model SupplierItem {
-  id                         String                      @id @default(cuid())
-  catalogId                  String
-  catalog                    SupplierCatalog             @relation(fields: [catalogId], references: [id])
-  image                      String?
-  name                       String
-  description                String?
-  sku                        String?
-  unit                       String
-  unitPrice                  Float
-  currentCost                Float                       @default(0)
-  isVatExempt                Boolean                     @default(false)
-  vatRate                    Float                       @default(0.12)
-  moq                        Int                         @default(1)
-  availableQty               Int                         @default(0)
-  isActive                   Boolean                     @default(true)
-  priceTiers                 PriceTier[]
-  reviews                    SupplierItemReview[]
-  poLineItems                POLineItem[]
-  receivedItemMap            ReceivedItemMap[]
-  priceHistory               ItemPriceHistory[]
-  createdAt                  DateTime                    @default(now())
-  updatedAt                  DateTime                    @updatedAt
-  supplierItemPriceHistories SupplierItemPriceHistory[]
-  supplierItemCostHistories  SupplierItemCostHistory[]
-  reservedQty                Float                       @default(0) // committed to accepted offers/POs, not yet fulfilled
-  incomingQty                Float                       @default(0) // expected from SupplierIncomingStock, cached
-  damagedQty                 Float                       @default(0)
-  returnedQty                Float                       @default(0)
-  reorderLevel               Float? // supplier's own restock trigger — distinct from `moq` (buyer-facing MOQ)
-  reorderQty                 Float? // suggested/default restock quantity
-  supplierStockBatches       SupplierStockBatch[]
-  supplierInventoryMovements SupplierInventoryMovement[]
-  supplierIncomingStock      SupplierIncomingStock[]
-  deletedAt                  DateTime?
-  supplierScheduledPrices    SupplierScheduledPrice[]
-  // NEW
-  categoryId                 String?
-  category                   SupplierItemCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-
-  groupId String?
-  group   SupplierItemGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-
-  @@unique([catalogId, sku])
-}
-
-model SupplierItemCategory {
-  id          String          @id @default(cuid())
-  catalogId   String
-  catalog     SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  isActive    Boolean         @default(true)
-  items       SupplierItem[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  deletedAt   DateTime?
-
-  @@unique([catalogId, name])
-}
-
-model SupplierItemGroup {
-  id String @id @default(cuid())
-
-  catalogId String
-  catalog   SupplierCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
-
-  name        String
-  description String?
-
-  isActive Boolean @default(true)
-
-  items SupplierItem[]
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  @@unique([catalogId, name])
+enum MarketplaceListingStatus {
+  DRAFT
+  READY
+  PUBLISHED
+  SUSPENDED
+  ARCHIVED
 }
 
 enum ScheduledPriceStatus {
@@ -2174,77 +3195,11 @@ enum ScheduledPriceStatus {
   CANCELLED
 }
 
-model SupplierScheduledPrice {
-  id             String               @id @default(cuid())
-  supplierItemId String
-  supplierItem   SupplierItem         @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
-  price          Float
-  effectiveAt    DateTime
-  expiresAt      DateTime?
-  status         ScheduledPriceStatus @default(PENDING)
-  createdById    Int?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  deletedAt      DateTime?
-
-  @@index([supplierItemId, status])
-  @@index([effectiveAt, status])
-}
-
-model SupplierWarehouse {
-  id             String    @id @default(cuid())
-  organizationId Int
-  name           String
-  address        String?
-  latitude       Float?
-  longitude      Float?
-  isDefault      Boolean   @default(false)
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
-
-  organization Organization                @relation(fields: [organizationId], references: [id])
-  stockBatches SupplierStockBatch[]
-  movements    SupplierInventoryMovement[]
-  incoming     SupplierIncomingStock[]
-
-  @@index([organizationId])
-}
-
 enum SupplierStockBatchStatus {
   ACTIVE
   DEPLETED
   EXPIRED
   DAMAGED
-}
-
-/// FIFO-consumable batches for a Supplier's own inventory. Parallel to
-/// StockBatch (which is Item/retailer-scoped) — kept separate rather than
-/// reused, since a supplier's warehouse stock and a retailer's shelf stock
-/// are different sides of the same transaction and shouldn't share a table.
-model SupplierStockBatch {
-  id             String                   @id @default(cuid())
-  supplierItemId String
-  warehouseId    String?
-  batchNumber    String?
-  quantity       Float // Soriginal received quantity
-  remainingQty   Float // decremented as FIFO consumption happens
-  unitCost       Float // cost per unit for this batch — this IS the FIFO cost basis
-  expiryDate     DateTime?
-  receivedAt     DateTime                 @default(now())
-  status         SupplierStockBatchStatus @default(ACTIVE)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  deletedAt      DateTime?
-
-  supplierItem SupplierItem                @relation(fields: [supplierItemId], references: [id])
-  warehouse    SupplierWarehouse?          @relation(fields: [warehouseId], references: [id])
-  movements    SupplierInventoryMovement[]
-
-  @@index([supplierItemId, status])
-  @@index([supplierItemId, expiryDate])
-  @@index([warehouseId])
 }
 
 enum SupplierInventoryMovementType {
@@ -2260,253 +3215,27 @@ enum SupplierInventoryMovementType {
   EXPIRED
 }
 
-/// Append-only ledger — mirrors the WalletLedgerEntry pattern already used
-/// elsewhere in this schema. This is the audit trail AND the source of truth
-/// for reservedQty/damagedQty/returnedQty/availableQty on SupplierItem; those
-/// fields are a cached rollup, reconciled against this table, never edited
-/// in place — post a corrective movement instead.
-model SupplierInventoryMovement {
-  id              String                        @id @default(cuid())
-  supplierItemId  String
-  warehouseId     String?
-  batchId         String? // null for non-batch-specific adjustments
-  type            SupplierInventoryMovementType
-  quantity        Float // always positive; `type` conveys direction
-  quantityBefore  Float
-  quantityAfter   Float
-  unitCost        Float? // cost snapshot, relevant for RECEIVED/valuation
-  referenceType   String? // e.g. "PurchaseOrder", "MandateTransaction", "Manual"
-  referenceId     String?
-  transferGroupId String? // pairs a TRANSFERRED_OUT with its TRANSFERRED_IN
-  reason          String?
-  createdById     Int?
-  createdAt       DateTime                      @default(now())
-  deletedAt       DateTime?
-
-  supplierItem SupplierItem        @relation(fields: [supplierItemId], references: [id])
-  warehouse    SupplierWarehouse?  @relation(fields: [warehouseId], references: [id])
-  batch        SupplierStockBatch? @relation(fields: [batchId], references: [id])
-
-  @@index([supplierItemId, createdAt])
-  @@index([supplierItemId, type])
-  @@index([transferGroupId])
-}
-
 enum SupplierIncomingStatus {
   PENDING
   RECEIVED
   CANCELLED
 }
 
-/// Lightweight expected-shipment tracking — deliberately not a full upstream
-/// procurement/PO system (that would be a much bigger feature: the supplier
-/// placing orders with THEIR OWN vendors). This just lets a supplier log
-/// "X units arriving on Y date from Z source" so the Incoming Stock KPI and
-/// forecast have real data instead of a placeholder.
-model SupplierIncomingStock {
-  id              String                 @id @default(cuid())
-  supplierItemId  String
-  warehouseId     String?
-  expectedQty     Float
-  expectedDate    DateTime?
-  sourceLabel     String?
-  status          SupplierIncomingStatus @default(PENDING)
-  receivedBatchId String? // set once marked received, links to the SupplierStockBatch created
-  notes           String?
-  createdById     Int?
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  deletedAt       DateTime?
-
-  supplierItem SupplierItem       @relation(fields: [supplierItemId], references: [id])
-  warehouse    SupplierWarehouse? @relation(fields: [warehouseId], references: [id])
-
-  @@index([supplierItemId, status])
-}
-
-model SupplierItemPriceHistory {
-  id String @id @default(cuid())
-
-  supplierItemId String
-
-  oldPrice Float
-
-  newPrice Float
-
-  effectiveAt DateTime @default(now())
-
-  changedById Int?
-
-  reason String?
-
-  supplierItem SupplierItem @relation(fields: [supplierItemId], references: [id])
-
-  @@index([supplierItemId, effectiveAt])
-}
-
-model SupplierItemCostHistory {
-  id String @id @default(cuid())
-
-  supplierItemId String
-
-  oldCost Float
-
-  newCost Float
-
-  effectiveAt DateTime @default(now())
-
-  changedById Int?
-
-  reason String?
-
-  supplierItem SupplierItem @relation(fields: [supplierItemId], references: [id])
-}
-
-model PriceTier {
-  id             String       @id @default(cuid())
-  supplierItemId String
-  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
-  minQty         Int
-  price          Float
-}
-
-model SupplierItemReview {
-  id                 String    @id @default(cuid())
-  supplierItemId     String
-  reviewerOrgId      Int
-  rating             Int
-  title              String?
-  comment            String?
-  isVerifiedPurchase Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  deletedAt          DateTime?
-
-  supplierItem SupplierItem @relation(fields: [supplierItemId], references: [id], onDelete: Cascade)
-  reviewer     Organization @relation("SupplierItemReviewReviewer", fields: [reviewerOrgId], references: [id])
-
-  @@index([supplierItemId])
-  @@index([reviewerOrgId])
-  @@index([rating])
-}
-
-model OrganizationReview {
-  id                    String    @id @default(cuid())
-  organizationId        Int
-  reviewerOrgId         Int?
-  reviewerCustomerId    Int?
-  reviewerName          String?
-  rating                Int
-  title                 String?
-  comment               String?
-  isVerifiedTransaction Boolean   @default(false)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  deletedAt             DateTime?
-
-  organization Organization  @relation("OrganizationReviewsReceived", fields: [organizationId], references: [id], onDelete: Cascade)
-  reviewer     Organization? @relation("OrganizationReviewsWritten", fields: [reviewerOrgId], references: [id])
-
-  @@index([organizationId])
-  @@index([reviewerOrgId])
-  @@index([reviewerCustomerId])
-  @@index([rating])
-}
-
-model ReceivedItemMap {
-  id             String       @id @default(cuid())
-  supplierItemId String
-  supplierItem   SupplierItem @relation(fields: [supplierItemId], references: [id])
-  buyerOrgId     Int
-  buyerOrg       Organization @relation("BuyerReceivedItemMaps", fields: [buyerOrgId], references: [id])
-  itemId         Int
-  item           Item         @relation("ReceivedItemMaps", fields: [itemId], references: [id])
-  outletId       Int?
-  outlet         Outlet?      @relation(fields: [outletId], references: [id])
-  createdAt      DateTime     @default(now())
-
-  @@unique([supplierItemId, buyerOrgId, outletId])
-}
-
-model PurchaseOrder {
-  id            String       @id @default(cuid())
-  poNumber      String       @unique
-  buyerOrgId    Int
-  buyerOrg      Organization @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
-  supplierOrgId Int
-  supplierOrg   Organization @relation("SupplierOrg", fields: [supplierOrgId], references: [id])
-  outletId      Int
-  outlet        Outlet       @relation(fields: [outletId], references: [id])
-  status        POStatus     @default(PENDING)
-  lineItems     POLineItem[]
-  delivery      Delivery?
-  notes         String?
-  requestedDate DateTime?
-  totalAmount   Float
-  vatAmount     Float        @default(0)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-}
-
-model POLineItem {
-  id             String        @id @default(cuid())
-  poId           String
-  po             PurchaseOrder @relation(fields: [poId], references: [id])
-  supplierItemId String
-  supplierItem   SupplierItem  @relation(fields: [supplierItemId], references: [id])
-  qty            Int
-  unitPrice      Float
-  subtotal       Float
-}
-
-model Delivery {
-  id            String         @id @default(cuid())
-  poId          String         @unique
-  po            PurchaseOrder  @relation(fields: [poId], references: [id])
-  scheduledDate DateTime
-  deliveredAt   DateTime?
-  status        DeliveryStatus @default(SCHEDULED)
-  driverName    String?
-  driverContact String?
-  notes         String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-}
-
-model SupplierOutletLink {
-  id            String       @id @default(cuid())
-  supplierOrgId Int
-  supplierOrg   Organization @relation("SupplierLinks", fields: [supplierOrgId], references: [id])
-  outletId      Int
-  outlet        Outlet       @relation(fields: [outletId], references: [id])
-  isApproved    Boolean      @default(false)
-  createdAt     DateTime     @default(now())
-
-  @@unique([supplierOrgId, outletId])
+enum SupplierLinkStatus {
+  SUGGESTED
+  REQUESTED
+  PENDING
+  ACCEPTED
+  ACTIVE
+  PAUSED
+  BLOCKED
+  ARCHIVED
 }
 
 enum Environment {
   SANDBOX
   PRODUCTION
 }
-
-/// Generic runtime config / feature-flag store. Read through a cached
-/// service (Redis-backed) so toggling doesn't require a redeploy.
-/// Seed rows: subscriptionBillingEnabled, kycEnforcementProdOnly,
-/// visibilityMatrixEnabled, defaultPaymentEnvironment.
-model SystemConfig {
-  id          String    @id @default(cuid())
-  key         String    @unique
-  value       Json
-  description String?
-  updatedAt   DateTime  @updatedAt
-  updatedById Int?
-  deletedAt   DateTime?
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// KYC / BUSINESS VERIFICATION
-// ────────────────────────────────────────────────────────────────────────
 
 enum DocumentType {
   BUSINESS_PERMIT
@@ -2521,102 +3250,8 @@ enum VerificationStatus {
   PENDING
   APPROVED
   REJECTED
-  BYPASSED_DEV // auto-set when environment = SANDBOX and KYC enforcement is off
+  BYPASSED_DEV
 }
-
-// ────────────────────────────────────────────────────────────────────────
-// VERIFICATION REQUIREMENTS — admin-configured, per document type.
-// Drives both "what documents does a supplier need to submit" (progress
-// card) and "how long does an approval stay valid" (expiration/renewal).
-// Versioned like FeeRule elsewhere in this schema: don't edit validityDays
-// in place if requirements change after suppliers are already verified
-// under the old period — insert a new row and set isActive on the old one
-// to false, so historical expirations stay explainable.
-// ────────────────────────────────────────────────────────────────────────
-model VerificationRequirement {
-  id                 String       @id @default(cuid())
-  documentType       DocumentType
-  label              String // display name, e.g. "Business Permit"
-  description        String?
-  isRequired         Boolean      @default(true)
-  validityDays       Int? // null = does not expire
-  reminderDaysBefore Int[]        @default([90, 30, 14, 7]) // configurable, not hardcoded to exactly these
-  isActive           Boolean      @default(true)
-  createdById        Int?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  deletedAt          DateTime?
-
-  documents BusinessVerificationDocument[]
-
-  @@unique([documentType, isActive])
-  @@index([isActive])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// BUSINESS VERIFICATION DOCUMENT — supersedes BusinessVerification.
-// One row per uploaded document (a resubmission after rejection creates
-// a new row rather than overwriting, so document history and review
-// history both stay intact without extra joins).
-// ────────────────────────────────────────────────────────────────────────
-model BusinessVerificationDocument {
-  id            String             @id @default(cuid())
-  orgId         Int
-  requirementId String
-  documentType  DocumentType
-  fileUrl       String // public URL, from MediaService
-  filePath      String // storage path, from MediaService — required for delete/replace
-  status        VerificationStatus @default(PENDING)
-  uploadedAt    DateTime           @default(now())
-  approvedAt    DateTime?
-  expiresAt     DateTime? // computed at approval time from requirement.validityDays
-  reviewedById  Int?
-  reviewedAt    DateTime?
-  adminRemarks  String?
-  environment   Environment        @default(PRODUCTION)
-  isSuperseded  Boolean            @default(false) // true once replaced by a newer upload of the same type
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  deletedAt     DateTime?
-
-  organization Organization                @relation(fields: [orgId], references: [id])
-  requirement  VerificationRequirement     @relation(fields: [requirementId], references: [id])
-  reviews      VerificationReviewHistory[]
-
-  @@index([orgId, status])
-  @@index([orgId, documentType])
-  @@index([expiresAt])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// REVIEW HISTORY — append-only. Every status change (approve, reject,
-// re-review after resubmission) gets its own row rather than overwriting
-// the document's reviewedAt/adminRemarks, so the Review History timeline
-// on the dashboard has something real to render.
-// ────────────────────────────────────────────────────────────────────────
-model VerificationReviewHistory {
-  id           String             @id @default(cuid())
-  documentId   String
-  status       VerificationStatus
-  remarks      String?
-  reviewedById Int?
-  reviewedAt   DateTime           @default(now())
-
-  document BusinessVerificationDocument @relation(fields: [documentId], references: [id])
-
-  @@index([documentId, reviewedAt])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// Organization gets the renamed relation + a denormalized rollup for fast
-// "is this org currently verified" checks without aggregating documents
-// on every read (mirrors the SupplierItem.currentCost caching pattern
-// used elsewhere in this schema).
-// ────────────────────────────────────────────────────────────────────────
-// Add to Organization model:
-//   businessVerificationDocuments BusinessVerificationDocument[]
-//   verificationStatus            OrgVerificationStatus @default(UNVERIFIED)
-//   verificationExpiresAt         DateTime?
 
 enum OrgVerificationStatus {
   UNVERIFIED
@@ -2625,61 +3260,9 @@ enum OrgVerificationStatus {
   EXPIRED
 }
 
-// ────────────────────────────────────────────────────────────────────────
-// MANDATE / AGENT (kompra.ph demand side)
-// ────────────────────────────────────────────────────────────────────────
-
 enum AgentType {
   ORG_LINKED
   STANDALONE
-}
-
-/// A Mandate/Agent user. If agentType = ORG_LINKED, organizationId points at
-/// an existing, verified Organization (resolved during registration search).
-/// If STANDALONE, organizationId is null and the agent carries its own
-/// identity + verification instead of an org's.
-model Agent {
-  id                 String             @id @default(cuid())
-  agentType          AgentType
-  organizationId     Int?
-  fullname           String
-  email              String             @unique
-  phone              String?
-  passwordHash       String
-  isVerified         Boolean            @default(false)
-  verificationStatus VerificationStatus @default(PENDING)
-  trustTier          String             @default("FREE") // matches SubscriptionPlan-style tiering for Phase 2 visibility matching
-  environment        Environment        @default(PRODUCTION)
-  isDevSeed          Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  deletedAt          DateTime?
-
-  organization  Organization?       @relation(fields: [organizationId], references: [id])
-  verifications AgentVerification[]
-  mandates      Mandate[]
-
-  @@index([organizationId])
-  @@index([agentType, verificationStatus])
-}
-
-/// ID / clearance uploads for STANDALONE agents (and org-linked agents who
-/// still need personal ID confirmation before acting on behalf of the org).
-model AgentVerification {
-  id           String             @id @default(cuid())
-  agentId      String
-  documentType DocumentType
-  fileUrl      String
-  status       VerificationStatus @default(PENDING)
-  reviewedById Int?
-  reviewedAt   DateTime?
-  environment  Environment        @default(PRODUCTION)
-  createdAt    DateTime           @default(now())
-  deletedAt    DateTime?
-
-  agent Agent @relation(fields: [agentId], references: [id])
-
-  @@index([agentId, status])
 }
 
 enum MandateStatus {
@@ -2695,81 +3278,12 @@ enum MandateStatus {
   CANCELLED
 }
 
-/// A demand request created by an Agent. lat/lng + radiusKm drive the
-/// Google-Maps-backed supplier search (mirrors OutletItemSearchIndex's
-/// lat/lng pattern already used elsewhere in this schema).
-model Mandate {
-  id          String        @id @default(cuid())
-  agentId     String
-  category    String
-  unitType    String // e.g. "liter" for fuel
-  quantity    Float
-  targetPrice Float?
-  latitude    Float?
-  longitude   Float?
-  radiusKm    Float?        @default(10)
-  status      MandateStatus @default(DRAFT)
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  deletedAt   DateTime?
-
-  agent       Agent               @relation(fields: [agentId], references: [id])
-  offers      MandateOffer[]
-  transaction MandateTransaction?
-
-  @@index([agentId, status])
-  @@index([category, unitType])
-}
-
 enum MandateOfferStatus {
   PENDING
   ACCEPTED
   REJECTED
   EXPIRED
   WITHDRAWN
-}
-
-model MandateOffer {
-  id            String             @id @default(cuid())
-  mandateId     String
-  supplierOrgId Int
-  price         Float
-  availableQty  Float
-  terms         String?
-  status        MandateOfferStatus @default(PENDING)
-  expiresAt     DateTime?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  deletedAt     DateTime?
-
-  mandate     Mandate      @relation(fields: [mandateId], references: [id])
-  supplierOrg Organization @relation("SupplierMandateOffers", fields: [supplierOrgId], references: [id])
-
-  @@index([mandateId, status])
-  @@index([supplierOrgId, status])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// WALLET / LEDGER (shared by Retailer + Supplier orgs)
-// ────────────────────────────────────────────────────────────────────────
-
-/// One wallet per Organization (works for orgs with SELLER role, SUPPLIER
-/// role, or both — money in from retail checkout AND mandate settlement
-/// lands in the same place).
-model Wallet {
-  id          Int       @id @default(autoincrement())
-  orgId       Int       @unique
-  balance     Float     @default(0) // available, withdrawable
-  heldBalance Float     @default(0) // Phase 2 escrow: funds in transit, not yet released
-  currency    String    @default("PHP")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
-
-  organization  Organization        @relation(fields: [orgId], references: [id])
-  ledgerEntries WalletLedgerEntry[]
-  withdrawals   Withdrawal[]
 }
 
 enum LedgerEntryType {
@@ -2789,32 +3303,10 @@ enum LedgerSourceType {
 }
 
 enum LedgerEntryStatus {
-  HELD // Phase 2 escrow: posted but not withdrawable yet
+  HELD
   AVAILABLE
   RELEASED
   REVERSED
-}
-
-/// Append-only. Never update amount/type on an existing row — post a
-/// REVERSED counter-entry instead. Background job verifies wallet.balance
-/// always equals the sum of AVAILABLE ledger entries for that wallet.
-model WalletLedgerEntry {
-  id           Int               @id @default(autoincrement())
-  walletId     Int
-  type         LedgerEntryType
-  sourceType   LedgerSourceType
-  referenceId  String? // id of the SalesOrder / KompraCOrder / MandateTransaction / Withdrawal etc.
-  amount       Float
-  balanceAfter Float
-  status       LedgerEntryStatus @default(AVAILABLE)
-  environment  Environment       @default(PRODUCTION)
-  createdAt    DateTime          @default(now())
-  deletedAt    DateTime?
-
-  wallet Wallet @relation(fields: [walletId], references: [id])
-
-  @@index([walletId, createdAt])
-  @@index([sourceType, referenceId])
 }
 
 enum PayoutMethodType {
@@ -2822,26 +3314,6 @@ enum PayoutMethodType {
   GCASH
   PAYMAYA
   CHECK
-}
-
-model PayoutMethod {
-  id                  Int              @id @default(autoincrement())
-  orgId               Int
-  type                PayoutMethodType
-  accountName         String
-  maskedAccountNumber String // last 4 digits only; full details live in the bank/gateway vault, not here
-  bankName            String?
-  isVerified          Boolean          @default(false)
-  isDefault           Boolean          @default(false)
-  verifiedAt          DateTime?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  deletedAt           DateTime?
-
-  organization Organization @relation(fields: [orgId], references: [id])
-  withdrawals  Withdrawal[]
-
-  @@index([orgId])
 }
 
 enum WithdrawalStatus {
@@ -2852,59 +3324,11 @@ enum WithdrawalStatus {
   REJECTED
 }
 
-/// Maker-checker: requestedById and approvedById must differ for amounts
-/// above the configurable auto-approve threshold (see SystemConfig).
-model Withdrawal {
-  id              Int              @id @default(autoincrement())
-  walletId        Int
-  payoutMethodId  Int
-  amount          Float
-  status          WithdrawalStatus @default(PENDING)
-  requestedById   Int
-  approvedById    Int?
-  requestedAt     DateTime         @default(now())
-  approvedAt      DateTime?
-  completedAt     DateTime?
-  rejectionReason String?
-  environment     Environment      @default(PRODUCTION)
-  deletedAt       DateTime?
-
-  wallet       Wallet       @relation(fields: [walletId], references: [id])
-  payoutMethod PayoutMethod @relation(fields: [payoutMethodId], references: [id])
-
-  @@index([walletId, status])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// PAYMENTS (customer checkout + mandate funding, sandbox-testable)
-// ────────────────────────────────────────────────────────────────────────
-
 enum PaymentGatewayProvider {
   PAYMONGO
   GCASH
   PAYMAYA
   BANK_API
-}
-
-/// Generalizes the existing PaymongoAPIKeys model to support multiple
-/// providers AND both environments side by side, so a supplier can have a
-/// SANDBOX credential set (used automatically while environment=SANDBOX)
-/// and a PRODUCTION set, without ever touching the wrong one.
-model PaymentGatewayCredential {
-  id                 Int                    @id @default(autoincrement())
-  orgId              Int? // null = platform-level default credential
-  provider           PaymentGatewayProvider
-  environment        Environment
-  publicKey          String?
-  secretKeyEncrypted String // encrypted at rest via KMS; never returned by any API
-  isActive           Boolean                @default(true)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  deletedAt          DateTime?
-
-  organization Organization? @relation(fields: [orgId], references: [id])
-
-  @@unique([orgId, provider, environment])
 }
 
 enum PaymentTransactionStatus {
@@ -2921,33 +3345,6 @@ enum PaymentRelatedType {
   SUBSCRIPTION
 }
 
-/// Every online payment attempt, gateway-agnostic — this is what sandbox
-/// testing exercises end-to-end (webhook in, ledger entry out) without ever
-/// touching PRODUCTION credentials or counting toward real revenue.
-model PaymentTransaction {
-  id               String                   @id @default(cuid())
-  provider         PaymentGatewayProvider
-  environment      Environment
-  gatewayReference String?                  @unique
-  amount           Float
-  feeAmount        Float                    @default(0)
-  status           PaymentTransactionStatus @default(PENDING)
-  relatedType      PaymentRelatedType
-  relatedId        String
-  payerOrgId       Int?
-  payerAgentId     String?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  deletedAt        DateTime?
-
-  @@index([relatedType, relatedId])
-  @@index([provider, environment, status])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// MANDATE SETTLEMENT / ESCROW
-// ────────────────────────────────────────────────────────────────────────
-
 enum SettlementType {
   INSTANT
   ESCROW
@@ -2963,63 +3360,12 @@ enum MandateTransactionStatus {
   REFUNDED
 }
 
-model MandateTransaction {
-  id                   String                   @id @default(cuid())
-  mandateId            String                   @unique
-  offerId              String
-  agentId              String
-  supplierOrgId        Int
-  amount               Float
-  feeAmount            Float
-  netAmount            Float
-  settlementType       SettlementType           @default(INSTANT)
-  status               MandateTransactionStatus @default(PENDING)
-  paymentTransactionId String?
-  linkedPoId           String? // optional: set when an ORG_LINKED agent's mandate also creates a PurchaseOrder for full inventory tracking
-  environment          Environment              @default(PRODUCTION)
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
-  deletedAt            DateTime?
-
-  mandate     Mandate        @relation(fields: [mandateId], references: [id])
-  supplierOrg Organization   @relation("SupplierMandateTransactions", fields: [supplierOrgId], references: [id])
-  escrow      EscrowRelease?
-
-  @@index([supplierOrgId, status])
-  @@index([agentId, status])
-}
-
 enum DisputeStatus {
   NONE
   RAISED
   UNDER_REVIEW
   RESOLVED
 }
-
-/// Inert while settlementType = INSTANT (Phase 1). Becomes the active
-/// release-gate once escrow ships (Phase 2) — same MandateTransaction row,
-/// no data migration needed to turn it on.
-model EscrowRelease {
-  id                   String        @id @default(cuid())
-  mandateTransactionId String        @unique
-  buyerProofUrl        String?
-  sellerProofUrl       String?
-  buyerConfirmedAt     DateTime?
-  sellerConfirmedAt    DateTime?
-  autoReleaseAt        DateTime?
-  releasedAt           DateTime?
-  disputeStatus        DisputeStatus @default(NONE)
-  disputeReason        String?
-  resolvedById         Int?
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-
-  mandateTransaction MandateTransaction @relation(fields: [mandateTransactionId], references: [id])
-}
-
-// ────────────────────────────────────────────────────────────────────────
-// FEES & VISIBILITY (Phase 2 tiering — data-driven, inert until enabled)
-// ────────────────────────────────────────────────────────────────────────
 
 enum FeeApplication {
   MANDATE_TRANSACTION
@@ -3032,39 +3378,32 @@ enum FeeRateType {
   FLAT
 }
 
-/// Versioned — never edit rate in place, insert a new row with a fresh
-/// effectiveFrom so historical transactions stay auditable at the rate
-/// that actually applied to them.
-model FeeRule {
-  id            String         @id @default(cuid())
-  appliesTo     FeeApplication
-  category      String?
-  unitType      String? // e.g. "liter"
-  rateType      FeeRateType
-  rate          Float // e.g. 0.35 for 35 centavos per_unit, or 0.02 for 2% percentage
-  tierModifier  Float?         @default(0)
-  effectiveFrom DateTime       @default(now())
-  effectiveTo   DateTime?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
-
-  @@index([appliesTo, category, unitType, isActive])
+enum WholesaleDocType {
+  CE
+  FDA
+  ISO
+  ROHS
+  MSDS
+  OTHER
 }
 
-/// Phase 2 only. agentTier mirrors Agent.trustTier; supplierPlan mirrors
-/// SubscriptionPlan. Search/matching service checks this table only when
-/// SystemConfig["visibilityMatrixEnabled"] = true — Phase 1 search ignores it.
-model VisibilityRule {
-  id           String           @id @default(cuid())
-  agentTier    String
-  supplierPlan SubscriptionPlan
-  isVisible    Boolean          @default(true)
-  rankBoost    Float            @default(0)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  deletedAt    DateTime?
+enum SupplierCapabilityType {
+  MINOR_CUSTOMIZATION
+  DRAWING_CUSTOMIZATION
+  SAMPLE_CUSTOMIZATION
+  FULL_CUSTOMIZATION
+  OEM
+  ODM
+}
 
-  @@unique([agentTier, supplierPlan])
+enum SupplierStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

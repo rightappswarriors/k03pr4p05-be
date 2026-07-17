@@ -91,3 +91,25 @@ export function requireRole(ctx: Context, requiredRoles: any) {
     throw new Error("You do not have the necessary permissions.");
   }
 }
+
+// Check if SUPPLIER role has been approved
+export function requireApprovedSupplier(ctx: Context) {
+  requireAuth(ctx);
+
+  if (ctx.user?.role !== 'SUPPLIER') {
+    return; // Not a supplier, no check needed
+  }
+
+  if (ctx.user?.approvalStatus !== 'APPROVED') {
+    throw new Error("Your supplier account is pending approval. Please wait for admin review.");
+  }
+}
+
+// Require that user is either not a supplier, or is an approved supplier
+export function requireSupplierOrApproved(ctx: Context) {
+  requireAuth(ctx);
+
+  if (ctx.user?.role === 'SUPPLIER' && ctx.user?.approvalStatus !== 'APPROVED') {
+    throw new Error("Access denied: supplier account pending approval");
+  }
+}
