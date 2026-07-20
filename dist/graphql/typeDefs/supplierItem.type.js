@@ -12,180 +12,6 @@ export const PriceTier = objectType({
         t.nullable.field('deletedAt', { type: 'DateTime' });
     },
 });
-export const PriceTierInput = inputObjectType({
-    name: 'PriceTierInput',
-    definition(t) {
-        t.nonNull.int('minQty');
-        t.nullable.int('maxQty');
-        t.nonNull.float('price');
-        t.string('currency');
-    },
-});
-export const WholesaleDocType = enumType({
-    name: 'WholesaleDocType',
-    members: ['CE', 'FDA', 'ISO', 'ROHS', 'MSDS', 'OTHER'],
-});
-export const SupplierCapabilityType = enumType({
-    name: 'SupplierCapabilityType',
-    members: ['MINOR_CUSTOMIZATION', 'DRAWING_CUSTOMIZATION', 'SAMPLE_CUSTOMIZATION', 'FULL_CUSTOMIZATION', 'OEM', 'ODM'],
-});
-// ProductWholesaleSettings type
-export const ProductWholesaleSettings = objectType({
-    name: 'ProductWholesaleSettings',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.string('supplierItemId');
-        t.nullable.int('minimumOrderQty');
-        t.nonNull.boolean('sampleAvailable');
-        t.nullable.float('samplePrice');
-        t.nullable.string('leadTime');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-        t.nullable.field('supplierItem', {
-            type: 'SupplierItem',
-            resolve: (parent, _, ctx) => {
-                return ctx.prisma.supplierItem.findUnique({ where: { id: parent.supplierItemId } });
-            },
-        });
-    },
-});
-// ProductSpecification type
-export const ProductSpecification = objectType({
-    name: 'ProductSpecification',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('category');
-        t.nullable.string('groupName');
-        t.nonNull.string('name');
-        t.nonNull.string('value');
-        t.nullable.string('unit');
-        t.nonNull.int('sortOrder');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-        t.nullable.field('SupplierItem', {
-            type: 'SupplierItem',
-            resolve: (parent, _, ctx) => {
-                return ctx.prisma.supplierItem.findUnique({ where: { id: parent.supplierItemId } });
-            },
-        });
-    },
-});
-export const WholesalePackaging = objectType({
-    name: 'WholesalePackaging',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('sellingUnit');
-        t.nullable.float('packageLength');
-        t.nullable.float('packageWidth');
-        t.nullable.float('packageHeight');
-        t.nullable.float('grossWeight');
-        t.nullable.float('netWeight');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-    },
-});
-export const WholesaleShipping = objectType({
-    name: 'WholesaleShipping',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('originCountry');
-        t.nullable.string('originProvince');
-        t.nullable.string('originCity');
-        t.nullable.string('shippingMethod');
-        t.nullable.int('estimatedDays');
-        t.nullable.string('shippingNotes');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-    },
-});
-export const WholesaleDocument = objectType({
-    name: 'WholesaleDocument',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('title');
-        t.nonNull.field('type', { type: 'WholesaleDocType' });
-        t.nonNull.string('fileUrl');
-        t.nonNull.boolean('verified');
-        t.nullable.int('verifiedById');
-        t.nullable.field('verifiedAt', { type: 'DateTime' });
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-    },
-});
-export const SupplierCapability = objectType({
-    name: 'SupplierCapability',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.int('organizationId');
-        t.nonNull.field('type', { type: 'SupplierCapabilityType' });
-        t.nonNull.string('name');
-        t.nullable.string('icon');
-        t.nonNull.boolean('available');
-        t.nullable.string('description');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('updatedAt', { type: 'DateTime' });
-        t.nullable.field('deletedAt', { type: 'DateTime' });
-    },
-});
-export const UpdatePackagingInput = inputObjectType({
-    name: 'UpdatePackagingInput',
-    definition(t) {
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('sellingUnit');
-        t.nullable.float('packageLength');
-        t.nullable.float('packageWidth');
-        t.nullable.float('packageHeight');
-        t.nullable.float('grossWeight');
-        t.nullable.float('netWeight');
-    },
-});
-export const UploadDocumentInput = inputObjectType({
-    name: 'UploadDocumentInput',
-    definition(t) {
-        t.nonNull.string('supplierItemId');
-        t.nonNull.field('type', { type: 'WholesaleDocType' });
-        t.nullable.string('title');
-        t.nonNull.string('fileUrl');
-    },
-});
-export const SupplierStockBatchStatus = enumType({
-    name: 'SupplierStockBatchStatus',
-    members: [
-        'ACTIVE',
-        'DEPLETED',
-        'EXPIRED',
-        'DAMAGED',
-    ],
-});
-export const SupplierCatalog = objectType({
-    name: 'SupplierCatalog',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nonNull.int('organizationId');
-        t.nonNull.field('createdAt', { type: 'DateTime' });
-        t.nonNull.field('organization', {
-            type: 'Organization',
-            resolve: (parent, _, ctx) => ctx.prisma.organization.findUniqueOrThrow({ where: { id: parent.organizationId } }),
-        });
-        t.nonNull.list.nonNull.field('items', {
-            type: 'SupplierItem',
-            resolve: (parent, _, ctx) => ctx.prisma.supplierItem.findMany({
-                where: { catalogId: parent.id, isActive: true },
-                include: { priceTiers: true },
-                orderBy: { name: 'asc' },
-            }),
-        });
-    },
-});
 export const SupplierItem = objectType({
     name: 'SupplierItem',
     definition(t) {
@@ -404,12 +230,262 @@ export const SupplierItem = objectType({
                 where: { supplierItemId: parent.id },
             }),
         });
+        t.nonNull.list.nonNull.field('wholesaleDocument', {
+            type: 'WholesaleDocument',
+            resolve: (parent, _, ctx) => ctx.prisma.wholesaleDocument.findMany({
+                where: {
+                    supplierItemId: parent.id,
+                    deletedAt: null,
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                },
+            }),
+        });
         // Image collections for Alibaba-style product management
-        t.nonNull.list.nonNull.field('images', {
+        t.nonNull.list.nonNull.field('supplierItemImage', {
             type: 'SupplierItemImage',
             resolve: (parent, _, ctx) => ctx.prisma.supplierItemImage.findMany({
                 where: { supplierItemId: parent.id, deletedAt: null },
                 orderBy: { sortOrder: 'asc' },
+            }),
+        });
+    },
+});
+export const PriceTierInput = inputObjectType({
+    name: 'PriceTierInput',
+    definition(t) {
+        t.nonNull.int('minQty');
+        t.nullable.int('maxQty');
+        t.nonNull.float('price');
+        t.string('currency');
+    },
+});
+export const WholesaleDocType = enumType({
+    name: 'WholesaleDocType',
+    members: ['CE', 'FDA', 'ISO', 'ROHS', 'MSDS', 'OTHER'],
+});
+export const SupplierCapabilityType = enumType({
+    name: 'SupplierCapabilityType',
+    members: ['MINOR_CUSTOMIZATION', 'DRAWING_CUSTOMIZATION', 'SAMPLE_CUSTOMIZATION', 'FULL_CUSTOMIZATION', 'OEM', 'ODM'],
+});
+// ProductWholesaleSettings type
+export const ProductWholesaleSettings = objectType({
+    name: 'ProductWholesaleSettings',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.int('minimumOrderQty');
+        t.nonNull.boolean('sampleAvailable');
+        t.nullable.float('samplePrice');
+        t.nullable.string('leadTime');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+        t.nullable.field('supplierItem', {
+            type: 'SupplierItem',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.supplierItem.findUnique({ where: { id: parent.supplierItemId } });
+            },
+        });
+    },
+});
+// ProductSpecification type
+export const ProductSpecification = objectType({
+    name: 'ProductSpecification',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('category');
+        t.nullable.string('groupName');
+        t.nonNull.string('name');
+        t.nonNull.string('value');
+        t.nullable.string('unit');
+        t.nonNull.int('sortOrder');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+        t.nullable.field('SupplierItem', {
+            type: 'SupplierItem',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.supplierItem.findUnique({ where: { id: parent.supplierItemId } });
+            },
+        });
+    },
+});
+export const WholesalePackaging = objectType({
+    name: 'WholesalePackaging',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('sellingUnit');
+        t.nullable.float('packageLength');
+        t.nullable.float('packageWidth');
+        t.nullable.float('packageHeight');
+        t.nullable.float('grossWeight');
+        t.nullable.float('netWeight');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+    },
+});
+export const WholesaleShipping = objectType({
+    name: 'WholesaleShipping',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('originCountry');
+        t.nullable.string('originProvince');
+        t.nullable.string('originCity');
+        t.nullable.string('shippingMethod');
+        t.nullable.int('estimatedDays');
+        t.nullable.string('shippingNotes');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+    },
+});
+export const WholesaleDocument = objectType({
+    name: 'WholesaleDocument',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('title');
+        t.nonNull.field('type', { type: 'WholesaleDocType' });
+        t.nonNull.string('fileUrl');
+        t.nonNull.boolean('verified');
+        t.nullable.int('verifiedById');
+        t.nullable.field('verifiedAt', { type: 'DateTime' });
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+    },
+});
+export const SupplierCapability = objectType({
+    name: 'SupplierCapability',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.int('organizationId');
+        t.nonNull.field('type', { type: 'SupplierCapabilityType' });
+        t.nonNull.string('name');
+        t.nullable.string('icon');
+        t.nonNull.boolean('available');
+        t.nullable.string('description');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('updatedAt', { type: 'DateTime' });
+        t.nullable.field('deletedAt', { type: 'DateTime' });
+    },
+});
+// Input types for ProductSpecification
+export const CreateSpecificationInput = inputObjectType({
+    name: 'CreateSpecificationInput',
+    definition(t) {
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('category');
+        t.nullable.string('groupName');
+        t.nonNull.string('name');
+        t.nonNull.string('value');
+        t.nullable.string('unit');
+        t.int('sortOrder');
+    },
+});
+export const UpdateSpecificationInput = inputObjectType({
+    name: 'UpdateSpecificationInput',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nullable.string('category');
+        t.nullable.string('groupName');
+        t.nullable.string('name');
+        t.nullable.string('value');
+        t.nullable.string('unit');
+        t.nullable.int('sortOrder');
+    },
+});
+export const UpdatePackagingInput = inputObjectType({
+    name: 'UpdatePackagingInput',
+    definition(t) {
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('sellingUnit');
+        t.nullable.float('packageLength');
+        t.nullable.float('packageWidth');
+        t.nullable.float('packageHeight');
+        t.nullable.float('grossWeight');
+        t.nullable.float('netWeight');
+    },
+});
+export const UpdateShippingInput = inputObjectType({
+    name: 'UpdateShippingInput',
+    definition(t) {
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('originCountry');
+        t.nullable.string('originProvince');
+        t.nullable.string('originCity');
+        t.nullable.string('shippingMethod');
+        t.nullable.int('estimatedDays');
+        t.nullable.string('shippingNotes');
+    },
+});
+export const UploadDocumentInput = inputObjectType({
+    name: 'UploadDocumentInput',
+    definition(t) {
+        t.nonNull.string('supplierItemId');
+        t.nonNull.field('type', { type: 'WholesaleDocType' });
+        t.nullable.string('title');
+        t.nonNull.string('fileUrl');
+    },
+});
+export const UpdateDocumentInput = inputObjectType({
+    name: 'UpdateDocumentInput',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nullable.field('type', { type: 'WholesaleDocType' });
+        t.nullable.string('title');
+    },
+});
+// SupplierCapability input types
+export const CreateSupplierCapabilityInput = inputObjectType({
+    name: 'CreateSupplierCapabilityInput',
+    definition(t) {
+        t.nonNull.int('organizationId');
+        t.nonNull.field('type', { type: 'SupplierCapabilityType' });
+        t.nullable.string('name');
+        t.nullable.boolean('available');
+        t.nullable.string('description');
+    },
+});
+export const UpdateSupplierCapabilityInput = inputObjectType({
+    name: 'UpdateSupplierCapabilityInput',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nullable.boolean('available');
+        t.nullable.string('description');
+    },
+});
+export const SupplierStockBatchStatus = enumType({
+    name: 'SupplierStockBatchStatus',
+    members: [
+        'ACTIVE',
+        'DEPLETED',
+        'EXPIRED',
+        'DAMAGED',
+    ],
+});
+export const SupplierCatalog = objectType({
+    name: 'SupplierCatalog',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.int('organizationId');
+        t.nonNull.field('createdAt', { type: 'DateTime' });
+        t.nonNull.field('organization', {
+            type: 'Organization',
+            resolve: (parent, _, ctx) => ctx.prisma.organization.findUniqueOrThrow({ where: { id: parent.organizationId } }),
+        });
+        t.nonNull.list.nonNull.field('items', {
+            type: 'SupplierItem',
+            resolve: (parent, _, ctx) => ctx.prisma.supplierItem.findMany({
+                where: { catalogId: parent.id, isActive: true },
+                include: { priceTiers: true },
+                orderBy: { name: 'asc' },
             }),
         });
     },

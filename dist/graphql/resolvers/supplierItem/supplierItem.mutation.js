@@ -12,7 +12,8 @@ export const SupplierItemMutation = extendType({
                     where: { organizationId },
                     create: { organizationId },
                     update: {},
-                    include: { items: { include: { priceTiers: true } } },
+                    include: { items: { include: { priceTiers: true, SupplierItemImage: true, WholesaleDocument: true,
+                                WholesalePackaging: true, WholesaleShipping: true, WholesaleCustomization: true, } } },
                 });
             },
         });
@@ -28,7 +29,7 @@ export const SupplierItemMutation = extendType({
                 isVatExempt: nonNull(booleanArg()),
                 vatRate: nonNull(floatArg()),
                 moq: nonNull(intArg()),
-                image: nonNull(stringArg()),
+                image: nullable(stringArg()),
                 availableQty: nonNull(intArg()),
                 priceTiers: nullable(list(nonNull(arg({ type: 'PriceTierInput' })))),
             },
@@ -65,7 +66,7 @@ export const SupplierItemMutation = extendType({
                 isVatExempt: nullable(booleanArg()),
                 vatRate: nullable(floatArg()),
                 moq: nullable(intArg()),
-                image: nonNull(stringArg()),
+                image: nullable(stringArg()),
                 availableQty: nullable(intArg()),
                 isActive: nullable(booleanArg()),
                 priceTiers: nullable(list(nonNull(arg({ type: 'PriceTierInput' })))),

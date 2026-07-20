@@ -542,6 +542,14 @@ input CreateSpecificationInput {
   value: String!
 }
 
+input CreateSupplierCapabilityInput {
+  available: Boolean
+  description: String
+  name: String
+  organizationId: Int!
+  type: SupplierCapabilityType!
+}
+
 input CreateSupplierItemImageInput {
   sortOrder: Int
   supplierItemId: String!
@@ -1658,7 +1666,8 @@ type Mutation {
   createSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan!): Subscription
   createSummaryRow(accountTitleId: Int!, centerId: Int!, costInputAmount: Float, costInputVatInclusive: Boolean!, costLines: Json, description: String, itemCode: String, itemId: Int, itemName: String, opExPct: Float!, orgId: Int!, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean!, subCenterId: Int!, vatTypeId: Int!): SummaryRow
-  createSupplierItem(availableQty: Int!, catalogId: String!, description: String, image: String!, isVatExempt: Boolean!, moq: Int!, name: String!, priceTiers: [PriceTierInput!], sku: String, unit: String!, unitPrice: Float!, vatRate: Float!): SupplierItem!
+  createSupplierCapability(input: CreateSupplierCapabilityInput!): SupplierCapability
+  createSupplierItem(availableQty: Int!, catalogId: String!, description: String, image: String, isVatExempt: Boolean!, moq: Int!, name: String!, priceTiers: [PriceTierInput!], sku: String, unit: String!, unitPrice: Float!, vatRate: Float!): SupplierItem!
   createSupplierItemImage(input: CreateSupplierItemImageInput!): SupplierItemImage
   createSupplierItemReview(comment: String, rating: Int!, supplierItemId: String!, title: String): SupplierItemReview!
   createSupplierItemReviewImage(input: CreateSupplierItemReviewImageInput!): SupplierItemReviewImage
@@ -1678,6 +1687,7 @@ type Mutation {
   deleteCenter(id: Int): Center
   deleteContact(id: Int!): Contact
   deleteDepartment(id: Int): Department
+  deleteDocument(id: String!): WholesaleDocument
   deleteEmployee(id: Int): Employee
   deleteGISRow(id: String): GISRow
   deleteInventory(id: Int!): Boolean
@@ -1701,6 +1711,7 @@ type Mutation {
   deleteSubCenter(id: Int): SubCenter
   deleteSubscriptionAdmin(orgId: Int!): Subscription
   deleteSummaryRow(id: Int!): SummaryRow
+  deleteSupplierCapability(id: String!): SupplierCapability
   deleteSupplierItem(id: String!): SupplierItem!
   deleteSupplierItemImage(id: Int!): SupplierItemImage
   deleteSupplierItemReview(id: String!): SupplierItemReview!
@@ -1785,6 +1796,7 @@ type Mutation {
   updateCenter(id: Int, label: String): Center
   updateContact(branchId: Int, department: String, email: String, id: Int!, isActive: Boolean, label: String, name: String, notes: String, phone: String, position: String): Contact
   updateDepartment(id: Int, name: String): Department
+  updateDocument(input: UpdateDocumentInput!): WholesaleDocument
   updateEmployee(departmentId: Int, id: Int, name: String, positionId: Int): Employee
   updateGISRow(accountTitleId: Int, centerId: Int, code: String, credit: Float, debit: Float, description: String, group: String, id: Int!, main: String, subCenterId: Int): GISRow
   updateInventory(id: Int!, name: String!): Inventory
@@ -1815,7 +1827,8 @@ type Mutation {
   updateSubscription(orgId: Int!, plan: SubscriptionPlan!): Subscription
   updateSubscriptionAdmin(expiresAt: String, features: String, orgId: Int!, plan: SubscriptionPlan): Subscription
   updateSummaryRow(accountTitleId: Int, centerId: Int, costInputAmount: Float, costInputVatInclusive: Boolean, costLines: Json, description: String, id: Int!, itemCode: String, itemId: Int, itemName: String, opExPct: Float, sellingPriceInput: Float, sellingPriceVatInclusive: Boolean, subCenterId: Int, vatTypeId: Int): SummaryRow
-  updateSupplierItem(availableQty: Int, description: String, id: String!, image: String!, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
+  updateSupplierCapability(input: UpdateSupplierCapabilityInput!): SupplierCapability
+  updateSupplierItem(availableQty: Int, description: String, id: String!, image: String, isActive: Boolean, isVatExempt: Boolean, moq: Int, name: String, priceTiers: [PriceTierInput!], sku: String, unit: String, unitPrice: Float, vatRate: Float): SupplierItem!
   updateSupplierItemImage(input: UpdateSupplierItemImageInput!): SupplierItemImage
   updateSupplierItemReview(comment: String, id: String!, rating: Int, title: String): SupplierItemReview!
   updateSupplierItemVariantImage(input: UpdateSupplierItemVariantImageInput!): SupplierItemVariantImage
@@ -2748,6 +2761,7 @@ type Query {
   summaryRow(id: Int): SummaryRow
   summaryRowExpenses(endDate: String, startDate: String): [SummaryRow]
   summaryRows(endDate: String, startDate: String): [SummaryRow]
+  supplierCapabilities(organizationId: Int!): [SupplierCapability!]
   supplierCatalog: SupplierCatalog
   supplierDashboard(supplierOrgId: Int!): SupplierDashboardStats
   supplierFinanceFeeHistory: [WalletLedgerEntry]
@@ -3428,7 +3442,6 @@ type SupplierItem {
   hasVariants: Boolean!
   id: String!
   image: String
-  images: [SupplierItemImage!]!
   incomingQty: Float!
   isActive: Boolean!
   isVatExempt: Boolean!
@@ -3449,6 +3462,7 @@ type SupplierItem {
   sku: String
   supplierIncomingStock: [SupplierIncomingStock!]!
   supplierInventoryMovements: [SupplierInventoryMovement!]!
+  supplierItemImage: [SupplierItemImage!]!
   supplierStockBatches: [SupplierStockBatch!]!
   totalStock: Float!
   unit: String!
@@ -3457,6 +3471,7 @@ type SupplierItem {
   variantGroups: [SupplierItemVariantGroup!]!
   variants: [SupplierItemVariant!]!
   vatRate: Float!
+  wholesaleDocument: [WholesaleDocument!]!
   wholesalePackaging: WholesalePackaging
   wholesaleShipping: WholesaleShipping
 }
@@ -3931,6 +3946,12 @@ type UnauthorizedAttempt {
   timestamp: String!
 }
 
+input UpdateDocumentInput {
+  id: String!
+  title: String
+  type: WholesaleDocType
+}
+
 input UpdateInventoryItemUnitInput {
   barcode: String
   baseUnit: String
@@ -4022,6 +4043,12 @@ input UpdateSpecificationInput {
   sortOrder: Int
   unit: String
   value: String
+}
+
+input UpdateSupplierCapabilityInput {
+  available: Boolean
+  description: String
+  id: String!
 }
 
 input UpdateSupplierItemImageInput {

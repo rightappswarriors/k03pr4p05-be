@@ -1,44 +1,6 @@
 // src/graphql/resolvers/wholesale.resolver.ts
 // Resolvers for wholesale product models: specifications, packaging, shipping, documents
-import { arg, list, nonNull, queryField, mutationField, inputObjectType } from 'nexus';
-// Input types for ProductSpecification
-export const CreateSpecificationInput = inputObjectType({
-    name: 'CreateSpecificationInput',
-    definition(t) {
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('category');
-        t.nullable.string('groupName');
-        t.nonNull.string('name');
-        t.nonNull.string('value');
-        t.nullable.string('unit');
-        t.int('sortOrder');
-    },
-});
-export const UpdateSpecificationInput = inputObjectType({
-    name: 'UpdateSpecificationInput',
-    definition(t) {
-        t.nonNull.string('id');
-        t.nullable.string('category');
-        t.nullable.string('groupName');
-        t.nullable.string('name');
-        t.nullable.string('value');
-        t.nullable.string('unit');
-        t.nullable.int('sortOrder');
-    },
-});
-// Input types for WholesaleShipping
-export const UpdateShippingInput = inputObjectType({
-    name: 'UpdateShippingInput',
-    definition(t) {
-        t.nonNull.string('supplierItemId');
-        t.nullable.string('originCountry');
-        t.nullable.string('originProvince');
-        t.nullable.string('originCity');
-        t.nullable.string('shippingMethod');
-        t.nullable.int('estimatedDays');
-        t.nullable.string('shippingNotes');
-    },
-});
+import { arg, list, nonNull, queryField, mutationField } from 'nexus';
 // Queries
 export const productSpecifications = queryField('productSpecifications', {
     type: list(nonNull('ProductSpecification')),
@@ -76,6 +38,15 @@ export const wholesaleDocuments = queryField('wholesaleDocuments', {
     resolve: (_root, { supplierItemId }, ctx) => ctx.prisma.wholesaleDocument.findMany({
         where: { supplierItemId },
         orderBy: { createdAt: 'desc' },
+    }),
+});
+export const supplierCapabilities = queryField('supplierCapabilities', {
+    type: list(nonNull('SupplierCapability')),
+    args: {
+        organizationId: nonNull('Int'),
+    },
+    resolve: (_root, { organizationId }, ctx) => ctx.prisma.supplierCapability.findMany({
+        where: { organizationId, deletedAt: null },
     }),
 });
 export const wholesaleProduct = queryField('wholesaleProduct', {
@@ -169,6 +140,29 @@ export const uploadDocument = mutationField('uploadDocument', {
         },
     }),
 });
+export const deleteDocument = mutationField('deleteDocument', {
+    type: 'WholesaleDocument',
+    args: {
+        id: nonNull('String'),
+    },
+    resolve: (_root, { id }, ctx) => ctx.prisma.wholesaleDocument.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+    }),
+});
+export const updateDocument = mutationField('updateDocument', {
+    type: 'WholesaleDocument',
+    args: {
+        input: nonNull(arg({ type: 'UpdateDocumentInput' })),
+    },
+    resolve: (_root, { input }, ctx) => {
+        const { id, ...data } = input;
+        return ctx.prisma.wholesaleDocument.update({
+            where: { id },
+            data,
+        });
+    },
+});
 export const updateWholesaleSettings = mutationField('updateWholesaleSettings', {
     type: 'ProductWholesaleSettings',
     args: {
@@ -182,6 +176,47 @@ export const updateWholesaleSettings = mutationField('updateWholesaleSettings', 
         where: { supplierItemId },
         create: { supplierItemId, ...data },
         update: data,
+    }),
+});
+// ─────────────────────────────────────────────────────────────
+// SUPPLIER CAPABILITY MUTATIONS
+// ─────────────────────────────────────────────────────────────
+export const createSupplierCapability = mutationField('createSupplierCapability', {
+    type: 'SupplierCapability',
+    args: {
+        input: nonNull(arg({ type: 'CreateSupplierCapabilityInput' })),
+    },
+    resolve: (_root, { input }, ctx) => ctx.prisma.supplierCapability.create({
+        data: {
+            organizationId: input.organizationId,
+            type: input.type,
+            name: input.name ?? input.type,
+            available: input.available ?? false,
+            description: input.description ?? '',
+        },
+    }),
+});
+export const updateSupplierCapability = mutationField('updateSupplierCapability', {
+    type: 'SupplierCapability',
+    args: {
+        input: nonNull(arg({ type: 'UpdateSupplierCapabilityInput' })),
+    },
+    resolve: (_root, { input }, ctx) => ctx.prisma.supplierCapability.update({
+        where: { id: input.id },
+        data: {
+            ...(input.available !== undefined ? { available: input.available } : {}),
+            ...(input.description !== undefined ? { description: input.description } : {}),
+        },
+    }),
+});
+export const deleteSupplierCapability = mutationField('deleteSupplierCapability', {
+    type: 'SupplierCapability',
+    args: {
+        id: nonNull('String'),
+    },
+    resolve: (_root, { id }, ctx) => ctx.prisma.supplierCapability.update({
+        where: { id },
+        data: { deletedAt: new Date() },
     }),
 });
 // ─────────────────────────────────────────────────────────────
