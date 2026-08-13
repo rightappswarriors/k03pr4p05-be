@@ -1,0 +1,75 @@
+import { extendType, intArg, nullable, stringArg } from 'nexus';
+import { requireAuth, requireRole } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+export const summaryRowQuery = extendType({
+    type: 'Query',
+    definition(t) {
+        t.list.field('summaryRows', {
+            type: 'SummaryRow',
+            args: {
+                startDate: nullable(stringArg()), // ← was: nullable(arg({ type: "DateTime" }))
+                endDate: nullable(stringArg()),
+            },
+            resolve: async (_, { startDate, endDate }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                const orgId = Number(ctx.user?.orgId);
+                return ctx.prisma.summaryRow.findMany({
+                    where: {
+                        orgId,
+                        ...(startDate || endDate ? {
+                            createdAt: {
+                                ...(startDate && { gte: new Date(startDate) }), // parse string → Date
+                                ...(endDate && { lte: new Date(endDate) }),
+                            },
+                        } : {}),
+                    },
+                });
+            },
+        });
+        t.list.field('summaryRowExpenses', {
+            type: 'SummaryRow',
+            args: {
+                startDate: stringArg(),
+                endDate: nullable(stringArg()),
+            },
+            resolve: async (_, { startDate, endDate }, ctx) => {
+                requireAuth(ctx);
+                requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                const orgId = Number(ctx.user?.orgId);
+                return ctx.prisma.summaryRow.findMany({
+                    where: {
+                        orgId,
+                        ...(startDate || endDate ? {
+                            createdAt: {
+                                ...(startDate && { gte: new Date(startDate) }), // parse string → Date
+                                ...(endDate && { lte: new Date(endDate) }),
+                            },
+                        } : {}),
+                    },
+                    select: {
+                        id: true,
+                        netProfit: true,
+                        status: true,
+                        createdAt: true,
+                    }
+                });
+            }
+        }),
+            t.field('summaryRow', {
+                type: 'SummaryRow',
+                args: {
+                    id: intArg()
+                },
+                resolve: async (_, { id }, ctx) => {
+                    requireAuth(ctx);
+                    requireRole(ctx, ['OWNER', 'ADMIN', 'STAFF']);
+                    PAGE_PERMISSIONS.finance.view(ctx);
+                    const orgId = Number(ctx.user?.orgId);
+                    return ctx.prisma.summaryRow.findUnique({
+                        where: { id, orgId }
+                    });
+                }
+            });
+    }
+});

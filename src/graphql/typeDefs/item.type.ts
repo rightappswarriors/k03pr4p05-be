@@ -1,0 +1,344 @@
+//rai-pos-backend\src\graphql\typeDefs\item.type.ts
+import { objectType } from 'nexus'
+import { getRemainingStock } from '../../services/outlet.service.js'
+
+export const Item = objectType({
+    name: 'Item',
+    definition(t) {
+        t.nonNull.int('id')
+        t.nonNull.string('name')
+        t.nullable.string('image')
+        t.nullable.string('description')
+        t.nullable.string('barcode')
+        t.nullable.int('categoryId')
+        t.float('sellingPrice')
+        t.nonNull.float('stock')
+        t.nullable.string('brand')
+        t.nullable.string('stockLabel')
+        t.nullable.string('stockDescription')
+        t.nullable.int('brandId')
+        t.nonNull.dateTime("exactExpiryDate")
+        t.nullable.dateTime('expiryStartDate')
+        t.nullable.dateTime('expiryEndDate')
+        t.nonNull.boolean('ServiceCharge')
+        t.nonNull.boolean('assembly')
+        t.nullable.string('itemCode')
+        t.nullable.string('skuNumber')
+        t.nullable.boolean('vatExempt')
+        t.nonNull.boolean('isVatExempt')
+        t.nonNull.boolean('isBNPC')
+        t.nonNull.boolean('hasSeniorDiscountVATExempt')
+        t.nonNull.float('vatRate')
+        t.nonNull.int("minQuantity")
+        t.nonNull.float("opExPct")
+        t.float("priceB")
+        t.float("priceC")
+        t.float("totalCost")
+        t.int("vatTypeId")
+        t.nullable.float("maxAllocatable", {
+            resolve: async (item: any) => {
+                if (item.maxAllocatable !== undefined) return item.maxAllocatable;
+                return null;
+            },
+        });
+        t.nullable.float("remainingStock", {
+            resolve: async (item: any, _args, ctx) => {
+                if (item.remainingStock !== undefined) return item.remainingStock;
+                return await getRemainingStock(item.id);
+            },
+        });
+
+        t.nullable.field('vatType', { // Added relation
+            type: 'VatType',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).vatType();
+            }
+        })
+        t.nonNull.int('orgId') // Added for multi-tenancy
+        t.nonNull.field('org', { // Added relation
+            type: 'Organization',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).org();
+            }
+        })
+        t.nullable.field('category', {
+            type: 'ItemCategory', // Updated to ItemCategory
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).category();
+            }
+        })
+        t.nullable.int('orgCategoryId')
+        t.nullable.field('orgCategory', {
+            type: 'OrgItemCategory', // Updated to ItemCategory
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).orgCategory();
+            }
+        })
+        t.nullable.field('brandDetails', {
+            type: 'Brand',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).brandDetails();
+            }
+        })
+        t.nonNull.list.nonNull.field('color', {
+            type: 'Color',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).color();
+            }
+        })
+        t.nonNull.list.nonNull.field('InventoryItems', {
+            type: 'InventoryItems',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).InventoryItems();
+            }
+        })
+        t.nonNull.list.nonNull.field('cartItems', {
+            type: 'CartItem',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).cartItems();
+            }
+        })
+        t.nonNull.list.nonNull.field('summaryRows', {
+            type: 'SummaryRow',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).summaryRows();
+            }
+        })
+        t.nonNull.list.nonNull.field('media', {
+            type: 'Media',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).media();
+            }
+        })
+        t.nonNull.list.nonNull.field("purchaseUnit", {
+            type: 'ItemUnit',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).purchaseUnit();
+            }
+        })
+        t.nonNull.list.nonNull.field("costLines", {
+            type: "CostLines",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).costLines();
+            }
+        })
+        t.nonNull.list.nonNull.field('searchIndex', {
+            type: 'OutletItemSearchIndex',
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).searchIndex();
+            }
+        })
+        // Cost history timeline
+        t.nonNull.list.nonNull.field("costHistory", {
+            type: "ItemCostHistory",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .costHistory({
+                        orderBy: {
+                            effectiveAt: "desc"
+                        }
+                    })
+            }
+        })
+        // Price history timeline
+        t.nonNull.list.nonNull.field("priceHistory", {
+            type: "ItemPriceHistory",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.item
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .priceHistory({
+                        orderBy: {
+                            effectiveAt: "desc"
+                        }
+                    })
+            }
+        })
+    }
+})
+
+
+export const ItemUnit = objectType({
+    name: "ItemUnit",
+    definition(t) {
+        t.nonNull.int('id')
+        t.nonNull.string('unitName')
+        t.nullable.string('description')
+        t.nonNull.list.nonNull.field('Item', {
+            type: 'Item',
+            resolve: (parent, _, ctx) => {
+                // Correct: Use Prisma's relational query to get the category
+                return ctx.prisma.item.findUnique({ where: { id: parent.id } }).item();
+            }
+        })
+    },
+})
+
+export const CostLines = objectType({
+    name: "CostLines",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("itemId")
+        t.nonNull.string("label")
+        t.nonNull.float("amount")
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.costLines
+                    .findUnique({
+                        where: { id: parent.id }
+                    }).item()
+            }
+        })
+    }
+})
+
+export const OutletItemSearchIndex = objectType({
+    name: "OutletItemSearchIndex",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("outletId")
+        t.nonNull.int("itemId")
+        t.nonNull.int("inventoryItemId")
+        t.nonNull.int("quantity")
+        t.nonNull.float("price")
+        t.nonNull.float("outletLatitude")
+        t.nonNull.float("outletLongitude")
+
+        // ── Relations ─────────────────────────────────────────────────────────
+
+        t.nonNull.field("outlet", {
+            type: "Outlet",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.outletItemSearchIndex.findUnique({
+                    where: { id: parent.id },
+                    include: { outlet: true },
+                })
+                return row!.outlet
+            },
+        })
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.outletItemSearchIndex.findUnique({
+                    where: { id: parent.id },
+                    include: { item: true },
+                })
+                return row!.item
+            },
+        })
+
+        t.nonNull.field("inventoryItem", {
+            type: "InventoryItems",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.outletItemSearchIndex.findUnique({
+                    where: { id: parent.id },
+                    include: { inventoryItem: true },
+                })
+                return row!.inventoryItem
+            },
+        })
+    },
+})
+
+export const ItemCostHistory = objectType({
+    name: "ItemCostHistory",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("itemId")
+        t.nonNull.float("totalCost")
+        t.field("costLines", {
+            type: "Json"
+        })
+        t.nonNull.dateTime("effectiveAt")
+        t.nullable.int("changedBy")
+        t.nullable.string("reason")
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.itemCostHistory
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .item()
+            }
+        })
+    }
+})
+
+export const ItemPriceHistory = objectType({
+    name: "ItemPriceHistory",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("itemId")
+        t.nonNull.float("price")
+        t.nonNull.dateTime("effectiveAt")
+        t.nullable.int("changedBy")
+        t.nullable.string("reason")
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: (parent, _, ctx) => {
+                return ctx.prisma.itemPriceHistory
+                    .findUnique({
+                        where: { id: parent.id }
+                    })
+                    .item()
+            }
+        })
+    }
+})
+/*
+export const EkumpraCOrderItem = objectType({
+    name: "EkumpraCOrderItem",
+    definition(t) {
+        t.nonNull.int("id")
+        t.nonNull.int("orderId")
+        t.nonNull.int("inventoryItemId")
+        t.nonNull.int("itemId")
+        t.nonNull.int("quantity")
+        t.nonNull.float("priceSnapshot")
+        t.nonNull.float("subtotal")
+
+        // ── Relations ─────────────────────────────────────────────────────────
+
+        t.nonNull.field("order", {
+            type: "EkumpraCOrder",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.ekumpraCOrderItem.findUnique({
+                    where: { id: parent.id },
+                    include: { order: true },
+                })
+                return row!.order
+            },
+        })
+
+        t.nonNull.field("inventoryItem", {
+            type: "InventoryItems",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.ekumpraCOrderItem.findUnique({
+                    where: { id: parent.id },
+                    include: { inventoryItem: true },
+                })
+                return row!.inventoryItem
+            },
+        })
+
+        t.nonNull.field("item", {
+            type: "Item",
+            resolve: async (parent, _, ctx) => {
+                const row = await ctx.prisma.ekumpraCOrderItem.findUnique({
+                    where: { id: parent.id },
+                    include: { item: true },
+                })
+                return row!.item
+            },
+        })
+    },
+}) */
