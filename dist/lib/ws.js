@@ -1,5 +1,24 @@
 // Portal BE WebSocket gateway — room-scoped, Redis-bridged, cross-app realtime
-import { WebSocketServer } from "ws";
+//
+// FIXES applied (2026-08-15):
+//   FIX 1 — Import `WebSocket` alongside `WebSocketServer`.
+//            Previously only `WebSocketServer` was imported, so `WebSocket.OPEN`
+//            resolved to `undefined`.  The guard in sendLocal()
+//            (`client.ws.readyState === WebSocket.OPEN`) was therefore ALWAYS
+//            false, meaning no message was ever delivered to any locally-
+//            connected Portal client.  (Redis PUBLISH still ran, but local
+//            delivery to Portal's own connected sockets was dead.)
+//
+//   FIX 2 — Log Redis errors explicitly instead of silently swallowing them.
+//            The old `catch { publisher = undefined; }` buried connection
+//            failures with zero output, making it impossible to diagnose
+//            whether Redis was actually reachable.
+//
+//   FIX 3 — Retry the Redis bridge with exponential back-off.
+//            If Redis is down at startup (or drops later), the bridge now
+//            retries automatically rather than staying permanently broken.
+//            Max back-off is capped at 30 seconds.
+import { WebSocketServer, WebSocket } from "ws"; // FIX 1: added WebSocket
 import jwt from "jsonwebtoken";
 import { createClient } from "redis";
 // Keyed by a unique per-connection socket id, NOT by userId.
@@ -8,11 +27,19 @@ import { createClient } from "redis";
 const clients = new Map();
 const bridgeId = `portal-${process.pid}-${Math.random().toString(36).slice(2)}`;
 let publisher;
+let _bridgeRetryMs = 1000; // FIX 3: back-off state
 async function connectBridge() {
     try {
-        publisher = createClient({ url: process.env.REDIS_URL || "redis://127.0.0.1:6379" });
+        const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+        publisher = createClient({ url: redisUrl });
         const subscriber = publisher.duplicate();
+        // FIX 2: surface Redis errors instead of swallowing them
+        publisher.on("error", (err) => console.error("[PortalWebSocket] Redis publisher error:", err.message));
+        subscriber.on("error", (err) => console.error("[PortalWebSocket] Redis subscriber error:", err.message));
         await Promise.all([publisher.connect(), subscriber.connect()]);
+        // FIX 3: reset back-off after a successful connection
+        _bridgeRetryMs = 1000;
+        console.log(`[PortalWebSocket] Redis bridge connected (${redisUrl})`);
         await subscriber.subscribe("kompra:realtime", (raw) => {
             try {
                 const message = JSON.parse(raw);
@@ -25,10 +52,26 @@ async function connectBridge() {
             }
             catch { }
         });
+        // FIX 3: if the publisher disconnects unexpectedly, reconnect with back-off
+        publisher.on("end", () => {
+            console.warn("[PortalWebSocket] Redis bridge disconnected — will reconnect…");
+            publisher = undefined;
+            scheduleReconnect();
+        });
     }
-    catch {
+    catch (err) {
+        // FIX 2: always log the reason
+        console.error("[PortalWebSocket] Redis bridge connect failed:", err?.message ?? err);
         publisher = undefined;
+        // FIX 3: retry with exponential back-off
+        scheduleReconnect();
     }
+}
+function scheduleReconnect() {
+    const delay = _bridgeRetryMs;
+    _bridgeRetryMs = Math.min(_bridgeRetryMs * 2, 30_000); // cap at 30 s
+    console.warn(`[PortalWebSocket] Retrying Redis bridge in ${delay}ms…`);
+    setTimeout(() => void connectBridge(), delay);
 }
 export function initWebSocket(server) {
     void connectBridge();
@@ -139,7 +182,7 @@ export function initWebSocket(server) {
 }
 export { clients };
 function send(ws, event, payload) {
-    if (ws.readyState === 1)
+    if (ws.readyState === WebSocket.OPEN)
         ws.send(JSON.stringify({ event, payload }));
 }
 function sendLocal(room, event, payload) {
@@ -147,6 +190,8 @@ function sendLocal(room, event, payload) {
     // Do NOT delete clients here — stale sockets should only be cleaned
     // via the `ws.on("close")` handler with the correct clientId key.
     for (const client of clients.values()) {
+        // FIX 1: WebSocket is now properly imported, so WebSocket.OPEN === 1.
+        // Previously this guard was always false because WebSocket was undefined.
         if (client.rooms.has(room) && client.ws.readyState === WebSocket.OPEN) {
             send(client.ws, event, payload);
         }
@@ -164,6 +209,10 @@ function emit(room, event, payload) {
             console.log(`[PortalWebSocket] REDIS PUBLISH room=${room} event=${event}`);
         }
         void publisher.publish("kompra:realtime", JSON.stringify({ source: bridgeId, room, event, payload }));
+    }
+    else if (process.env.NODE_ENV === "development") {
+        // FIX 2: warn when Redis is down so the developer can see cross-app delivery is blocked
+        console.warn(`[PortalWebSocket] Redis not connected — cross-app publish skipped for room=${room} event=${event}`);
     }
 }
 export function sendToUser(userId, event, payload) {
