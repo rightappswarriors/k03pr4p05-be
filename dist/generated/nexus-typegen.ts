@@ -2024,6 +2024,9 @@ export interface NexusGenObjects {
   }
   POLineItem: { // root type
     id: string; // String!
+    itemDescription?: string | null; // String
+    itemName?: string | null; // String
+    itemSku?: string | null; // String
     qty: number; // Int!
     subtotal: number; // Float!
     unitPrice: number; // Float!
@@ -2336,6 +2339,7 @@ export interface NexusGenObjects {
     userId?: number | null; // Int
   }
   PurchaseOrder: { // root type
+    agentId?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
     notes?: string | null; // String
@@ -2373,7 +2377,7 @@ export interface NexusGenObjects {
     supplierAcceptedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     supplierConfirmedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     supplierItemId?: string | null; // String
-    supplierOrgId: number; // Int!
+    supplierOrgId?: number | null; // Int
     supplierOrgName?: string | null; // String
     targetUnitPrice?: number | null; // Float
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -2449,6 +2453,17 @@ export interface NexusGenObjects {
     breakdown: NexusGenRootTypes['RatingBreakdownItem'][]; // [RatingBreakdownItem!]!
     reviewCount: number; // Int!
     verifiedCount: number; // Int!
+  }
+  RfqEligibilityResult: { // root type
+    correctOrg: boolean; // Boolean!
+    hasAcceptedOffer: boolean; // Boolean!
+    notCancelled: boolean; // Boolean!
+    notConsumed: boolean; // Boolean!
+    notExpired: boolean; // Boolean!
+    notRejected: boolean; // Boolean!
+    reason?: string | null; // String
+    rfqExists: boolean; // Boolean!
+    valid: boolean; // Boolean!
   }
   SalaryHistory: { // root type
     ammount: number; // Float!
@@ -4411,6 +4426,7 @@ export interface NexusGenFieldTypes {
     createBudgetEntry: NexusGenRootTypes['Budget'] | null; // Budget
     createCategories: NexusGenRootTypes['ItemCategory'][]; // [ItemCategory!]!
     createCenter: NexusGenRootTypes['Center'] | null; // Center
+    createConsolidatedPurchaseOrder: NexusGenRootTypes['CreatePurchaseOrderOutput']; // CreatePurchaseOrderOutput!
     createContact: NexusGenRootTypes['Contact'] | null; // Contact
     createDepartment: NexusGenRootTypes['Department'] | null; // Department
     createEmployee: NexusGenRootTypes['Employee'] | null; // Employee
@@ -4997,6 +5013,9 @@ export interface NexusGenFieldTypes {
   }
   POLineItem: { // field return type
     id: string; // String!
+    itemDescription: string | null; // String
+    itemName: string | null; // String
+    itemSku: string | null; // String
     qty: number; // Int!
     subtotal: number; // Float!
     supplierItem: NexusGenRootTypes['SupplierItem']; // SupplierItem!
@@ -5335,13 +5354,15 @@ export interface NexusGenFieldTypes {
     userId: number | null; // Int
   }
   PurchaseOrder: { // field return type
+    agent: NexusGenRootTypes['Agent'] | null; // Agent
+    agentId: string | null; // String
     buyerOrg: NexusGenRootTypes['Organization']; // Organization!
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     delivery: NexusGenRootTypes['Delivery'] | null; // Delivery
     id: string; // String!
     lineItems: NexusGenRootTypes['POLineItem'][]; // [POLineItem!]!
     notes: string | null; // String
-    outlet: NexusGenRootTypes['Outlet']; // Outlet!
+    outlet: NexusGenRootTypes['Outlet'] | null; // Outlet
     poNumber: string; // String!
     requestedDate: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['POStatus']; // POStatus!
@@ -5542,6 +5563,7 @@ export interface NexusGenFieldTypes {
     userAttendanceHistory: NexusGenRootTypes['PaginatedAttendance'] | null; // PaginatedAttendance
     userManagementStats: NexusGenRootTypes['UserManagementStats']; // UserManagementStats!
     userPerformanceSummary: NexusGenRootTypes['PerformanceSummary'] | null; // PerformanceSummary
+    validateRFQEligibility: NexusGenRootTypes['RfqEligibilityResult'] | null; // RfqEligibilityResult
     variantGroups: NexusGenRootTypes['SupplierItemVariantGroup'][]; // [SupplierItemVariantGroup!]!
     variantOptions: NexusGenRootTypes['SupplierItemVariantOption'][]; // [SupplierItemVariantOption!]!
     vatType: NexusGenRootTypes['VatType'] | null; // VatType
@@ -5589,7 +5611,7 @@ export interface NexusGenFieldTypes {
     supplierItem: NexusGenRootTypes['SupplierItem'] | null; // SupplierItem
     supplierItemId: string | null; // String
     supplierOrg: NexusGenRootTypes['Organization'] | null; // Organization
-    supplierOrgId: number; // Int!
+    supplierOrgId: number | null; // Int
     supplierOrgName: string | null; // String
     targetUnitPrice: number | null; // Float
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -5675,6 +5697,17 @@ export interface NexusGenFieldTypes {
     breakdown: NexusGenRootTypes['RatingBreakdownItem'][]; // [RatingBreakdownItem!]!
     reviewCount: number; // Int!
     verifiedCount: number; // Int!
+  }
+  RfqEligibilityResult: { // field return type
+    correctOrg: boolean; // Boolean!
+    hasAcceptedOffer: boolean; // Boolean!
+    notCancelled: boolean; // Boolean!
+    notConsumed: boolean; // Boolean!
+    notExpired: boolean; // Boolean!
+    notRejected: boolean; // Boolean!
+    reason: string | null; // String
+    rfqExists: boolean; // Boolean!
+    valid: boolean; // Boolean!
   }
   SalaryHistory: { // field return type
     ammount: number; // Float!
@@ -7735,6 +7768,7 @@ export interface NexusGenFieldTypeNames {
     createBudgetEntry: 'Budget'
     createCategories: 'ItemCategory'
     createCenter: 'Center'
+    createConsolidatedPurchaseOrder: 'CreatePurchaseOrderOutput'
     createContact: 'Contact'
     createDepartment: 'Department'
     createEmployee: 'Employee'
@@ -8321,6 +8355,9 @@ export interface NexusGenFieldTypeNames {
   }
   POLineItem: { // field return type name
     id: 'String'
+    itemDescription: 'String'
+    itemName: 'String'
+    itemSku: 'String'
     qty: 'Int'
     subtotal: 'Float'
     supplierItem: 'SupplierItem'
@@ -8659,6 +8696,8 @@ export interface NexusGenFieldTypeNames {
     userId: 'Int'
   }
   PurchaseOrder: { // field return type name
+    agent: 'Agent'
+    agentId: 'String'
     buyerOrg: 'Organization'
     createdAt: 'DateTime'
     delivery: 'Delivery'
@@ -8866,6 +8905,7 @@ export interface NexusGenFieldTypeNames {
     userAttendanceHistory: 'PaginatedAttendance'
     userManagementStats: 'UserManagementStats'
     userPerformanceSummary: 'PerformanceSummary'
+    validateRFQEligibility: 'RfqEligibilityResult'
     variantGroups: 'SupplierItemVariantGroup'
     variantOptions: 'SupplierItemVariantOption'
     vatType: 'VatType'
@@ -8999,6 +9039,17 @@ export interface NexusGenFieldTypeNames {
     breakdown: 'RatingBreakdownItem'
     reviewCount: 'Int'
     verifiedCount: 'Int'
+  }
+  RfqEligibilityResult: { // field return type name
+    correctOrg: 'Boolean'
+    hasAcceptedOffer: 'Boolean'
+    notCancelled: 'Boolean'
+    notConsumed: 'Boolean'
+    notExpired: 'Boolean'
+    notRejected: 'Boolean'
+    reason: 'String'
+    rfqExists: 'Boolean'
+    valid: 'Boolean'
   }
   SalaryHistory: { // field return type name
     ammount: 'Float'
@@ -10104,6 +10155,14 @@ export interface NexusGenArgTypes {
     }
     createCenter: { // args
       label?: string | null; // String
+    }
+    createConsolidatedPurchaseOrder: { // args
+      deliveryDate: NexusGenScalars['DateTime']; // DateTime!
+      driverContact?: string | null; // String
+      driverName?: string | null; // String
+      notes?: string | null; // String
+      otherCharges?: number | null; // Float
+      rfqIds: string[]; // [String!]!
     }
     createContact: { // args
       branchId?: number | null; // Int
@@ -11711,6 +11770,7 @@ export interface NexusGenArgTypes {
       dateTo?: NexusGenScalars['DateTime'] | null; // DateTime
       search?: string | null; // String
       status?: NexusGenEnums['RfqStatus'] | null; // RfqStatus
+      statuses?: Array<NexusGenEnums['RfqStatus'] | null> | null; // [RfqStatus]
       supplierOrgId: number; // Int!
       unreadOnly?: boolean | null; // Boolean
     }
@@ -11813,6 +11873,9 @@ export interface NexusGenArgTypes {
       from: string; // String!
       to: string; // String!
       userId: number; // Int!
+    }
+    validateRFQEligibility: { // args
+      rfqId: string; // String!
     }
     variantGroups: { // args
       supplierItemId: string; // String!

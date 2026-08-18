@@ -37,11 +37,34 @@ export class AppError extends Error {
 
 export interface InboxFilters {
   status?: string;
+  /** When provided, filters by multiple statuses (group-based filtering). */
+  statuses?: string[];
   search?: string;
   unreadOnly?: boolean;
   dateFrom?: Date;
   dateTo?: Date;
 }
+
+/** Result of the 7-rule RFQ eligibility validation. */
+export interface RfqEligibilityResult {
+  valid: boolean;
+  rfqExists: boolean;
+  correctOrg: boolean;
+  notExpired: boolean;
+  hasAcceptedOffer: boolean;
+  notCancelled: boolean;
+  notRejected: boolean;
+  notConsumed: boolean;
+  reason?: string | null;
+}
+
+/** Eligible RFQ statuses for PO creation. */
+export const ELIGIBLE_RFQ_STATUSES = [
+  'NEGOTIATION_ACCEPTED',
+  'AGENT_ACCEPTED_FINAL',
+  'SUPPLIER_ACCEPTED_FINAL',
+  'WAITING_SUPPLIER_CONFIRMATION',
+] as const;
 
 export interface CounterOfferData {
   quantity: number;
@@ -77,6 +100,11 @@ export class SupplierRFQService {
 
     if (filters.status) {
       where.status = filters.status;
+    }
+
+    // Group-based status filtering: e.g. "NEGOTIATING" tab → multiple statuses
+    if (filters.statuses && filters.statuses.length > 0) {
+      where.status = { in: filters.statuses };
     }
 
     if (filters.unreadOnly) {
@@ -134,6 +162,8 @@ export class SupplierRFQService {
             sku: true,
             unit: true,
             unitPrice: true,
+            isVatExempt: true,
+            vatRate: true,
             moq: true,
             availableQty: true,
             leadTime: true,
@@ -184,6 +214,128 @@ export class SupplierRFQService {
 
     logDev('RFQ Inbox', 'Loaded', { count: rfqs.length, supplierOrgId });
     return rfqs;
+  }
+
+  // ─── Eligibility validation (7 rules for PO creation) ──────────────────────────
+
+  /**
+   * Validate an RFQ against the 7 eligibility rules before it can be added to a PO:
+   * 1. RFQ exists
+   * 2. RFQ belongs to the current supplier organization
+   * 3. RFQ has not expired (validityDays or offer validUntil)
+   * 4. RFQ has an accepted offer / is in an eligible state
+   * 5. RFQ is not cancelled
+   * 6. RFQ is not rejected
+   * 7. RFQ has not already been converted into an active/completed PO
+   */
+  async validateRFQEligibility(rfqId: string, supplierOrgId: number): Promise<RfqEligibilityResult> {
+    const rfq = await prisma.requestForQuotation.findUnique({
+      where: { id: rfqId },
+      include: {
+        SupplierItem: {
+          select: { id: true, name: true, isVatExempt: true, vatRate: true },
+        },
+        Conversation: {
+          include: {
+            NegotiationOffer: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    const result: RfqEligibilityResult = {
+      valid: false,
+      rfqExists: false,
+      correctOrg: false,
+      notExpired: false,
+      hasAcceptedOffer: false,
+      notCancelled: false,
+      notRejected: false,
+      notConsumed: false,
+      reason: null,
+    };
+
+    // Rule 1: RFQ exists
+    if (!rfq) {
+      result.reason = 'RFQ not found';
+      return result;
+    }
+    result.rfqExists = true;
+
+    // Rule 2: RFQ belongs to the current supplier organization
+    if (rfq.supplierOrgId !== supplierOrgId) {
+      result.reason = 'RFQ does not belong to your organization';
+      return result;
+    }
+    result.correctOrg = true;
+
+    // Rule 5: RFQ is not cancelled
+    if (rfq.status === 'CANCELLED') {
+      result.reason = 'RFQ has been cancelled';
+      return result;
+    }
+    result.notCancelled = true;
+
+    // Rule 6: RFQ is not rejected (check negotiation offer status)
+    const latestOffer = rfq.Conversation?.NegotiationOffer[0];
+    if (latestOffer?.status === 'REJECTED') {
+      result.reason = 'RFQ offer has been rejected';
+      return result;
+    }
+    result.notRejected = true;
+
+    // Rule 7: RFQ has not already been converted to an active/completed PO
+    const existingPO = await prisma.purchaseOrderRFQ.findFirst({
+      where: { rfqId },
+      include: {
+        po: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    if (existingPO && ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(existingPO.po.status)) {
+      result.reason = 'RFQ is already attached to an active purchase order';
+      return result;
+    }
+    result.notConsumed = true;
+
+    // Rule 3: RFQ has not expired
+    let expired = false;
+    if (rfq.validityDays) {
+      const expiryDate = new Date(rfq.createdAt.getTime() + rfq.validityDays * 24 * 60 * 60 * 1000);
+      if (new Date() > expiryDate) {
+        expired = true;
+      }
+    }
+    // Also check the latest negotiation offer's validUntil
+    if (!expired && latestOffer?.validUntil) {
+      if (new Date() > new Date(latestOffer.validUntil)) {
+        expired = true;
+      }
+    }
+    if (expired) {
+      result.reason = 'RFQ or its latest offer has expired';
+      return result;
+    }
+    result.notExpired = true;
+
+    // Rule 4: RFQ is in an eligible state (has accepted offer / accepted negotiation)
+    const isEligible = ELIGIBLE_RFQ_STATUSES.includes(rfq.status as any);
+    if (!isEligible) {
+      result.reason = `RFQ status '${rfq.status}' is not eligible for PO creation`;
+      return result;
+    }
+    result.hasAcceptedOffer = true;
+
+    result.valid = true;
+    result.reason = null;
+    logDev('RFQ Eligibility', 'Validated', { rfqId, supplierOrgId, valid: true });
+    return result;
   }
 
   // ─── Full detail ─────────────────────────────────────────────────────────────
@@ -613,13 +765,15 @@ export class SupplierRFQService {
       const vatAmount = rfq.SupplierItem?.isVatExempt ? 0 : subtotal * (rfq.SupplierItem?.vatRate ?? 0.12);
       const totalAmount = subtotal + vatAmount;
 
-      // Look up the buyer organization's primary active outlet for delivery
+      // Look up the buyer organization's primary active outlet for delivery.
+      // For Retail flows an outlet may exist; for Wholesale it is optional and
+      // `deliveryOutletId` stays null (the Prisma field is nullable).
       const buyerOrgId = rfq.Agent?.organizationId ?? 0;
       const buyerOutlet = await tx.outlet.findFirst({
         where: { orgId: buyerOrgId, isActive: true },
         select: { id: true },
       });
-      const deliveryOutletId = buyerOutlet?.id ?? 0;
+      const deliveryOutletId = buyerOutlet?.id ?? null;
 
       logDev('PO Creation', 'Resolved buyer outlet', { buyerOrgId, deliveryOutletId });
 
@@ -634,6 +788,7 @@ export class SupplierRFQService {
           totalAmount,
           vatAmount,
           deliveryOutletId,
+          agentId: rfq.Agent?.id ?? null,
           lineItems: {
             create: [
               {
@@ -641,6 +796,9 @@ export class SupplierRFQService {
                 qty: Math.ceil(acceptedQty),
                 unitPrice: acceptedPrice,
                 subtotal,
+                itemName: rfq.SupplierItem?.name,
+                itemSku: rfq.SupplierItem?.sku,
+                itemDescription: rfq.SupplierItem?.description,
               },
             ],
           },
@@ -649,6 +807,7 @@ export class SupplierRFQService {
           lineItems: { include: { supplierItem: true } },
           buyerOrg: { select: { id: true, name: true, profileImg: true } },
           supplierOrg: { select: { id: true, name: true, profileImg: true } },
+          agent: { select: { id: true, fullname: true, email: true, organizationId: true } },
         },
       });
 
@@ -727,6 +886,224 @@ export class SupplierRFQService {
     }
 
     logDev('Accept', 'Negotiation accepted', { rfqId, supplierOrgId });
+    return result;
+  }
+
+  // ─── Consolidated PO creation (multiple RFQs into one PO) ──────────────────────
+
+  /**
+   * Result of the consolidated PO creation.
+   * Mirrors the shape returned by the single-RFQ createPurchaseOrder for
+   * downstream consumers.
+   */
+  async createConsolidatedPurchaseOrder(
+    rfqIds: string[],
+    supplierOrgId: number,
+    deliveryDate: Date,
+    notes?: string,
+    otherCharges: number = 0,
+    driverName?: string,
+    driverContact?: string,
+  ) {
+    if (rfqIds.length === 0) {
+      throw new AppError(400, 'At least one RFQ must be selected');
+    }
+
+    // ── Fetch all RFQs with the data needed for validation + line-item creation ──
+    const rfqs = await Promise.all(
+      rfqIds.map((id) => this.getRFQDetails(id, supplierOrgId)),
+    );
+
+    // ── Validate each RFQ against the 7 eligibility rules ──
+    for (const rfq of rfqs) {
+      const eligibility = await this.validateRFQEligibility(rfq.id, supplierOrgId);
+      if (!eligibility.valid) {
+        throw new AppError(409, `RFQ ${rfq.rfqNumber} is not eligible: ${eligibility.reason ?? 'unknown reason'}`);
+      }
+    }
+
+    // ── All RFQs must belong to the same buyer organization ──
+    const buyerOrgIds = new Set(rfqs.map((r) => r.Agent?.organizationId).filter((id): id is number => id != null));
+    if (buyerOrgIds.size > 1) {
+      throw new AppError(400, 'All selected RFQs must belong to the same buyer organization');
+    }
+    const buyerOrgId = buyerOrgIds.values().next().value;
+
+    // Look up the buyer organization's primary active outlet for delivery.
+    // For Wholesale POs the buyer org may have no outlet — in that case
+    // deliveryOutletId stays null (the Prisma field is nullable).
+    const buyerOutlet = await prisma.outlet.findFirst({
+      where: { orgId: buyerOrgId, isActive: true },
+      select: { id: true },
+    });
+    const deliveryOutletId = buyerOutlet?.id ?? null;
+
+    // ── Build line items and compute financials ──
+    // Line Total = Unit Price × Quantity (per RFQ)
+    // Subtotal = sum of all line totals
+    // VAT = sum of (line_total × vat_rate) for non-exempt items
+    // Grand Total = Subtotal + VAT + Other Charges
+    let subtotal = 0;
+    let totalVat = 0;
+
+    const lineItemsData: Array<{
+      supplierItemId: string;
+      qty: number;
+      unitPrice: number;
+      subtotal: number;
+      itemName?: string | null;
+      itemSku?: string | null;
+      itemDescription?: string | null;
+    }> = [];
+
+    for (const rfq of rfqs) {
+      const acceptedPrice = rfq.acceptedPrice ?? rfq.targetUnitPrice ?? 0;
+      const acceptedQty = rfq.acceptedQuantity ?? Number(rfq.quantity ?? '0');
+      const lineTotal = acceptedPrice * acceptedQty;
+      subtotal += lineTotal;
+
+      const isVatExempt = rfq.SupplierItem?.isVatExempt ?? false;
+      const vatRate = rfq.SupplierItem?.vatRate ?? 0.12;
+      const lineVat = isVatExempt ? 0 : lineTotal * vatRate;
+      totalVat += lineVat;
+
+      lineItemsData.push({
+        supplierItemId: rfq.supplierItemId!,
+        qty: Math.ceil(acceptedQty),
+        unitPrice: acceptedPrice,
+        subtotal: lineTotal,
+        itemName: rfq.SupplierItem?.name,
+        itemSku: rfq.SupplierItem?.sku,
+        itemDescription: rfq.SupplierItem?.description,
+      });
+    }
+
+    const grandTotal = subtotal + totalVat + otherCharges;
+    const poNumber = await this.generatePONumber();
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the consolidated PurchaseOrder
+      const po = await tx.purchaseOrder.create({
+        data: {
+          poNumber,
+          buyerOrgId,
+          supplierOrgId: supplierOrgId,
+          status: 'PENDING',
+          notes: notes,
+          requestedDate: new Date(),
+          totalAmount: grandTotal,
+          vatAmount: totalVat,
+          deliveryOutletId,
+          agentId: rfqs[0]?.Agent?.id ?? null,
+          lineItems: {
+            create: lineItemsData,
+          },
+        },
+        include: {
+          lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
+          buyerOrg: { select: { id: true, name: true, profileImg: true } },
+          supplierOrg: { select: { id: true, name: true, profileImg: true } },
+          agent: { select: { id: true, fullname: true, email: true, organizationId: true } },
+        },
+      });
+
+      // Link each RFQ to the PO via the bridge table
+      for (const rfqId of rfqIds) {
+        await tx.purchaseOrderRFQ.create({
+          data: {
+            poId: po.id,
+            rfqId,
+          },
+        });
+      }
+
+      // Update each RFQ's status to PO_CREATED
+      for (const rfq of rfqs) {
+        await tx.requestForQuotation.update({
+          where: { id: rfq.id },
+          data: {
+            status: 'PO_CREATED',
+            acceptedPrice: rfq.acceptedPrice ?? rfq.targetUnitPrice ?? undefined,
+            acceptedQuantity: rfq.acceptedQuantity ?? Number(rfq.quantity ?? '0'),
+            acceptedDeliveryDate: deliveryDate,
+          },
+        });
+      }
+
+      // Create a single delivery for the consolidated PO
+      const delivery = await tx.delivery.create({
+        data: {
+          poId: po.id,
+          scheduledDate: deliveryDate,
+          status: 'SCHEDULED',
+          driverName,
+          driverContact,
+        },
+      });
+
+      // Send ORDER_CREATED messages to each RFQ's conversation
+      for (const rfq of rfqs) {
+        const convId = rfq.Conversation?.id;
+        if (convId) {
+          await tx.conversationMessage.create({
+            data: {
+              conversationId: convId,
+              senderOrgId: supplierOrgId,
+              message: `Consolidated Purchase Order ${poNumber} has been created with ${rfqIds.length} RFQ(s).`,
+              type: 'CONSOLIDATED_PO_CREATED',
+              metadata: {
+                event: 'consolidated_po_created',
+                poId: po.id,
+                poNumber,
+                rfqIds,
+                deliveryDate: deliveryDate.toISOString(),
+                totalAmount: grandTotal,
+                vatAmount: totalVat,
+                otherCharges,
+              },
+            },
+          });
+
+          await tx.conversation.update({
+            where: { id: convId },
+            data: { updatedAt: new Date() },
+          });
+        }
+      }
+
+      logDev('Consolidated PO Creation', 'Purchase Order created', {
+        poNumber, poId: po.id, rfqCount: rfqIds.length, totalAmount: grandTotal,
+      });
+
+      return { po, delivery };
+    });
+
+    // Notifications + realtime emits happen only after the transaction commits
+    for (const rfq of rfqs) {
+      const agentOrgId = rfq.Agent?.organizationId;
+      if (agentOrgId != null && rfq.Conversation) {
+        void sendConversationNotification({
+          conversationId: rfq.Conversation.id,
+          senderId: supplierOrgId,
+          recipientAgentId: rfq.Agent!.id,
+          recipientUserId: undefined,
+          notificationType: NotificationType.PURCHASE_ORDER_CREATED,
+          message: `Supplier created consolidated PO ${result.po.poNumber} with ${rfqIds.length} RFQ(s).`,
+        });
+
+        sendToOrg(agentOrgId, 'purchaseOrder:created', {
+          po: result.po,
+          poNumber: result.po.poNumber,
+          conversationId: rfq.Conversation.id,
+        });
+        sendToOrg(agentOrgId, 'notification:new', {
+          conversationId: rfq.Conversation.id,
+          purchaseOrderId: result.po.id,
+          category: 'Purchase Order',
+        });
+      }
+    }
+
     return result;
   }
 

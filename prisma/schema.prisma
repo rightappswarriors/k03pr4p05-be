@@ -2276,7 +2276,7 @@ model ReceivedItemMap {
 model PurchaseOrder {
   id                         String                    @id @default(cuid())
   poNumber                   String                    @unique
-  buyerOrgId                 Int
+  buyerOrgId                 Int?
   supplierOrgId              Int
   status                     POStatus                  @default(PENDING)
   notes                      String?
@@ -2285,26 +2285,31 @@ model PurchaseOrder {
   vatAmount                  Float                     @default(0)
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
-  deliveryOutletId           Int
+  deliveryOutletId           Int?
   supplierOrganizationLinkId String?
+  agentId                    String?
   delivery                   Delivery?
   lineItems                  POLineItem[]
-  buyerOrg                   Organization              @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
-  deliveryOutlet             Outlet                    @relation(fields: [deliveryOutletId], references: [id])
+  buyerOrg                   Organization?             @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
+  deliveryOutlet             Outlet?                   @relation(fields: [deliveryOutletId], references: [id])
   supplierOrg                Organization              @relation("SupplierOrg", fields: [supplierOrgId], references: [id])
   supplierOrganizationLink   SupplierOrganizationLink? @relation(fields: [supplierOrganizationLinkId], references: [id])
+  agent                      Agent?                    @relation(fields: [agentId], references: [id])
   purchaseOrderRfqs          PurchaseOrderRFQ[]
 }
 
 model POLineItem {
-  id             String        @id @default(cuid())
-  poId           String
-  supplierItemId String
-  qty            Int
-  unitPrice      Float
-  subtotal       Float
-  po             PurchaseOrder @relation(fields: [poId], references: [id])
-  supplierItem   SupplierItem  @relation(fields: [supplierItemId], references: [id])
+  id               String        @id @default(cuid())
+  poId             String
+  supplierItemId   String
+  qty              Int
+  unitPrice        Float
+  subtotal         Float
+  itemName         String?
+  itemSku          String?
+  itemDescription  String?
+  po               PurchaseOrder @relation(fields: [poId], references: [id])
+  supplierItem     SupplierItem  @relation(fields: [supplierItemId], references: [id])
 }
 
 model PurchaseOrderRFQ {
@@ -2507,6 +2512,7 @@ model Agent {
   RfqOffer                  RfqOffer[]
   assignedOrganizationLinks SupplierOrganizationLink[]
   assignedSupplierLinks     SupplierOutletLink[]       @relation("AgentSupplierLinks")
+  purchaseOrders            PurchaseOrder[]
 
   @@index([organizationId])
   @@index([agentType, verificationStatus])

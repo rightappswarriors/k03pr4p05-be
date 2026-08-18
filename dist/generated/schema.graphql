@@ -1825,6 +1825,7 @@ type Mutation {
   createBudgetEntry(account: String, begBal: Float, months: Json, year: Int): Budget
   createCategories(categories: [String!]!): [ItemCategory!]!
   createCenter(label: String): Center
+  createConsolidatedPurchaseOrder(deliveryDate: DateTime!, driverContact: String, driverName: String, notes: String, otherCharges: Float, rfqIds: [String!]!): CreatePurchaseOrderOutput!
   createContact(branchId: Int, department: String, email: String!, label: String!, name: String!, notes: String, phone: String, position: String): Contact
   createDepartment(name: String, orgId: Int): Department
   createEmployee(departmentId: Int, name: String, orgId: Int, positionId: Int): Employee
@@ -2515,6 +2516,9 @@ type OutletsWithStaff {
 
 type POLineItem {
   id: String!
+  itemDescription: String
+  itemName: String
+  itemSku: String
   qty: Int!
   subtotal: Float!
   supplierItem: SupplierItem!
@@ -3009,13 +3013,15 @@ type PromoType {
 }
 
 type PurchaseOrder {
+  agent: Agent
+  agentId: String
   buyerOrg: Organization!
   createdAt: DateTime!
   delivery: Delivery
   id: String!
   lineItems: [POLineItem!]!
   notes: String
-  outlet: Outlet!
+  outlet: Outlet
   poNumber: String!
   requestedDate: DateTime
   status: POStatus!
@@ -3191,7 +3197,7 @@ type Query {
   supplierFinancePayoutMethods: [PayoutMethod]
   supplierFinanceTransactions: [WalletLedgerEntry]
   supplierFinanceWithdrawals: [Withdrawal]
-  supplierInboxRFQs(dateFrom: DateTime, dateTo: DateTime, search: String, status: RfqStatus, supplierOrgId: Int!, unreadOnly: Boolean): [RequestForQuotation!]!
+  supplierInboxRFQs(dateFrom: DateTime, dateTo: DateTime, search: String, status: RfqStatus, statuses: [RfqStatus], supplierOrgId: Int!, unreadOnly: Boolean): [RequestForQuotation!]!
   supplierIncomingStockList(supplierItemId: String!): [SupplierIncomingStock!]!
   supplierInventoryAnalytics(supplierItemId: String!): InventoryAnalytics
   supplierInventoryDashboard(orgId: Int!): SupplierInventoryDashboard
@@ -3221,6 +3227,7 @@ type Query {
   userAttendanceHistory(limit: Int = 20, page: Int = 1, userId: Int!): PaginatedAttendance
   userManagementStats: UserManagementStats!
   userPerformanceSummary(from: String!, to: String!, userId: Int!): PerformanceSummary
+  validateRFQEligibility(rfqId: String!): RfqEligibilityResult
   variantGroups(supplierItemId: String!): [SupplierItemVariantGroup!]!
   variantOptions(variantGroupId: String!): [SupplierItemVariantOption!]!
   vatType(id: Int): VatType
@@ -3314,7 +3321,7 @@ type RequestForQuotation {
   supplierItem: SupplierItem
   supplierItemId: String
   supplierOrg: Organization
-  supplierOrgId: Int!
+  supplierOrgId: Int
   supplierOrgName: String
   targetUnitPrice: Float
   updatedAt: DateTime!
@@ -3461,6 +3468,18 @@ type ReviewAggregate {
   breakdown: [RatingBreakdownItem!]!
   reviewCount: Int!
   verifiedCount: Int!
+}
+
+type RfqEligibilityResult {
+  correctOrg: Boolean!
+  hasAcceptedOffer: Boolean!
+  notCancelled: Boolean!
+  notConsumed: Boolean!
+  notExpired: Boolean!
+  notRejected: Boolean!
+  reason: String
+  rfqExists: Boolean!
+  valid: Boolean!
 }
 
 input RfqFiltersInput {

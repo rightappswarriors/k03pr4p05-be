@@ -202,7 +202,7 @@ export const RequestForQuotation = objectType({
         t.nonNull.string('id');
         t.nonNull.string('rfqNumber');
         t.nonNull.string('agentId');
-        t.nonNull.int('supplierOrgId');
+        t.nullable.int('supplierOrgId');
         t.nullable.string('supplierOrgName');
         t.nullable.string('supplierItemId');
         t.nonNull.field('status', { type: 'RfqStatus' });
@@ -251,12 +251,18 @@ export const RequestForQuotation = objectType({
         // directly to the RFQ. This preserves the RFQ as the negotiation record.
         t.nullable.field('purchaseOrder', {
             type: 'PurchaseOrder',
-            resolve: (parent, _, ctx) => parent.purchaseOrderId
-                ? ctx.prisma.purchaseOrder.findUnique({
-                    where: { id: parent.purchaseOrderId },
+            resolve: async (parent, _, ctx) => {
+                const rfqLink = await ctx.prisma.purchaseOrderRFQ.findFirst({
+                    where: { rfqId: parent.id, po: { status: { not: 'CANCELLED' } } },
+                    select: { poId: true },
+                });
+                if (!rfqLink)
+                    return null;
+                return ctx.prisma.purchaseOrder.findUnique({
+                    where: { id: rfqLink.poId },
                     include: { lineItems: { include: { supplierItem: true } }, delivery: true },
-                })
-                : null,
+                });
+            },
         });
     },
 });
@@ -316,5 +322,20 @@ export const CreatePurchaseOrderOutput = objectType({
         t.nonNull.boolean('success');
         t.nonNull.string('poNumber');
         t.field('purchaseOrder', { type: 'PurchaseOrder' });
+    },
+});
+// ─── RFQ Eligibility Validation Result ──────────────────────────────────────
+export const RfqEligibilityResult = objectType({
+    name: 'RfqEligibilityResult',
+    definition(t) {
+        t.nonNull.boolean('valid');
+        t.nonNull.boolean('rfqExists');
+        t.nonNull.boolean('correctOrg');
+        t.nonNull.boolean('notExpired');
+        t.nonNull.boolean('hasAcceptedOffer');
+        t.nonNull.boolean('notCancelled');
+        t.nonNull.boolean('notRejected');
+        t.nonNull.boolean('notConsumed');
+        t.nullable.string('reason');
     },
 });
