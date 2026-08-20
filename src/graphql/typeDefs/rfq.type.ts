@@ -131,7 +131,14 @@ export const MessageTypeEnum = enumType({
         "OFFER_ACCEPTED",
         "OFFER_REJECTED",
         "SUPPLIER_CONFIRMED",
-        "CONSOLIDATED_PO_CREATED"
+        "CONSOLIDATED_PO_CREATED",
+        "PO_ACCEPTED",
+        "PO_REJECTED",
+        "RECEIPT_UPLOADED",
+        "PAYMENT_RECEIVED",
+        "DELIVERY_SCHEDULED",
+        "SHIPMENT_DISPATCHED",
+        "DELIVERY_COMPLETED"
     ],
 });
 
@@ -168,7 +175,15 @@ export const Conversation = objectType({
     definition(t) {
         t.nonNull.string('id');
         t.nullable.string('rfqId');
+        t.nullable.string('poId');
         t.nonNull.field('type', { type: 'ConversationType' });
+        t.nullable.field('po', {
+            type: 'PurchaseOrder',
+            resolve: (parent, _, ctx) =>
+                parent.poId
+                    ? ctx.prisma.purchaseOrder.findUnique({ where: { id: parent.poId } })
+                    : null,
+        });
         t.nonNull.field('createdAt', { type: 'DateTime' });
         t.nonNull.field('updatedAt', { type: 'DateTime' });
         t.nullable.field('rfq', {

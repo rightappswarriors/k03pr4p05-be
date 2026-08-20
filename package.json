@@ -21,7 +21,6 @@
   "type": "module",
   "dependencies": {
     "@apollo/server": "^5.0.0",
-    "@prisma/extension-accelerate": "^3.0.1",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
@@ -39,7 +38,6 @@
     "ngrok": "^5.0.0-beta.2",
     "nodemailer": "^8.0.4",
     "pg": "^8.16.3",
-    "prisma": "^6.0.0",
     "react": "^19.2.4",
     "redis": "^5.12.1",
     "resend": "^6.10.0",

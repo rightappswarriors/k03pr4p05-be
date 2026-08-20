@@ -532,6 +532,8 @@ type Conversation {
   messages(orderBy: MessageOrderByInput, take: Int): [ConversationMessage!]!
   offers(orderBy: OfferOrderByInput, take: Int): [NegotiationOffer!]!
   participants: [ConversationParticipant!]!
+  po: PurchaseOrder
+  poId: String
   rfq: RequestForQuotation
   rfqId: String
   type: ConversationType!
@@ -883,11 +885,14 @@ enum DateRangePreset {
 scalar DateTime
 
 type Delivery {
+  address: String
   createdAt: DateTime!
   deliveredAt: DateTime
   driverContact: String
   driverName: String
   id: String!
+  latitude: Float
+  longitude: Float
   notes: String
   po: PurchaseOrder!
   scheduledDate: DateTime!
@@ -1777,14 +1782,21 @@ input MessageOrderByInput {
 enum MessageType {
   CONSOLIDATED_PO_CREATED
   COUNTER_OFFER
+  DELIVERY_COMPLETED
+  DELIVERY_SCHEDULED
   FINAL_OFFER
   OFFER_ACCEPTED
   OFFER_REJECTED
   ORDER_CREATED
+  PAYMENT_RECEIVED
   PAYMENT_UPDATE
+  PO_ACCEPTED
+  PO_REJECTED
   PRICE_ACCEPTED
   PRICE_REJECTED
+  RECEIPT_UPLOADED
   RFQ_CREATED
+  SHIPMENT_DISPATCHED
   SUPPLIER_CONFIRMED
   SYSTEM
   TEXT
@@ -1972,6 +1984,8 @@ type Mutation {
   reviewVerificationDocument(id: String!, remarks: String, reviewedById: Int, status: VerificationStatus!): BusinessVerificationDocument!
   revokeInvitation(id: String!): ProcurementInvitation!
   runVerificationExpiryCheck: Int!
+  sendPoMessage(input: SendPoMessageInput!): ConversationMessage!
+  sendPoReceipt(input: SendPoReceiptInput!): PurchaseOrder!
   setItemPrimaryMedia(itemId: Int!, mediaId: Int!): [Media!]!
   setPositionPermissions(permissions: [PermissionInput!]!, positionId: String!): [PositionPermission!]!
   setUserPermissionOverride(canCreate: Boolean, canDelete: Boolean, canEdit: Boolean, canView: Boolean, pageId: String!, userId: Int!): UserPermissionOverride!
@@ -1979,6 +1993,7 @@ type Mutation {
   signup(contactNumber: String!, email: String!, fullname: String!, password: String!, role: Role, username: String!): User!
   startBreak(noteBreakStart: String!, photoBreakStart: String!): Attendance
   startDelivery(poId: String!): Delivery!
+  startPOConversation(poId: String!): Conversation
   supplierAcknowledgeOrder(token: String!): SupplierOrder
   supplierSubmitOrder(action: String!, items: [SupplierOrderItemInput!]!, message: String, token: String!): SupplierOrder
   timeIn(noteIn: String!, photoIn: String!): Attendance
@@ -2619,6 +2634,13 @@ enum PaymentRelatedType {
   SUBSCRIPTION
 }
 
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  PENDING
+  REFUNDED
+}
+
 type PaymentTransaction {
   amount: Float!
   createdAt: DateTime!
@@ -3016,13 +3038,17 @@ type PurchaseOrder {
   agent: Agent
   agentId: String
   buyerOrg: Organization!
+  conversation: Conversation
+  conversationId: String
   createdAt: DateTime!
   delivery: Delivery
   id: String!
   lineItems: [POLineItem!]!
   notes: String
   outlet: Outlet
+  paymentStatus: PaymentStatus!
   poNumber: String!
+  receiptSnapshot: Json
   requestedDate: DateTime
   status: POStatus!
   supplierOrg: Organization!
@@ -3708,6 +3734,23 @@ input SearchItemInput {
   itemId: Int!
   name: String!
   quantityWanted: Int!
+}
+
+input SendPoMessageInput {
+  attachments: [String]
+  clientMessageId: String
+  message: String!
+  poId: String!
+}
+
+input SendPoReceiptInput {
+  paidAt: DateTime
+  paymentMethod: String!
+  paymentReference: String
+  pdfUrl: String
+  poId: String!
+  receiptId: String
+  totalAmount: Float!
 }
 
 enum SettlementType {

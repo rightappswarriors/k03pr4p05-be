@@ -54,6 +54,15 @@ export const PurchaseOrder = objectType({
             resolve: (parent, _, ctx) => ctx.prisma.delivery.findUnique({ where: { poId: parent.id } }),
         });
         t.nullable.string('agentId');
+        t.nonNull.field('paymentStatus', { type: 'PaymentStatus' });
+        t.nullable.field('receiptSnapshot', { type: 'Json' });
+        t.nullable.string('conversationId');
+        t.nullable.field('conversation', {
+            type: 'Conversation',
+            resolve: (parent, _, ctx) => parent.conversationId
+                ? ctx.prisma.conversation.findUnique({ where: { id: parent.conversationId } })
+                : null,
+        });
         t.nullable.field('agent', {
             type: 'Agent',
             resolve: (parent, _, ctx) => parent.agentId

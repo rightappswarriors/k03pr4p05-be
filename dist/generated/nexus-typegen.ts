@@ -492,6 +492,21 @@ export interface NexusGenInputs {
     name: string; // String!
     quantityWanted: number; // Int!
   }
+  SendPoMessageInput: { // input type
+    attachments?: Array<string | null> | null; // [String]
+    clientMessageId?: string | null; // String
+    message: string; // String!
+    poId: string; // String!
+  }
+  SendPoReceiptInput: { // input type
+    paidAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    paymentMethod: string; // String!
+    paymentReference?: string | null; // String
+    pdfUrl?: string | null; // String
+    poId: string; // String!
+    receiptId?: string | null; // String
+    totalAmount: number; // Float!
+  }
   SupplierOrderItemInput: { // input type
     deliveredQty: number; // Float!
     exactExpiryDate?: NexusGenScalars['DateTime'] | null; // DateTime
@@ -706,7 +721,7 @@ export interface NexusGenEnums {
   MarketplaceListingStatus: "ARCHIVED" | "DRAFT" | "PUBLISHED" | "READY" | "SUSPENDED"
   MediaType: "image" | "video"
   MembershipStatus: "ACTIVE" | "PENDING" | "REVOKED" | "SUSPENDED"
-  MessageType: "CONSOLIDATED_PO_CREATED" | "COUNTER_OFFER" | "FINAL_OFFER" | "OFFER_ACCEPTED" | "OFFER_REJECTED" | "ORDER_CREATED" | "PAYMENT_UPDATE" | "PRICE_ACCEPTED" | "PRICE_REJECTED" | "RFQ_CREATED" | "SUPPLIER_CONFIRMED" | "SYSTEM" | "TEXT"
+  MessageType: "CONSOLIDATED_PO_CREATED" | "COUNTER_OFFER" | "DELIVERY_COMPLETED" | "DELIVERY_SCHEDULED" | "FINAL_OFFER" | "OFFER_ACCEPTED" | "OFFER_REJECTED" | "ORDER_CREATED" | "PAYMENT_RECEIVED" | "PAYMENT_UPDATE" | "PO_ACCEPTED" | "PO_REJECTED" | "PRICE_ACCEPTED" | "PRICE_REJECTED" | "RECEIPT_UPLOADED" | "RFQ_CREATED" | "SHIPMENT_DISPATCHED" | "SUPPLIER_CONFIRMED" | "SYSTEM" | "TEXT"
   NegotiationOfferStatus: "ACCEPTED" | "COUNTERED" | "PENDING" | "REJECTED"
   NotificationType: "COUNTER_OFFER" | "NEGOTIATION_ACCEPTED" | "NEGOTIATION_REJECTED" | "NEW_TRANSACTION" | "ORG_CRITICAL_STOCK" | "OUTLET_LOW_STOCK" | "PURCHASE_ORDER_CREATED" | "RFQ_RECEIVED"
   OrderModeEnum: "DELIVERY" | "PICK_UP" | "WALK_IN"
@@ -719,6 +734,7 @@ export interface NexusGenEnums {
   PaymentGatewayProvider: "BANK_API" | "GCASH" | "PAYMAYA" | "PAYMONGO"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
   PaymentRelatedType: "KOMPRA_C_ORDER" | "MANDATE_TRANSACTION" | "SALES_ORDER" | "SUBSCRIPTION"
+  PaymentStatus: "PAID" | "PARTIAL" | "PENDING" | "REFUNDED"
   PaymentTransactionStatus: "FAILED" | "PENDING" | "REFUNDED" | "SUCCEEDED"
   PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
@@ -1056,6 +1072,7 @@ export interface NexusGenObjects {
   Conversation: { // root type
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
+    poId?: string | null; // String
     rfqId?: string | null; // String
     type: NexusGenEnums['ConversationType']; // ConversationType!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -1209,11 +1226,14 @@ export interface NexusGenObjects {
     totalUsers: number; // Int!
   }
   Delivery: { // root type
+    address?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     deliveredAt?: NexusGenScalars['DateTime'] | null; // DateTime
     driverContact?: string | null; // String
     driverName?: string | null; // String
     id: string; // String!
+    latitude?: number | null; // Float
+    longitude?: number | null; // Float
     notes?: string | null; // String
     scheduledDate: NexusGenScalars['DateTime']; // DateTime!
     status: NexusGenEnums['DeliveryStatus']; // DeliveryStatus!
@@ -2340,10 +2360,13 @@ export interface NexusGenObjects {
   }
   PurchaseOrder: { // root type
     agentId?: string | null; // String
+    conversationId?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     id: string; // String!
     notes?: string | null; // String
+    paymentStatus: NexusGenEnums['PaymentStatus']; // PaymentStatus!
     poNumber: string; // String!
+    receiptSnapshot?: NexusGenScalars['Json'] | null; // Json
     requestedDate?: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['POStatus']; // POStatus!
     totalAmount: number; // Float!
@@ -3642,6 +3665,8 @@ export interface NexusGenFieldTypes {
     messages: NexusGenRootTypes['ConversationMessage'][]; // [ConversationMessage!]!
     offers: NexusGenRootTypes['NegotiationOffer'][]; // [NegotiationOffer!]!
     participants: NexusGenRootTypes['ConversationParticipant'][]; // [ConversationParticipant!]!
+    po: NexusGenRootTypes['PurchaseOrder'] | null; // PurchaseOrder
+    poId: string | null; // String
     rfq: NexusGenRootTypes['RequestForQuotation'] | null; // RequestForQuotation
     rfqId: string | null; // String
     type: NexusGenEnums['ConversationType']; // ConversationType!
@@ -3803,11 +3828,14 @@ export interface NexusGenFieldTypes {
     totalUsers: number; // Int!
   }
   Delivery: { // field return type
+    address: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     deliveredAt: NexusGenScalars['DateTime'] | null; // DateTime
     driverContact: string | null; // String
     driverName: string | null; // String
     id: string; // String!
+    latitude: number | null; // Float
+    longitude: number | null; // Float
     notes: string | null; // String
     po: NexusGenRootTypes['PurchaseOrder']; // PurchaseOrder!
     scheduledDate: NexusGenScalars['DateTime']; // DateTime!
@@ -4573,6 +4601,8 @@ export interface NexusGenFieldTypes {
     reviewVerificationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
     revokeInvitation: NexusGenRootTypes['ProcurementInvitation']; // ProcurementInvitation!
     runVerificationExpiryCheck: number; // Int!
+    sendPoMessage: NexusGenRootTypes['ConversationMessage']; // ConversationMessage!
+    sendPoReceipt: NexusGenRootTypes['PurchaseOrder']; // PurchaseOrder!
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setPositionPermissions: NexusGenRootTypes['PositionPermission'][]; // [PositionPermission!]!
     setUserPermissionOverride: NexusGenRootTypes['UserPermissionOverride']; // UserPermissionOverride!
@@ -4580,6 +4610,7 @@ export interface NexusGenFieldTypes {
     signup: NexusGenRootTypes['User']; // User!
     startBreak: NexusGenRootTypes['Attendance'] | null; // Attendance
     startDelivery: NexusGenRootTypes['Delivery']; // Delivery!
+    startPOConversation: NexusGenRootTypes['Conversation'] | null; // Conversation
     supplierAcknowledgeOrder: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     supplierSubmitOrder: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     timeIn: NexusGenRootTypes['Attendance'] | null; // Attendance
@@ -5357,13 +5388,17 @@ export interface NexusGenFieldTypes {
     agent: NexusGenRootTypes['Agent'] | null; // Agent
     agentId: string | null; // String
     buyerOrg: NexusGenRootTypes['Organization']; // Organization!
+    conversation: NexusGenRootTypes['Conversation'] | null; // Conversation
+    conversationId: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     delivery: NexusGenRootTypes['Delivery'] | null; // Delivery
     id: string; // String!
     lineItems: NexusGenRootTypes['POLineItem'][]; // [POLineItem!]!
     notes: string | null; // String
     outlet: NexusGenRootTypes['Outlet'] | null; // Outlet
+    paymentStatus: NexusGenEnums['PaymentStatus']; // PaymentStatus!
     poNumber: string; // String!
+    receiptSnapshot: NexusGenScalars['Json'] | null; // Json
     requestedDate: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['POStatus']; // POStatus!
     supplierOrg: NexusGenRootTypes['Organization']; // Organization!
@@ -6984,6 +7019,8 @@ export interface NexusGenFieldTypeNames {
     messages: 'ConversationMessage'
     offers: 'NegotiationOffer'
     participants: 'ConversationParticipant'
+    po: 'PurchaseOrder'
+    poId: 'String'
     rfq: 'RequestForQuotation'
     rfqId: 'String'
     type: 'ConversationType'
@@ -7145,11 +7182,14 @@ export interface NexusGenFieldTypeNames {
     totalUsers: 'Int'
   }
   Delivery: { // field return type name
+    address: 'String'
     createdAt: 'DateTime'
     deliveredAt: 'DateTime'
     driverContact: 'String'
     driverName: 'String'
     id: 'String'
+    latitude: 'Float'
+    longitude: 'Float'
     notes: 'String'
     po: 'PurchaseOrder'
     scheduledDate: 'DateTime'
@@ -7915,6 +7955,8 @@ export interface NexusGenFieldTypeNames {
     reviewVerificationDocument: 'BusinessVerificationDocument'
     revokeInvitation: 'ProcurementInvitation'
     runVerificationExpiryCheck: 'Int'
+    sendPoMessage: 'ConversationMessage'
+    sendPoReceipt: 'PurchaseOrder'
     setItemPrimaryMedia: 'Media'
     setPositionPermissions: 'PositionPermission'
     setUserPermissionOverride: 'UserPermissionOverride'
@@ -7922,6 +7964,7 @@ export interface NexusGenFieldTypeNames {
     signup: 'User'
     startBreak: 'Attendance'
     startDelivery: 'Delivery'
+    startPOConversation: 'Conversation'
     supplierAcknowledgeOrder: 'SupplierOrder'
     supplierSubmitOrder: 'SupplierOrder'
     timeIn: 'Attendance'
@@ -8699,13 +8742,17 @@ export interface NexusGenFieldTypeNames {
     agent: 'Agent'
     agentId: 'String'
     buyerOrg: 'Organization'
+    conversation: 'Conversation'
+    conversationId: 'String'
     createdAt: 'DateTime'
     delivery: 'Delivery'
     id: 'String'
     lineItems: 'POLineItem'
     notes: 'String'
     outlet: 'Outlet'
+    paymentStatus: 'PaymentStatus'
     poNumber: 'String'
+    receiptSnapshot: 'Json'
     requestedDate: 'DateTime'
     status: 'POStatus'
     supplierOrg: 'Organization'
@@ -10847,6 +10894,12 @@ export interface NexusGenArgTypes {
     revokeInvitation: { // args
       id: string; // String!
     }
+    sendPoMessage: { // args
+      input: NexusGenInputs['SendPoMessageInput']; // SendPoMessageInput!
+    }
+    sendPoReceipt: { // args
+      input: NexusGenInputs['SendPoReceiptInput']; // SendPoReceiptInput!
+    }
     setItemPrimaryMedia: { // args
       itemId: number; // Int!
       mediaId: number; // Int!
@@ -10880,6 +10933,9 @@ export interface NexusGenArgTypes {
       photoBreakStart: string; // String!
     }
     startDelivery: { // args
+      poId: string; // String!
+    }
+    startPOConversation: { // args
       poId: string; // String!
     }
     supplierAcknowledgeOrder: { // args

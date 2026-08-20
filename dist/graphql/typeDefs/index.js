@@ -47,6 +47,7 @@ export * from '../types/added.types.js';
 export * from "./contact.type.js";
 export * from './poStatus.type.js';
 export * from './deliveryStatus.type.js';
+export * from './paymentStatus.type.js';
 export * from './supplierItem.type.js';
 export * from './purchaseOrder.type.js';
 export * from './delivery.type.js';

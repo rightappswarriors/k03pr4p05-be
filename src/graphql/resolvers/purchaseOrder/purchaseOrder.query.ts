@@ -62,6 +62,13 @@ export const PurchaseOrderQuery = extendType({
             delivery: true,
             buyerOrg: true,
             supplierOrg: true,
+          //  outlet: true,
+            Conversation: {
+              include: {
+                ConversationParticipant: { include: { Agent: true, Organization: true } },
+                ConversationMessage: { orderBy: { createdAt: 'asc' }, include: { Agent: true, Organization: true } },
+              },
+            },
           },
         })
       },

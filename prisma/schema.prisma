@@ -2288,6 +2288,9 @@ model PurchaseOrder {
   deliveryOutletId           Int?
   supplierOrganizationLinkId String?
   agentId                    String?
+  conversationId             String?             @unique
+  paymentStatus              PaymentStatus       @default(PENDING)
+  receiptSnapshot            Json?
   delivery                   Delivery?
   lineItems                  POLineItem[]
   buyerOrg                   Organization?             @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
@@ -2296,6 +2299,7 @@ model PurchaseOrder {
   supplierOrganizationLink   SupplierOrganizationLink? @relation(fields: [supplierOrganizationLinkId], references: [id])
   agent                      Agent?                    @relation(fields: [agentId], references: [id])
   purchaseOrderRfqs          PurchaseOrderRFQ[]
+  Conversation               Conversation?             @relation(fields: [conversationId], references: [id])
 }
 
 model POLineItem {
@@ -2331,6 +2335,9 @@ model Delivery {
   driverName    String?
   driverContact String?
   notes         String?
+  latitude      Float?
+  longitude     Float?
+  address       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   po            PurchaseOrder  @relation(fields: [poId], references: [id])
@@ -3012,6 +3019,7 @@ model SupplierItemVariantImage {
 model Conversation {
   id                      String                    @id @default(cuid())
   rfqId                   String?                   @unique
+  poId                    String?                   @unique
   type                    ConversationType          @default(RFQ)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
@@ -3020,8 +3028,10 @@ model Conversation {
   ConversationParticipant ConversationParticipant[]
   NegotiationOffer        NegotiationOffer[]
   RequestForQuotation     RequestForQuotation?
+  PurchaseOrder           PurchaseOrder?
 
   @@index([rfqId])
+  @@index([poId])
 }
 
 model ConversationMessage {
@@ -3737,6 +3747,20 @@ enum MessageType {
   OFFER_REJECTED
   SUPPLIER_CONFIRMED
   CONSOLIDATED_PO_CREATED
+  PO_ACCEPTED
+  PO_REJECTED
+  RECEIPT_UPLOADED
+  PAYMENT_RECEIVED
+  DELIVERY_SCHEDULED
+  SHIPMENT_DISPATCHED
+  DELIVERY_COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  REFUNDED
 }
 
 enum NegotiationStatus {
