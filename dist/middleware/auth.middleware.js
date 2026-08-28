@@ -4,10 +4,25 @@ export function requireAuth(ctx) {
             console.error("Authentication required");
         throw new Error("Authentication required");
     }
+    // This is intentionally centralized so authenticated business resolvers
+    // that only call requireAuth cannot bypass an organization enforcement.
+    // Platform administrators remain able to review governed accounts.
+    if (ctx.user.role !== 'ADMIN' && ctx.user.orgAccountStatus === 'BANNED') {
+        throw new Error('Organization account is banned.');
+    }
+    if (ctx.user.role !== 'ADMIN' && ctx.user.orgAccountStatus === 'SUSPENDED') {
+        throw new Error('Organization account is suspended.');
+    }
 }
 // middleware/auth.middleware.ts
 export function requirePagePermission(ctx, pageKey, action) {
     requireAuth(ctx);
+    if (ctx.user?.role !== 'ADMIN' && ctx.user?.orgAccountStatus === 'BANNED') {
+        throw new Error('Organization account is banned.');
+    }
+    if (ctx.user?.role !== 'ADMIN' && ctx.user?.orgAccountStatus === 'SUSPENDED') {
+        throw new Error('Organization account is suspended.');
+    }
     if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER")
         return; // bypass
     const perm = ctx.userPermissions[pageKey]; // ← just a map lookup, no DB
@@ -32,6 +47,9 @@ export function requireAnyPagePermission(ctx, pages) {
 // middleware/auth.middleware.ts
 export function requireControlPermission(ctx, controlKey) {
     requireAuth(ctx);
+    if (ctx.user?.role !== 'ADMIN' && ctx.user?.orgAccountStatus !== null && ctx.user?.orgAccountStatus !== undefined && ctx.user.orgAccountStatus !== 'ACTIVE') {
+        throw new Error(`Organization account is ${ctx.user.orgAccountStatus.toLowerCase()}.`);
+    }
     if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER")
         return;
     const isAllowed = ctx.controlPermissions?.[controlKey];

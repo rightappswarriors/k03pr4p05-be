@@ -3,6 +3,10 @@ export * from './admin/admin.mutation.js';
 export * from './admin/admin.query.js';
 export * from './admin/adminStat.query.js';
 export * from './admin/admin.dashboard.js';
+export * from './admin/feeRule.resolver.js';
+export * from './admin/paymentConfirmation.resolver.js';
+export * from './admin/adminGovernance.resolver.js';
+export * from './admin/commerce.resolver.js';
 // AccountTitle
 export * from './accountTitle/accountTitle.mutation.js';
 export * from './accountTitle/accountTitle.query.js';

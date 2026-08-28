@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { sendToOrg, sendToUser } from '../lib/ws.js';
 const notificationTitles = {
     OUTLET_LOW_STOCK: 'Low stock alert',
     ORG_CRITICAL_STOCK: 'Critical stock alert',
@@ -21,8 +22,8 @@ function warnInDevelopment(message, context) {
  */
 export async function sendConversationNotification(input) {
     const { conversationId, senderId, recipientAgentId, recipientUserId, notificationType, message } = input;
-    if (recipientUserId == null) {
-        warnInDevelopment('Skipped notification because the recipient agent has no user target.', {
+    if (recipientAgentId == null) {
+        warnInDevelopment('Skipped notification because no recipient agent was specified.', {
             conversationId,
             senderId,
             recipientAgentId,
@@ -33,28 +34,48 @@ export async function sendConversationNotification(input) {
     try {
         const participant = await prisma.conversationParticipant.findFirst({
             where: { conversationId, agentId: recipientAgentId },
-            select: { Agent: { select: { organizationId: true } } },
+            select: { Agent: { select: { organizationId: true, id: true } } },
         });
         const recipientOrgId = participant?.Agent?.organizationId;
-        if (recipientOrgId == null) {
-            warnInDevelopment('Skipped notification because the recipient agent has no organization inbox.', {
-                conversationId,
-                senderId,
-                recipientAgentId,
-                recipientUserId,
-                notificationType,
-            });
-            return { delivered: false };
-        }
-        await prisma.notification.create({
+        // Per architecture rule: an Agent may exist without an organization.
+        // agentId is the primary recipient identity. If the agent has no org,
+        // orgId is left null but the notification is still created and delivered.
+        const notification = await prisma.notification.create({
             data: {
-                orgId: recipientOrgId,
+                orgId: recipientOrgId ?? null,
+                agentId: recipientAgentId,
                 type: notificationType,
                 title: notificationTitles[notificationType],
+                conversationId,
                 message,
                 isRead: false,
             },
         });
+        // Realtime delivery — prefer direct agent targeting, fall back to org room
+        if (recipientUserId != null) {
+            sendToUser(recipientUserId, "notification:new", {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                conversationId,
+                agentId: recipientAgentId,
+                orgId: recipientOrgId ?? null,
+                createdAt: notification.createdAt,
+            });
+        }
+        if (recipientOrgId != null) {
+            sendToOrg(recipientOrgId, "notification:new", {
+                id: notification.id,
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                conversationId,
+                agentId: recipientAgentId,
+                orgId: recipientOrgId,
+                createdAt: notification.createdAt,
+            });
+        }
         return { delivered: true };
     }
     catch (error) {

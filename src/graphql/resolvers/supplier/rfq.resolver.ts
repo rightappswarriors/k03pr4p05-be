@@ -1,7 +1,9 @@
+
 // GraphQL resolvers for Supplier RFQ Inbox & Negotiation
-import { extendType, nonNull, intArg, arg, list, stringArg } from 'nexus';
+import { extendType, nonNull, intArg, arg, list, stringArg, nullable, booleanArg } from 'nexus';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
-import { SupplierRFQService } from '../../../services/supplierRFQService.js';
+import { SupplierRFQService, RfqEligibilityResult, ELIGIBLE_RFQ_STATUSES } from '../../../services/supplierRFQService.js';
+import { markConversationNotificationsRead } from '../../../services/notification.service.js';
 
 const service = new SupplierRFQService();
 
@@ -16,6 +18,7 @@ export const SupplierRfqQuery = extendType({
             args: {
                 supplierOrgId: nonNull(intArg()),
                 status: arg({ type: 'RfqStatus' }),
+                statuses: list(arg({ type: 'RfqStatus' })),
                 search: stringArg(),
                 unreadOnly: arg({ type: 'Boolean' }),
                 dateFrom: arg({ type: 'DateTime' }),
@@ -29,11 +32,25 @@ export const SupplierRfqQuery = extendType({
                 }
                 return service.getSupplierInbox(args.supplierOrgId, {
                     status: args.status ?? undefined,
+                    statuses: args.statuses ?? undefined,
                     search: args.search ?? undefined,
                     unreadOnly: args.unreadOnly ?? false,
                     dateFrom: args.dateFrom ?? undefined,
                     dateTo: args.dateTo ?? undefined,
                 });
+            },
+        });
+
+        // Validate RFQ eligibility for PO creation (7-rule check)
+        t.field('validateRFQEligibility', {
+            type: 'RfqEligibilityResult',
+            args: {
+                rfqId: nonNull(stringArg()),
+            },
+            resolve: async (_, { rfqId }, ctx) => {
+                requireAuth(ctx);
+                const user = ctx.user!;
+                return service.validateRFQEligibility(rfqId, user.orgId);
             },
         });
 
@@ -52,6 +69,8 @@ export const SupplierRfqQuery = extendType({
                 const conversationId = result.Conversation?.id;
                 if (conversationId) {
                     await service.markRead(conversationId, user.orgId).catch(() => {});
+                    // Also mark all notifications tied to this conversation as read
+                    void markConversationNotificationsRead(conversationId, user.orgId).catch(() => {});
                 }
 
                 return result;
@@ -169,6 +188,34 @@ export const SupplierRfqMutation = extendType({
             },
         });
 
+        // Create Consolidated Purchase Order (multiple RFQs)
+        t.nonNull.field('createConsolidatedPurchaseOrder', {
+            type: 'CreatePurchaseOrderOutput',
+            args: {
+                rfqIds: nonNull(list(nonNull(stringArg()))),
+                deliveryDate: nonNull(arg({ type: 'DateTime' })),
+                notes: stringArg(),
+                otherCharges: arg({ type: 'Float' }),
+                driverName: stringArg(),
+                driverContact: stringArg(),
+            },
+            resolve: async (_, args, ctx) => {
+                requireAuth(ctx);
+                const user = ctx.user!;
+                // Ownership check is performed inside createConsolidatedPurchaseOrder
+                const result = await service.createConsolidatedPurchaseOrder(
+                    args.rfqIds,
+                    user.orgId,
+                    args.deliveryDate,
+                    args.notes ?? undefined,
+                    args.otherCharges ?? 0,
+                    args.driverName ?? undefined,
+                    args.driverContact ?? undefined,
+                );
+                return { success: true, poNumber: result.po.poNumber, purchaseOrder: result.po };
+            },
+        });
+
         // Mark RFQ conversation as read
         t.nonNull.boolean('markRFQRead', {
             args: {
@@ -182,6 +229,8 @@ export const SupplierRfqMutation = extendType({
                     throw new Error('RFQ has no conversation');
                 }
                 await service.markRead(rfq.Conversation.id, user.orgId);
+                // Also mark DB notifications as read
+                void markConversationNotificationsRead(rfq.Conversation.id, user.orgId).catch(() => {});
                 return true;
             },
         });

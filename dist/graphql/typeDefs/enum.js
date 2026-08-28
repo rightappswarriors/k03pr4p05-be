@@ -148,7 +148,9 @@ export const WithdrawalStatus = enumType({
         'APPROVED',
         'PROCESSING',
         'COMPLETED',
-        'REJECTED'
+        'REJECTED',
+        'FAILED',
+        'CANCELLED'
     ]
 });
 export const PaymentGatewayProvider = enumType({
@@ -170,11 +172,11 @@ export const LedgerEntryStatus = enumType({
 });
 export const PaymentTransactionStatus = enumType({
     name: 'PaymentTransactionStatus',
-    members: ['PENDING', 'SUCCEEDED', 'FAILED', 'REFUNDED']
+    members: ['PENDING', 'AWAITING_PAYMENT', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'REFUNDED']
 });
 export const PaymentRelatedType = enumType({
     name: 'PaymentRelatedType',
-    members: ['KOMPRA_C_ORDER', 'SALES_ORDER', 'MANDATE_TRANSACTION', 'SUBSCRIPTION']
+    members: ['KOMPRA_C_ORDER', 'SALES_ORDER', 'MANDATE_TRANSACTION', 'SUBSCRIPTION', 'PURCHASE_ORDER']
 });
 export const SettlementType = enumType({
     name: 'SettlementType',
@@ -198,7 +200,7 @@ export const DisputeStatus = enumType({
 });
 export const FeeApplication = enumType({
     name: 'FeeApplication',
-    members: ['MANDATE_TRANSACTION', 'RETAIL_ORDER']
+    members: ['MANDATE_TRANSACTION', 'RETAIL_ORDER', 'PURCHASE_ORDER']
 });
 export const FeeRateType = enumType({
     name: 'FeeRateType',
@@ -210,5 +212,17 @@ export const AuditAction = enumType({
 });
 export const AgentStatus = enumType({
     name: 'AgentStatus',
-    members: ['REGISTERED', 'PENDING_VERIFICATION', 'PENDING_ORGANIZATION_APPROVAL', 'ACTIVE', 'REJECTED'],
+    members: ['REGISTERED', 'PENDING_VERIFICATION', 'PENDING_ORGANIZATION_APPROVAL', 'ACTIVE', 'REJECTED', 'SUSPENDED', 'BANNED'],
+});
+export const SandboxPayoutOutcome = enumType({
+    name: 'SandboxPayoutOutcome',
+    members: ['SUCCESS', 'FAILURE', 'DELAYED'],
+});
+export const OrganizationAccountStatus = enumType({
+    name: 'OrganizationAccountStatus',
+    members: ['ACTIVE', 'SUSPENDED', 'BANNED'],
+});
+export const PlatformLedgerSourceType = enumType({
+    name: 'PlatformLedgerSourceType',
+    members: ['TRANSACTION_FEE', 'SUBSCRIPTION_FEE', 'WITHDRAWAL_FEE', 'REFUND', 'REVERSAL', 'MANUAL_ADJUSTMENT'],
 });

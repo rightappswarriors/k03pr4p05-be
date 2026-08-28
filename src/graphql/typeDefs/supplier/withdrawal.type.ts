@@ -22,6 +22,7 @@ export const Withdrawal = objectType({
     t.nullable.dateTime('completedAt');
 
     t.nullable.string('rejectionReason');
+    t.nullable.string('sandboxReference');
 
     t.nonNull.field('environment', {
       type: 'Environment',

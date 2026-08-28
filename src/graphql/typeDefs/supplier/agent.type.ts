@@ -34,6 +34,12 @@ export const Agent = objectType({
 
     // Status
     t.nonNull.field('status', { type: 'AgentStatus' });
+    t.nullable.string('suspensionReason');
+    t.nullable.dateTime('suspendedAt');
+    t.nullable.int('suspendedById');
+    t.nullable.string('banReason');
+    t.nullable.dateTime('bannedAt');
+    t.nullable.int('bannedById');
 
     // Relations
     t.nullable.field('organization', { type: 'Organization' });

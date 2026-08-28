@@ -12,6 +12,11 @@ export const PaymentTransaction = objectType({
         t.nullable.string('gatewayReference');
         t.nonNull.float('amount');
         t.nonNull.float('feeAmount');
+        t.nonNull.float('providerFeeAmount');
+        t.nonNull.float('netAmount');
+        t.nullable.int('supplierOrgId');
+        t.nullable.string('feeRuleId');
+        t.nullable.field('feeSnapshot', { type: 'Json' });
         t.nonNull.field('status', {
             type: 'PaymentTransactionStatus',
         });

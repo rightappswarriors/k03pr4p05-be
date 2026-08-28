@@ -1,7 +1,7 @@
 // src/services/notification.service.ts
-
+// for the items
 import { prisma } from '../lib/prisma.js';
-import { sendToUser } from "../lib/ws.js";
+import { sendToUser, sendToOrg } from "../lib/ws.js";
 
 
 export const createNotification = async (data: {
@@ -68,4 +68,36 @@ export const getUnreadCount = async (orgId: number) => {
     return prisma.notification.count({
         where: { orgId, isRead: false },
     });
+};
+
+/**
+ * Mark all unread notifications for a given conversation as read for a specific
+ * organization. Authorization-safe: only notifications belonging to the given
+ * orgId are updated. Emits a realtime "notification:read" event to the org room.
+ *
+ * Per architecture rule, notifications related to a conversation have both
+ * agentId and conversationId. To mark only a specific agent's notifications
+ * as read (e.g. a supplier agent viewing their conversation), pass the optional
+ * agentId — this prevents one agent's read state from affecting another's.
+ */
+export const markConversationNotificationsRead = async (
+    conversationId: string,
+    orgId: number,
+    agentId?: string | null,
+): Promise<number> => {
+    const { count } = await prisma.notification.updateMany({
+        where: {
+            conversationId,
+            orgId,
+            ...(agentId ? { agentId } : {}),
+            isRead: false,
+        },
+        data: { isRead: true },
+    });
+
+    if (count > 0) {
+        sendToOrg(orgId, "notification:read", { conversationId, agentId: agentId ?? null });
+    }
+
+    return count;
 };

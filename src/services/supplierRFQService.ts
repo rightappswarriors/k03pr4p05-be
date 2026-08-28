@@ -2,7 +2,7 @@
 import { prisma } from '../lib/prisma.js';
 import { NotificationType } from '@prisma/client';
 import { sendConversationNotification } from './conversationNotification.service.js';
-import { sendToOrg, sendToConversation } from '../lib/ws.js';
+import { sendToOrg, sendToConversation, sendToUser } from '../lib/ws.js';
 
 // ─── Canonical realtime payload ────────────────────────────────────────────────
 // Both gateways emit this shape so each frontend can pick the fields it expects.
@@ -33,15 +33,44 @@ export class AppError extends Error {
   }
 }
 
+type ExtraCharge = { code: string; label: string; amount: number; taxable?: boolean; description?: string };
+function legacyOtherCharge(amount: number): ExtraCharge[] {
+  if (!Number.isFinite(amount) || amount < 0) throw new AppError(400, 'Other charges must be a non-negative amount');
+  return amount > 0 ? [{ code: 'OTHER', label: 'Additional Charges', amount: Math.round(amount * 100) / 100 }] : [];
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface InboxFilters {
   status?: string;
+  /** When provided, filters by multiple statuses (group-based filtering). */
+  statuses?: string[];
   search?: string;
   unreadOnly?: boolean;
   dateFrom?: Date;
   dateTo?: Date;
 }
+
+/** Result of the 7-rule RFQ eligibility validation. */
+export interface RfqEligibilityResult {
+  valid: boolean;
+  rfqExists: boolean;
+  correctOrg: boolean;
+  notExpired: boolean;
+  hasAcceptedOffer: boolean;
+  notCancelled: boolean;
+  notRejected: boolean;
+  notConsumed: boolean;
+  reason?: string | null;
+}
+
+/** Eligible RFQ statuses for PO creation. */
+export const ELIGIBLE_RFQ_STATUSES = [
+  'NEGOTIATION_ACCEPTED',
+  'AGENT_ACCEPTED_FINAL',
+  'SUPPLIER_ACCEPTED_FINAL',
+  'WAITING_SUPPLIER_CONFIRMATION',
+] as const;
 
 export interface CounterOfferData {
   quantity: number;
@@ -77,6 +106,11 @@ export class SupplierRFQService {
 
     if (filters.status) {
       where.status = filters.status;
+    }
+
+    // Group-based status filtering: e.g. "NEGOTIATING" tab → multiple statuses
+    if (filters.statuses && filters.statuses.length > 0) {
+      where.status = { in: filters.statuses };
     }
 
     if (filters.unreadOnly) {
@@ -134,6 +168,8 @@ export class SupplierRFQService {
             sku: true,
             unit: true,
             unitPrice: true,
+            isVatExempt: true,
+            vatRate: true,
             moq: true,
             availableQty: true,
             leadTime: true,
@@ -184,6 +220,128 @@ export class SupplierRFQService {
 
     logDev('RFQ Inbox', 'Loaded', { count: rfqs.length, supplierOrgId });
     return rfqs;
+  }
+
+  // ─── Eligibility validation (7 rules for PO creation) ──────────────────────────
+
+  /**
+   * Validate an RFQ against the 7 eligibility rules before it can be added to a PO:
+   * 1. RFQ exists
+   * 2. RFQ belongs to the current supplier organization
+   * 3. RFQ has not expired (validityDays or offer validUntil)
+   * 4. RFQ has an accepted offer / is in an eligible state
+   * 5. RFQ is not cancelled
+   * 6. RFQ is not rejected
+   * 7. RFQ has not already been converted into an active/completed PO
+   */
+  async validateRFQEligibility(rfqId: string, supplierOrgId: number): Promise<RfqEligibilityResult> {
+    const rfq = await prisma.requestForQuotation.findUnique({
+      where: { id: rfqId },
+      include: {
+        SupplierItem: {
+          select: { id: true, name: true, isVatExempt: true, vatRate: true },
+        },
+        Conversation: {
+          include: {
+            NegotiationOffer: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    const result: RfqEligibilityResult = {
+      valid: false,
+      rfqExists: false,
+      correctOrg: false,
+      notExpired: false,
+      hasAcceptedOffer: false,
+      notCancelled: false,
+      notRejected: false,
+      notConsumed: false,
+      reason: null,
+    };
+
+    // Rule 1: RFQ exists
+    if (!rfq) {
+      result.reason = 'RFQ not found';
+      return result;
+    }
+    result.rfqExists = true;
+
+    // Rule 2: RFQ belongs to the current supplier organization
+    if (rfq.supplierOrgId !== supplierOrgId) {
+      result.reason = 'RFQ does not belong to your organization';
+      return result;
+    }
+    result.correctOrg = true;
+
+    // Rule 5: RFQ is not cancelled
+    if (rfq.status === 'CANCELLED') {
+      result.reason = 'RFQ has been cancelled';
+      return result;
+    }
+    result.notCancelled = true;
+
+    // Rule 6: RFQ is not rejected (check negotiation offer status)
+    const latestOffer = rfq.Conversation?.NegotiationOffer[0];
+    if (latestOffer?.status === 'REJECTED') {
+      result.reason = 'RFQ offer has been rejected';
+      return result;
+    }
+    result.notRejected = true;
+
+    // Rule 7: RFQ has not already been converted to an active/completed PO
+    const existingPO = await prisma.purchaseOrderRFQ.findFirst({
+      where: { rfqId },
+      include: {
+        po: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+    if (existingPO && ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(existingPO.po.status)) {
+      result.reason = 'RFQ is already attached to an active purchase order';
+      return result;
+    }
+    result.notConsumed = true;
+
+    // Rule 3: RFQ has not expired
+    let expired = false;
+    if (rfq.validityDays) {
+      const expiryDate = new Date(rfq.createdAt.getTime() + rfq.validityDays * 24 * 60 * 60 * 1000);
+      if (new Date() > expiryDate) {
+        expired = true;
+      }
+    }
+    // Also check the latest negotiation offer's validUntil
+    if (!expired && latestOffer?.validUntil) {
+      if (new Date() > new Date(latestOffer.validUntil)) {
+        expired = true;
+      }
+    }
+    if (expired) {
+      result.reason = 'RFQ or its latest offer has expired';
+      return result;
+    }
+    result.notExpired = true;
+
+    // Rule 4: RFQ is in an eligible state (has accepted offer / accepted negotiation)
+    const isEligible = ELIGIBLE_RFQ_STATUSES.includes(rfq.status as any);
+    if (!isEligible) {
+      result.reason = `RFQ status '${rfq.status}' is not eligible for PO creation`;
+      return result;
+    }
+    result.hasAcceptedOffer = true;
+
+    result.valid = true;
+    result.reason = null;
+    logDev('RFQ Eligibility', 'Validated', { rfqId, supplierOrgId, valid: true });
+    return result;
   }
 
   // ─── Full detail ─────────────────────────────────────────────────────────────
@@ -613,13 +771,15 @@ export class SupplierRFQService {
       const vatAmount = rfq.SupplierItem?.isVatExempt ? 0 : subtotal * (rfq.SupplierItem?.vatRate ?? 0.12);
       const totalAmount = subtotal + vatAmount;
 
-      // Look up the buyer organization's primary active outlet for delivery
+      // Look up the buyer organization's primary active outlet for delivery.
+      // For Retail flows an outlet may exist; for Wholesale it is optional and
+      // `deliveryOutletId` stays null (the Prisma field is nullable).
       const buyerOrgId = rfq.Agent?.organizationId ?? 0;
       const buyerOutlet = await tx.outlet.findFirst({
         where: { orgId: buyerOrgId, isActive: true },
         select: { id: true },
       });
-      const deliveryOutletId = buyerOutlet?.id ?? 0;
+      const deliveryOutletId = buyerOutlet?.id ?? null;
 
       logDev('PO Creation', 'Resolved buyer outlet', { buyerOrgId, deliveryOutletId });
 
@@ -629,11 +789,18 @@ export class SupplierRFQService {
           buyerOrgId,
           supplierOrgId: supplierOrgId,
           status: 'PENDING',
+          source: 'RFQ',
+          supplierConfirmation: 'CONFIRMED',
+          supplierConfirmedAt: new Date(),
           notes: rfq.notes,
           requestedDate: new Date(),
+          subtotalAmount: subtotal,
+          extraCharges: [],
+          extraChargesTotal: 0,
           totalAmount,
           vatAmount,
           deliveryOutletId,
+          agentId: rfq.Agent?.id ?? null,
           lineItems: {
             create: [
               {
@@ -641,6 +808,9 @@ export class SupplierRFQService {
                 qty: Math.ceil(acceptedQty),
                 unitPrice: acceptedPrice,
                 subtotal,
+                itemName: rfq.SupplierItem?.name,
+                itemSku: rfq.SupplierItem?.sku,
+                itemDescription: rfq.SupplierItem?.description,
               },
             ],
           },
@@ -649,6 +819,7 @@ export class SupplierRFQService {
           lineItems: { include: { supplierItem: true } },
           buyerOrg: { select: { id: true, name: true, profileImg: true } },
           supplierOrg: { select: { id: true, name: true, profileImg: true } },
+          agent: { select: { id: true, fullname: true, email: true, organizationId: true } },
         },
       });
 
@@ -681,6 +852,55 @@ export class SupplierRFQService {
         },
       });
 
+      // ── Create a dedicated PO conversation (type: ORDER) ──────────────
+      // This conversation lives for the entire PO lifecycle: accept/reject,
+      // receipt upload, delivery tracking, payment. Both the agent and the
+      // supplier org are added as participants.
+      const poConversation = await tx.conversation.create({
+        data: {
+          poId: po.id,
+          type: 'ORDER',
+          ConversationParticipant: {
+            create: [
+              {
+                agentId: rfq.Agent?.id ?? null,
+                role: 'AGENT',
+              },
+              {
+                organizationId: supplierOrgId,
+                role: 'SUPPLIER',
+              },
+            ],
+          },
+        },
+      });
+
+      // Link the conversation back to the PO
+      await tx.purchaseOrder.update({
+        where: { id: po.id },
+        data: { conversationId: poConversation.id },
+      });
+
+      // Create a system message in the PO conversation announcing creation
+      await tx.conversationMessage.create({
+        data: {
+          conversationId: poConversation.id,
+          senderOrgId: supplierOrgId,
+          message: `Purchase Order ${poNumber} has been created from RFQ ${rfq.rfqNumber}.`,
+          type: 'ORDER_CREATED',
+          metadata: {
+            event: 'po_created',
+            poId: po.id,
+            poNumber,
+            rfqId,
+            deliveryDate: deliveryDate.toISOString(),
+            totalAmount,
+            vatAmount,
+          },
+        },
+      });
+
+      // System message in the RFQ conversation (existing flow)
       await tx.conversationMessage.create({
         data: {
           conversationId: rfq.Conversation.id,
@@ -704,15 +924,26 @@ export class SupplierRFQService {
         data: { updatedAt: new Date() },
       });
 
-      logDev('PO Creation', 'Purchase Order created', { poNumber, poId: po.id });
+      logDev('PO Creation', 'Purchase Order created', { poNumber, poId: po.id, poConversationId: poConversation.id });
       logDev('Delivery Creation', 'Delivery created', { deliveryId: delivery.id, poNumber });
 
-      return { po, delivery };
+      return { po, delivery, poConversation };
     });
 
     // Notification + realtime emits happen only after the transaction commits (FIX #1, #7)
     const agentOrgId = rfq.Agent?.organizationId;
     if (agentOrgId != null) {
+      // PO conversation: notify the agent's org of the new message
+      sendToConversation(result.poConversation.id, 'conversation:newMessage', {
+        conversationId: result.poConversation.id,
+        poId: result.po.id,
+        senderOrgId: supplierOrgId,
+        message: `Purchase Order ${result.po.poNumber} has been created.`,
+        type: 'ORDER_CREATED',
+        createdAt: new Date().toISOString(),
+        metadata: { poId: result.po.id, poNumber: result.po.poNumber },
+      });
+
       void sendConversationNotification({
         conversationId: rfq.Conversation.id,
         senderId: supplierOrgId,
@@ -722,11 +953,506 @@ export class SupplierRFQService {
         message: `Supplier confirmed the offer. PO ${result.po.poNumber} has been created.`,
       });
 
-      sendToOrg(agentOrgId, 'purchaseOrder:created', { po: result.po, poNumber: result.po.poNumber, conversationId: rfq.Conversation.id });
-      sendToOrg(agentOrgId, 'notification:new', { conversationId: rfq.Conversation.id, purchaseOrderId: result.po.id, category: 'Purchase Order' });
+      sendToOrg(agentOrgId, 'purchaseOrder:created', { po: result.po, poNumber: result.po.poNumber, conversationId: result.poConversation.id });
+      sendToOrg(agentOrgId, 'notification:new', { conversationId: result.poConversation.id, purchaseOrderId: result.po.id, category: 'Purchase Order' });
     }
 
     logDev('Accept', 'Negotiation accepted', { rfqId, supplierOrgId });
+    return result;
+  }
+
+  // ─── Consolidated PO creation (multiple RFQs into one PO) ──────────────────────
+
+  /**
+   * Result of the consolidated PO creation.
+   * Mirrors the shape returned by the single-RFQ createPurchaseOrder for
+   * downstream consumers.
+   */
+  async createConsolidatedPurchaseOrder(
+    rfqIds: string[],
+    supplierOrgId: number,
+    deliveryDate: Date,
+    notes?: string,
+    otherCharges: number = 0,
+    driverName?: string,
+    driverContact?: string,
+  ) {
+    if (rfqIds.length === 0) {
+      throw new AppError(400, 'At least one RFQ must be selected');
+    }
+
+    // ── Fetch all RFQs with the data needed for validation + line-item creation ──
+    const rfqs = await Promise.all(
+      rfqIds.map((id) => this.getRFQDetails(id, supplierOrgId)),
+    );
+
+    // ── Validate each RFQ against the 7 eligibility rules ──
+    for (const rfq of rfqs) {
+      const eligibility = await this.validateRFQEligibility(rfq.id, supplierOrgId);
+      if (!eligibility.valid) {
+        throw new AppError(409, `RFQ ${rfq.rfqNumber} is not eligible: ${eligibility.reason ?? 'unknown reason'}`);
+      }
+    }
+
+    // ── All RFQs must belong to the same buyer organization ──
+    const buyerOrgIds = new Set(rfqs.map((r) => r.Agent?.organizationId).filter((id): id is number => id != null));
+    if (buyerOrgIds.size > 1) {
+      throw new AppError(400, 'All selected RFQs must belong to the same buyer organization');
+    }
+    const buyerOrgId = buyerOrgIds.values().next().value;
+
+    // Look up the buyer organization's primary active outlet for delivery.
+    // For Wholesale POs the buyer org may have no outlet — in that case
+    // deliveryOutletId stays null (the Prisma field is nullable).
+    const buyerOutlet = await prisma.outlet.findFirst({
+      where: { orgId: buyerOrgId, isActive: true },
+      select: { id: true },
+    });
+    const deliveryOutletId = buyerOutlet?.id ?? null;
+
+    // ── Build line items and compute financials ──
+    // Line Total = Unit Price × Quantity (per RFQ)
+    // Subtotal = sum of all line totals
+    // VAT = sum of (line_total × vat_rate) for non-exempt items
+    // Grand Total = Subtotal + VAT + Other Charges
+    let subtotal = 0;
+    let totalVat = 0;
+
+    const lineItemsData: Array<{
+      supplierItemId: string;
+      qty: number;
+      unitPrice: number;
+      subtotal: number;
+      itemName?: string | null;
+      itemSku?: string | null;
+      itemDescription?: string | null;
+    }> = [];
+
+    for (const rfq of rfqs) {
+      const acceptedPrice = rfq.acceptedPrice ?? rfq.targetUnitPrice ?? 0;
+      const acceptedQty = rfq.acceptedQuantity ?? Number(rfq.quantity ?? '0');
+      const lineTotal = acceptedPrice * acceptedQty;
+      subtotal += lineTotal;
+
+      const isVatExempt = rfq.SupplierItem?.isVatExempt ?? false;
+      const vatRate = rfq.SupplierItem?.vatRate ?? 0.12;
+      const lineVat = isVatExempt ? 0 : lineTotal * vatRate;
+      totalVat += lineVat;
+
+      lineItemsData.push({
+        supplierItemId: rfq.supplierItemId!,
+        qty: Math.ceil(acceptedQty),
+        unitPrice: acceptedPrice,
+        subtotal: lineTotal,
+        itemName: rfq.SupplierItem?.name,
+        itemSku: rfq.SupplierItem?.sku,
+        itemDescription: rfq.SupplierItem?.description,
+      });
+    }
+
+    const extraCharges = legacyOtherCharge(otherCharges);
+    const extraChargesTotal = extraCharges.reduce((sum, charge) => sum + charge.amount, 0);
+    const grandTotal = subtotal + totalVat + extraChargesTotal;
+    const poNumber = await this.generatePONumber();
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the consolidated PurchaseOrder
+      const po = await tx.purchaseOrder.create({
+        data: {
+          poNumber,
+          buyerOrgId,
+          supplierOrgId: supplierOrgId,
+          status: 'PENDING',
+          source: 'RFQ',
+          supplierConfirmation: 'CONFIRMED',
+          supplierConfirmedAt: new Date(),
+          notes: notes,
+          requestedDate: new Date(),
+          subtotalAmount: subtotal,
+          extraCharges,
+          extraChargesTotal,
+          totalAmount: grandTotal,
+          vatAmount: totalVat,
+          deliveryOutletId,
+          agentId: rfqs[0]?.Agent?.id ?? null,
+          lineItems: {
+            create: lineItemsData,
+          },
+        },
+        include: {
+          lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
+          buyerOrg: { select: { id: true, name: true, profileImg: true } },
+          supplierOrg: { select: { id: true, name: true, profileImg: true } },
+          agent: { select: { id: true, fullname: true, email: true, organizationId: true } },
+        },
+      });
+
+      // Link each RFQ to the PO via the bridge table
+      for (const rfqId of rfqIds) {
+        await tx.purchaseOrderRFQ.create({
+          data: {
+            poId: po.id,
+            rfqId,
+          },
+        });
+      }
+
+      // Update each RFQ's status to PO_CREATED
+      for (const rfq of rfqs) {
+        await tx.requestForQuotation.update({
+          where: { id: rfq.id },
+          data: {
+            status: 'PO_CREATED',
+            acceptedPrice: rfq.acceptedPrice ?? rfq.targetUnitPrice ?? undefined,
+            acceptedQuantity: rfq.acceptedQuantity ?? Number(rfq.quantity ?? '0'),
+            acceptedDeliveryDate: deliveryDate,
+          },
+        });
+      }
+
+      // Create a single delivery for the consolidated PO
+      const delivery = await tx.delivery.create({
+        data: {
+          poId: po.id,
+          scheduledDate: deliveryDate,
+          status: 'SCHEDULED',
+          driverName,
+          driverContact,
+        },
+      });
+
+      // ── Create a dedicated PO conversation (type: ORDER) ──────────────
+      const agentId = rfqs[0]?.Agent?.id ?? null;
+      const poConversation = await tx.conversation.create({
+        data: {
+          poId: po.id,
+          type: 'ORDER',
+          ConversationParticipant: {
+            create: [
+              { agentId, role: 'AGENT' },
+              { organizationId: supplierOrgId, role: 'SUPPLIER' },
+            ],
+          },
+        },
+      });
+
+      // Link the conversation back to the PO
+      await tx.purchaseOrder.update({
+        where: { id: po.id },
+        data: { conversationId: poConversation.id },
+      });
+
+      // System message in the PO conversation
+      await tx.conversationMessage.create({
+        data: {
+          conversationId: poConversation.id,
+          senderOrgId: supplierOrgId,
+          message: `Consolidated Purchase Order ${poNumber} has been created with ${rfqIds.length} RFQ(s).`,
+          type: 'CONSOLIDATED_PO_CREATED',
+          metadata: {
+            event: 'consolidated_po_created',
+            poId: po.id,
+            poNumber,
+            rfqIds,
+            deliveryDate: deliveryDate.toISOString(),
+            totalAmount: grandTotal,
+            vatAmount: totalVat,
+            otherCharges,
+          },
+        },
+      });
+
+      // Send ORDER_CREATED messages to each RFQ's conversation
+      for (const rfq of rfqs) {
+        const convId = rfq.Conversation?.id;
+        if (convId) {
+          await tx.conversationMessage.create({
+            data: {
+              conversationId: convId,
+              senderOrgId: supplierOrgId,
+              message: `Consolidated Purchase Order ${poNumber} has been created with ${rfqIds.length} RFQ(s).`,
+              type: 'CONSOLIDATED_PO_CREATED',
+              metadata: {
+                event: 'consolidated_po_created',
+                poId: po.id,
+                poNumber,
+                rfqIds,
+                deliveryDate: deliveryDate.toISOString(),
+                totalAmount: grandTotal,
+                vatAmount: totalVat,
+                otherCharges,
+              },
+            },
+          });
+
+          await tx.conversation.update({
+            where: { id: convId },
+            data: { updatedAt: new Date() },
+          });
+        }
+      }
+
+      logDev('Consolidated PO Creation', 'Purchase Order created', {
+        poNumber, poId: po.id, rfqCount: rfqIds.length, totalAmount: grandTotal,
+      });
+
+      return { po, delivery, poConversation };
+    });
+
+    // PO conversation realtime emit
+    sendToConversation(result.poConversation.id, 'conversation:newMessage', {
+      conversationId: result.poConversation.id,
+      poId: result.po.id,
+      supplierOrgId,
+      message: `Consolidated Purchase Order ${result.po.poNumber} has been created with ${rfqIds.length} RFQ(s).`,
+      type: 'CONSOLIDATED_PO_CREATED',
+      createdAt: new Date().toISOString(),
+      metadata: { poId: result.po.id, poNumber: result.po.poNumber, rfqIds },
+    });
+
+    // Notifications + realtime emits happen only after the transaction commits
+    for (const rfq of rfqs) {
+      const agentOrgId = rfq.Agent?.organizationId;
+      if (agentOrgId != null && rfq.Conversation) {
+        void sendConversationNotification({
+          conversationId: rfq.Conversation.id,
+          senderId: supplierOrgId,
+          recipientAgentId: rfq.Agent!.id,
+          recipientUserId: undefined,
+          notificationType: NotificationType.PURCHASE_ORDER_CREATED,
+          message: `Supplier created consolidated PO ${result.po.poNumber} with ${rfqIds.length} RFQ(s).`,
+        });
+
+        sendToOrg(agentOrgId, 'purchaseOrder:created', {
+          po: result.po,
+          poNumber: result.po.poNumber,
+          conversationId: result.poConversation.id,
+        });
+        sendToOrg(agentOrgId, 'notification:new', {
+          conversationId: result.poConversation.id,
+          purchaseOrderId: result.po.id,
+          category: 'Purchase Order',
+        });
+      }
+    }
+
+    return result;
+  }
+
+  // ─── Accept / Reject PO (supplier side) ──────────────────────────────────────
+
+  /**
+   * Accept a purchase order.  The supplier confirms the order, optionally
+   * providing driver details for the upcoming delivery.  Emits realtime
+   * events to the agent's org and posts a system message in the PO conversation.
+   */
+  async acceptPO(poId: string, supplierOrgId: number, notes?: string) {
+    // Fetch the PO with its conversation and linked RFQ (for agent lookup)
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: poId, supplierOrgId },
+      include: {
+        Conversation: {
+          include: {
+            ConversationParticipant: true,
+          },
+        },
+        purchaseOrderRfqs: {
+          include: {
+            rfq: {
+              include: {
+                Agent: { select: { id: true, fullname: true, organizationId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!po) {
+      throw new AppError(404, 'Purchase Order not found or access denied');
+    }
+    if (!po.conversationId) {
+      throw new AppError(400, 'PO has no conversation');
+    }
+
+    const agentId = po.purchaseOrderRfqs[0]?.rfq?.Agent?.id;
+    const agentOrgId = po.purchaseOrderRfqs[0]?.rfq?.Agent?.organizationId;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update PO status to ACCEPTED
+      const updatedPo = await tx.purchaseOrder.update({
+        where: { id: po.id },
+        data: {
+          status: 'ACCEPTED',
+          updatedAt: new Date(),
+          ...(notes ? { notes } : {}),
+        },
+        include: {
+          lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
+          delivery: { select: { id: true, scheduledDate: true, status: true } },
+          buyerOrg: { select: { id: true, name: true } },
+          supplierOrg: { select: { id: true, name: true } },
+        },
+      });
+
+      // Create PO_ACCEPTED system message in the PO conversation
+      await tx.conversationMessage.create({
+        data: {
+          conversationId: po.conversationId!,
+          senderOrgId: supplierOrgId,
+          message: `Purchase Order ${po.poNumber} has been accepted by the supplier.`,
+          type: 'PO_ACCEPTED',
+          metadata: {
+            event: 'po_accepted',
+            poId: po.id,
+            poNumber: po.poNumber,
+          },
+        },
+      });
+
+      await tx.conversation.update({
+        where: { id: po.conversationId! },
+        data: { updatedAt: new Date() },
+      });
+
+      return { po: updatedPo };
+    });
+
+    // Post-transaction WS emits
+    if (agentOrgId != null) {
+      // Notify the agent's org of the PO acceptance
+      sendToOrg(agentOrgId, 'purchaseOrder:accepted' as any, {
+        poId: po.id,
+        poNumber: po.poNumber,
+      });
+
+      // Notify the PO conversation room
+      sendToConversation(po.conversationId!, 'conversation:newMessage', {
+        conversationId: po.conversationId!,
+        poId: po.id,
+        senderOrgId: supplierOrgId,
+        message: `Purchase Order ${po.poNumber} has been accepted by the supplier.`,
+        type: 'PO_ACCEPTED',
+        createdAt: new Date().toISOString(),
+        metadata: { event: 'po_accepted', poId: po.id, poNumber: po.poNumber },
+      });
+
+      // Direct notification to the agent user
+      if (agentId) {
+        sendToUser(agentId, 'purchaseOrder:accepted' as any, {
+          poId: po.id,
+          poNumber: po.poNumber,
+          conversationId: po.conversationId,
+        });
+      }
+    }
+
+    logDev('PO Accept', 'Purchase Order accepted', { poId, supplierOrgId });
+    return result;
+  }
+
+  /**
+   * Reject a purchase order.  The supplier rejects the order, emitting
+   * realtime events to the agent's org and posting a system message in
+   * the PO conversation.
+   */
+  async rejectPO(poId: string, supplierOrgId: number, reason?: string) {
+    const po = await prisma.purchaseOrder.findUnique({
+      where: { id: poId, supplierOrgId },
+      include: {
+        Conversation: {
+          include: {
+            ConversationParticipant: true,
+          },
+        },
+        purchaseOrderRfqs: {
+          include: {
+            rfq: {
+              include: {
+                Agent: { select: { id: true, fullname: true, organizationId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!po) {
+      throw new AppError(404, 'Purchase Order not found or access denied');
+    }
+    if (!po.conversationId) {
+      throw new AppError(400, 'PO has no conversation');
+    }
+
+    const agentId = po.purchaseOrderRfqs[0]?.rfq?.Agent?.id;
+    const agentOrgId = po.purchaseOrderRfqs[0]?.rfq?.Agent?.organizationId;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update PO status to REJECTED
+      const updatedPo = await tx.purchaseOrder.update({
+        where: { id: po.id },
+        data: {
+          status: 'REJECTED',
+          updatedAt: new Date(),
+          ...(reason ? { notes: reason } : {}),
+        },
+      });
+
+      // Create PO_REJECTED system message in the PO conversation
+      const rejectMessage = reason
+        ? `Purchase Order ${po.poNumber} has been rejected by the supplier. Reason: ${reason}`
+        : `Purchase Order ${po.poNumber} has been rejected by the supplier.`;
+
+      await tx.conversationMessage.create({
+        data: {
+          conversationId: po.conversationId!,
+          senderOrgId: supplierOrgId,
+          message: rejectMessage,
+          type: 'PO_REJECTED',
+          metadata: {
+            event: 'po_rejected',
+            poId: po.id,
+            poNumber: po.poNumber,
+            reason: reason ?? null,
+          },
+        },
+      });
+
+      await tx.conversation.update({
+        where: { id: po.conversationId! },
+        data: { updatedAt: new Date() },
+      });
+
+      return { po: updatedPo };
+    });
+
+    // Post-transaction WS emits
+    if (agentOrgId != null) {
+      sendToOrg(agentOrgId, 'purchaseOrder:rejected' as any, {
+        poId: po.id,
+        poNumber: po.poNumber,
+      });
+
+      sendToConversation(po.conversationId!, 'conversation:newMessage', {
+        conversationId: po.conversationId!,
+        poId: po.id,
+        senderOrgId: supplierOrgId,
+        message: `Purchase Order ${po.poNumber} has been rejected by the supplier.`,
+        type: 'PO_REJECTED',
+        createdAt: new Date().toISOString(),
+        metadata: { event: 'po_rejected', poId: po.id, poNumber: po.poNumber },
+      });
+
+      if (agentId) {
+        sendToUser(agentId, 'purchaseOrder:rejected' as any, {
+          poId: po.id,
+          poNumber: po.poNumber,
+          conversationId: po.conversationId,
+        });
+      }
+    }
+
+    logDev('PO Reject', 'Purchase Order rejected', { poId, supplierOrgId });
     return result;
   }
 
@@ -780,6 +1506,7 @@ export class SupplierRFQService {
     // ...rest unchanged (notification + realtime emits)
     return updated;
   }
+  
   // ─── Mark as read ────────────────────────────────────────────────────────────
 
   async markRead(conversationId: string, supplierOrgId: number) {

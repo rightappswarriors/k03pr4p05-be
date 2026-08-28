@@ -12,7 +12,9 @@ export const PayoutMethod = objectType({
         t.nullable.string('bankName');
         t.nonNull.boolean('isVerified');
         t.nonNull.boolean('isDefault');
+        t.nonNull.boolean('isActive');
         t.nullable.dateTime('verifiedAt');
+        t.nonNull.field('environment', { type: 'Environment' });
         t.nonNull.dateTime('createdAt');
         t.nonNull.dateTime('updatedAt');
         t.nullable.dateTime('deletedAt');

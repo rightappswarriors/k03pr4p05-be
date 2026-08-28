@@ -113,6 +113,7 @@ async function startApolloServer() {
                                 fullname: true,
                                 username: true,
                                 isOwner: true,
+                                org: { select: { accountStatus: true } },
                                 position: {
                                     select: {
                                         id: true,
@@ -140,6 +141,7 @@ async function startApolloServer() {
                         });
                         if (user) {
                             user.userId = user.id;
+                            user.orgAccountStatus = user.org?.accountStatus ?? null;
                             // Build lookup map — only for non-owners
                             // Owners bypass permission checks entirely
                             if (!user.isOwner) {
