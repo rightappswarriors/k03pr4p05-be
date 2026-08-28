@@ -690,7 +690,7 @@ export interface NexusGenInputs {
 export interface NexusGenEnums {
   Access: "ADMIN" | "POSTERMINAL" | "SELLER" | "SUPPLIER"
   AccountLink: "ACCOUNTS_PAYABLE_NON_TRADE" | "ACCOUNTS_PAYABLE_TRADE" | "ACCOUNTS_RECEIVABLE_NON_TRADE" | "ACCOUNTS_RECEIVABLE_TRADE" | "ACCRUED_EXPENSES" | "ACCUMULATED_DEP_DELIVERY_VEHICLE" | "ACCUMULATED_DEP_LEASEHOLD_IMPROVEMENTS" | "ACCUMULATED_DEP_OFFICE_EQUIPMENT" | "ACCUMULATED_DEP_OFFICE_FURNITURES_FIXTURES" | "ACCUMULATED_DEP_SERVICE_VEHICLE" | "ADVANCES_TO_AFFILIATES" | "ADVANCES_TO_EMPLOYEES" | "ADVANCES_TO_OFFICERS_STOCKHOLDERS" | "ADVANCES_TO_OUTSIDE_PERSONNEL" | "CASH_IN_BANK_BDO" | "CASH_IN_BANK_CHINABANK" | "CASH_IN_BANK_SECURITY_BANK" | "CASH_ON_HAND" | "COMMUNICATION" | "COST_OF_SALES_ALL_STOCKS" | "DELIVERY_VEHICLE" | "DEPRECIATION" | "ELECTRICITY" | "EMPLOYEE_BENEFITS" | "FUEL_OIL" | "INCOME_TAX" | "INCOME_TAX_PAYABLE" | "INSURANCE" | "INTEREST_INCOME" | "INVENTORY_ALL_STOCKS" | "LAND" | "LEASEHOLD_IMPROVEMENTS" | "MISCELLANEOUS_INCOME" | "OFFICE_EQUIPMENT" | "OFFICE_FURNITURES_FIXTURES" | "OFFICE_SUPPLIES" | "ORDINARY_SHARES" | "OUTPUT_VAT" | "PETTY_CASH_FUND" | "PREPAID_INSURANCE" | "PROFESSIONAL_FEE" | "RENT" | "REPAIRS_MAINTENANCE" | "REPRESENTATION" | "RETAINED_EARNINGS" | "SALARIES_WAGES" | "SERVICE_VEHICLE" | "SSS_PHILHEALTH_PAGIBIG_CONTRIBUTIONS" | "SUBSCRIBED_ORDINARY_SHARES" | "SUBSCRIPTION_RECEIVABLE" | "TAXES_LICENSES" | "TRANSPORTATION_TRAVEL" | "UNUSED_OFFICE_SUPPLIES" | "VAT_INPUT" | "VAT_PAYABLE" | "WATER" | "WITHHOLDING_TAX_PAYABLE"
-  AgentStatus: "ACTIVE" | "PENDING_ORGANIZATION_APPROVAL" | "PENDING_VERIFICATION" | "REGISTERED" | "REJECTED"
+  AgentStatus: "ACTIVE" | "BANNED" | "PENDING_ORGANIZATION_APPROVAL" | "PENDING_VERIFICATION" | "REGISTERED" | "REJECTED" | "SUSPENDED"
   AgentType: "ORG_LINKED" | "STANDALONE"
   ApprovalStatus: "APPROVED" | "PENDING" | "REJECTED"
   AttendanceStatus: "ABSENT" | "OFF_DUTY" | "ON_BREAK" | "PRESENT"
@@ -706,7 +706,7 @@ export interface NexusGenEnums {
   DocumentType: "BIR_2303" | "BUSINESS_PERMIT" | "DTI_SEC_REGISTRATION" | "GOVERNMENT_ID_BACK" | "GOVERNMENT_ID_FRONT" | "NBI_CLEARANCE" | "OTHER" | "OTHER_DOCUMENT" | "POLICE_CLEARANCE" | "PROOF_OF_ADDRESS" | "SELFIE_WITH_ID" | "TIN" | "VALID_ID"
   EmployeeStatus: "Active" | "Contract" | "On_Leave"
   Environment: "PRODUCTION" | "SANDBOX"
-  FeeApplication: "MANDATE_TRANSACTION" | "RETAIL_ORDER"
+  FeeApplication: "MANDATE_TRANSACTION" | "PURCHASE_ORDER" | "RETAIL_ORDER"
   FeeRateType: "FLAT" | "PERCENTAGE" | "PER_UNIT"
   FeeType: "delivery" | "handling" | "packaging" | "priority" | "voucher_discount"
   ItemStatus: "loss_item" | "slow_mover" | "stable" | "top_seller"
@@ -728,23 +728,26 @@ export interface NexusGenEnums {
   OrderStatus: "cancelled" | "confirmed" | "in_delivery" | "packed" | "pending" | "preparing" | "received" | "returned"
   OrgRole: "SELLER" | "SUPPLIER"
   OrgVerificationStatus: "EXPIRED" | "PENDING" | "UNVERIFIED" | "VERIFIED"
+  OrganizationAccountStatus: "ACTIVE" | "BANNED" | "SUSPENDED"
   OutletStatus: "closed" | "maintenance" | "open"
   OutletType: "retail" | "service" | "wholesale"
   POStatus: "ACCEPTED" | "CANCELLED" | "DELIVERED" | "IN_TRANSIT" | "PENDING" | "REJECTED"
   PaymentGatewayProvider: "BANK_API" | "GCASH" | "PAYMAYA" | "PAYMONGO"
   PaymentMethod: "CARD" | "CASH" | "E_WALLET"
-  PaymentRelatedType: "KOMPRA_C_ORDER" | "MANDATE_TRANSACTION" | "SALES_ORDER" | "SUBSCRIPTION"
-  PaymentStatus: "PAID" | "PARTIAL" | "PENDING" | "REFUNDED"
-  PaymentTransactionStatus: "FAILED" | "PENDING" | "REFUNDED" | "SUCCEEDED"
+  PaymentRelatedType: "KOMPRA_C_ORDER" | "MANDATE_TRANSACTION" | "PURCHASE_ORDER" | "SALES_ORDER" | "SUBSCRIPTION"
+  PaymentStatus: "PAID" | "PARTIAL" | "PENDING" | "PREPARING" | "REFUNDED"
+  PaymentTransactionStatus: "AWAITING_PAYMENT" | "CANCELLED" | "FAILED" | "PENDING" | "PROCESSING" | "REFUNDED" | "SUCCEEDED"
   PaymentType: "card" | "gcash" | "paymaya" | "qrph"
   PaymentTypeEnum: "card" | "gcash" | "paymaya" | "qrph"
   PayoutMethodType: "BANK_TRANSFER" | "CHECK" | "GCASH" | "PAYMAYA"
+  PlatformLedgerSourceType: "MANUAL_ADJUSTMENT" | "REFUND" | "REVERSAL" | "SUBSCRIPTION_FEE" | "TRANSACTION_FEE" | "WITHDRAWAL_FEE"
   ProcurementAgentRequestStatus: "APPROVED" | "PENDING" | "REJECTED"
   ProcurementInvitationStatus: "ACCEPTED" | "EXPIRED" | "PENDING" | "REJECTED" | "REVOKED" | "USED"
   RecurrenceType: "custom" | "daily" | "monthly" | "once" | "weekly"
   RfqStatus: "AGENT_ACCEPTED_FINAL" | "BUYER_COUNTERED" | "CANCELLED" | "COUNTER_OFFERED" | "DRAFT" | "EXPIRED" | "NEGOTIATING" | "NEGOTIATION_ACCEPTED" | "NEGOTIATION_COMPLETED" | "PENDING_SUPPLIER_RESPONSE" | "PO_CREATED" | "RFQ_RECEIVED" | "SUBMITTED" | "SUPPLIER_ACCEPTED_FINAL" | "SUPPLIER_OFFERED" | "UNDER_REVIEW" | "WAITING_SUPPLIER_CONFIRMATION"
   Role: "ADMIN" | "CASHIER" | "CUSTOMER" | "MANAGER" | "OWNER" | "STAFF" | "SUPPLIER"
   SalesOrderStatusEnum: "CANCELLED" | "COMPLETED" | "ORDERED" | "OUT_FOR_DELIVERY" | "PENDING" | "PROCESSING" | "READY_FOR_PICKUP" | "RECEIVED" | "SHIPPED"
+  SandboxPayoutOutcome: "DELAYED" | "FAILURE" | "SUCCESS"
   ScheduledPriceStatus: "ACTIVE" | "CANCELLED" | "EXPIRED" | "PENDING"
   SettlementType: "ESCROW" | "INSTANT"
   SortOrder: "asc" | "desc"
@@ -763,7 +766,7 @@ export interface NexusGenEnums {
   VatExemptType: "DIPLOMAT" | "GOVERNMENT" | "PWD" | "SENIOR_CITIZEN"
   VerificationStatus: "APPROVED" | "BYPASSED_DEV" | "PENDING" | "REJECTED"
   WholesaleDocType: "CE" | "FDA" | "ISO" | "MSDS" | "OTHER" | "ROHS"
-  WithdrawalStatus: "APPROVED" | "COMPLETED" | "PENDING" | "PROCESSING" | "REJECTED"
+  WithdrawalStatus: "APPROVED" | "CANCELLED" | "COMPLETED" | "FAILED" | "PENDING" | "PROCESSING" | "REJECTED"
   orderBy: "asc" | "desc"
 }
 
@@ -798,15 +801,76 @@ export interface NexusGenObjects {
     recentUsers: NexusGenRootTypes['DashboardRecentUser'][]; // [DashboardRecentUser!]!
     stats: NexusGenRootTypes['DashboardStats']; // DashboardStats!
   }
+  AdminGovernanceDashboard: { // root type
+    bannedOrganizations: number; // Int!
+    bannedStandaloneAgents: number; // Int!
+    pendingOrganizations: number; // Int!
+    pendingStandaloneAgents: number; // Int!
+    platformFees30Days: number; // Float!
+    platformFeesToday: number; // Float!
+    platformWalletBalance: number; // Float!
+    successfulPaymentCount: number; // Int!
+    suspendedOrganizations: number; // Int!
+    suspendedStandaloneAgents: number; // Int!
+    totalOrganizations: number; // Int!
+    totalStandaloneAgents: number; // Int!
+    verifiedOrganizations: number; // Int!
+    verifiedStandaloneAgents: number; // Int!
+  }
+  AdminOrganizationPage: { // root type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['Organization'][]; // [Organization!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
+  }
+  AdminPayoutMethodRow: { // root type
+    accountName: string; // String!
+    bankName?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    isDefault: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    maskedAccountNumber: string; // String!
+    supplierName: string; // String!
+    type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
+    verifiedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+  }
+  AdminStandaloneAgentPage: { // root type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['Agent'][]; // [Agent!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
+  }
   AdminUsersResult: { // root type
     items: NexusGenRootTypes['User'][]; // [User!]!
     page: number; // Int!
     pageSize: number; // Int!
     total: number; // Int!
   }
+  AdminWithdrawalRow: { // root type
+    amount: number; // Float!
+    environment: string; // String!
+    id: number; // Int!
+    payoutMethod: string; // String!
+    requestedAt: NexusGenScalars['DateTime']; // DateTime!
+    sandboxReference?: string | null; // String
+    status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
+    supplierName: string; // String!
+  }
   Agent: { // root type
     address?: string | null; // String
     agentType: NexusGenEnums['AgentType']; // AgentType!
+    banReason?: string | null; // String
+    bannedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    bannedById?: number | null; // Int
     birthday?: NexusGenScalars['DateTime'] | null; // DateTime
     city?: string | null; // String
     civilStatus?: string | null; // String
@@ -828,6 +892,9 @@ export interface NexusGenObjects {
     phone?: string | null; // String
     province?: string | null; // String
     status: NexusGenEnums['AgentStatus']; // AgentStatus!
+    suspendedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    suspendedById?: number | null; // Int
+    suspensionReason?: string | null; // String
     trustTier: string; // String!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     verificationStatus: NexusGenEnums['VerificationStatus']; // VerificationStatus!
@@ -1053,6 +1120,30 @@ export interface NexusGenObjects {
     hexCode?: string | null; // String
     id: number; // Int!
     name: string; // String!
+  }
+  CommerceDashboardMetrics: { // root type
+    completedWithdrawals: number; // Float!
+    confirmedPayments: number; // Float!
+    grossMerchandiseValue: number; // Float!
+    kompraFeesEarned: number; // Float!
+    pendingWithdrawals: number; // Float!
+    supplierFundsAvailable: number; // Float!
+    supplierFundsHeld: number; // Float!
+  }
+  CommercePaymentRow: { // root type
+    buyerName?: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    environment: string; // String!
+    fee: number; // Float!
+    fundsStatus?: string | null; // String
+    gross: number; // Float!
+    id: string; // String!
+    net: number; // Float!
+    poNumber?: string | null; // String
+    provider: string; // String!
+    relatedId: string; // String!
+    status: string; // String!
+    supplierName?: string | null; // String
   }
   Contact: { // root type
     branchId?: number | null; // Int
@@ -1824,6 +1915,10 @@ export interface NexusGenObjects {
     stocks?: string | null; // String
   }
   Organization: { // root type
+    accountStatus: NexusGenEnums['OrganizationAccountStatus']; // OrganizationAccountStatus!
+    banReason?: string | null; // String
+    bannedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    bannedById?: number | null; // Int
     bannerImg?: string | null; // String
     bio?: string | null; // String
     contactNumber?: string | null; // String
@@ -1839,6 +1934,9 @@ export interface NexusGenObjects {
     profileImg?: string | null; // String
     profilePhoto?: string | null; // String
     roles: NexusGenEnums['OrgRole'][]; // [OrgRole!]!
+    suspendedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    suspendedById?: number | null; // Int
+    suspensionReason?: string | null; // String
     twitterLink?: string | null; // String
     updatedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     verificationExpiresAt?: NexusGenScalars['DateTime'] | null; // DateTime
@@ -2106,14 +2204,19 @@ export interface NexusGenObjects {
     deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
     environment: NexusGenEnums['Environment']; // Environment!
     feeAmount: number; // Float!
+    feeRuleId?: string | null; // String
+    feeSnapshot?: NexusGenScalars['Json'] | null; // Json
     gatewayReference?: string | null; // String
     id: string; // String!
+    netAmount: number; // Float!
     payerAgentId?: string | null; // String
     payerOrgId?: number | null; // Int
     provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    providerFeeAmount: number; // Float!
     relatedId: string; // String!
     relatedType: NexusGenEnums['PaymentRelatedType']; // PaymentRelatedType!
     status: NexusGenEnums['PaymentTransactionStatus']; // PaymentTransactionStatus!
+    supplierOrgId?: number | null; // Int
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   PaymongoAPIKeys: { // root type
@@ -2125,7 +2228,9 @@ export interface NexusGenObjects {
     bankName?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     deletedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
     id: number; // Int!
+    isActive: boolean; // Boolean!
     isDefault: boolean; // Boolean!
     isVerified: boolean; // Boolean!
     maskedAccountNumber: string; // String!
@@ -2176,6 +2281,36 @@ export interface NexusGenObjects {
     id: number; // Int!
     latitude: number; // Float!
     longitude: number; // Float!
+  }
+  PlatformWallet: { // root type
+    balance: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currency: string; // String!
+    heldBalance: number; // Float!
+    id: number; // Int!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  PlatformWalletLedgerEntry: { // root type
+    amount: number; // Float!
+    balanceAfter: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description?: string | null; // String
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: string; // String!
+    paymentTransactionId?: string | null; // String
+    referenceId?: string | null; // String
+    sourceType: NexusGenEnums['PlatformLedgerSourceType']; // PlatformLedgerSourceType!
+    type: NexusGenEnums['LedgerEntryType']; // LedgerEntryType!
+    walletId: number; // Int!
+  }
+  PlatformWalletLedgerPage: { // root type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['PlatformWalletLedgerEntry'][]; // [PlatformWalletLedgerEntry!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
   }
   Position: { // root type
     description?: string | null; // String
@@ -2362,6 +2497,8 @@ export interface NexusGenObjects {
     agentId?: string | null; // String
     conversationId?: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
+    extraCharges?: NexusGenScalars['Json'] | null; // Json
+    extraChargesTotal: number; // Float!
     id: string; // String!
     notes?: string | null; // String
     paymentStatus: NexusGenEnums['PaymentStatus']; // PaymentStatus!
@@ -2369,6 +2506,7 @@ export interface NexusGenObjects {
     receiptSnapshot?: NexusGenScalars['Json'] | null; // Json
     requestedDate?: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['POStatus']; // POStatus!
+    subtotalAmount: number; // Float!
     totalAmount: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     vatAmount: number; // Float!
@@ -2572,6 +2710,21 @@ export interface NexusGenObjects {
     orders: number; // Int!
     profit: number; // Float!
     revenue: number; // Float!
+  }
+  SandboxPaymentReconciliationRow: { // root type
+    amount: number; // Float!
+    buyerName?: string | null; // String
+    currency: string; // String!
+    environment: string; // String!
+    gatewayReference?: string | null; // String
+    id: string; // String!
+    poNumber: string; // String!
+    provider: string; // String!
+    status: string; // String!
+    supplierName: string; // String!
+    verificationResult?: string | null; // String
+    webhookReceivedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    webhookStatus?: string | null; // String
   }
   ScPwdCustomer: { // root type
     address?: string | null; // String
@@ -3327,6 +3480,7 @@ export interface NexusGenObjects {
     rejectionReason?: string | null; // String
     requestedAt: NexusGenScalars['DateTime']; // DateTime!
     requestedById: number; // Int!
+    sandboxReference?: string | null; // String
     status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
     wallet: NexusGenRootTypes['Wallet']; // Wallet!
     walletId: number; // Int!
@@ -3367,15 +3521,76 @@ export interface NexusGenFieldTypes {
     recentUsers: NexusGenRootTypes['DashboardRecentUser'][]; // [DashboardRecentUser!]!
     stats: NexusGenRootTypes['DashboardStats']; // DashboardStats!
   }
+  AdminGovernanceDashboard: { // field return type
+    bannedOrganizations: number; // Int!
+    bannedStandaloneAgents: number; // Int!
+    pendingOrganizations: number; // Int!
+    pendingStandaloneAgents: number; // Int!
+    platformFees30Days: number; // Float!
+    platformFeesToday: number; // Float!
+    platformWalletBalance: number; // Float!
+    successfulPaymentCount: number; // Int!
+    suspendedOrganizations: number; // Int!
+    suspendedStandaloneAgents: number; // Int!
+    totalOrganizations: number; // Int!
+    totalStandaloneAgents: number; // Int!
+    verifiedOrganizations: number; // Int!
+    verifiedStandaloneAgents: number; // Int!
+  }
+  AdminOrganizationPage: { // field return type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['Organization'][]; // [Organization!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
+  }
+  AdminPayoutMethodRow: { // field return type
+    accountName: string; // String!
+    bankName: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: number; // Int!
+    isActive: boolean; // Boolean!
+    isDefault: boolean; // Boolean!
+    isVerified: boolean; // Boolean!
+    maskedAccountNumber: string; // String!
+    supplierName: string; // String!
+    type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
+    verifiedAt: NexusGenScalars['DateTime'] | null; // DateTime
+  }
+  AdminStandaloneAgentPage: { // field return type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['Agent'][]; // [Agent!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
+  }
   AdminUsersResult: { // field return type
     items: NexusGenRootTypes['User'][]; // [User!]!
     page: number; // Int!
     pageSize: number; // Int!
     total: number; // Int!
   }
+  AdminWithdrawalRow: { // field return type
+    amount: number; // Float!
+    environment: string; // String!
+    id: number; // Int!
+    payoutMethod: string; // String!
+    requestedAt: NexusGenScalars['DateTime']; // DateTime!
+    sandboxReference: string | null; // String
+    status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
+    supplierName: string; // String!
+  }
   Agent: { // field return type
     address: string | null; // String
     agentType: NexusGenEnums['AgentType']; // AgentType!
+    banReason: string | null; // String
+    bannedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    bannedById: number | null; // Int
     birthday: NexusGenScalars['DateTime'] | null; // DateTime
     city: string | null; // String
     civilStatus: string | null; // String
@@ -3397,6 +3612,9 @@ export interface NexusGenFieldTypes {
     phone: string | null; // String
     province: string | null; // String
     status: NexusGenEnums['AgentStatus']; // AgentStatus!
+    suspendedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    suspendedById: number | null; // Int
+    suspensionReason: string | null; // String
     trustTier: string; // String!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     verificationStatus: NexusGenEnums['VerificationStatus']; // VerificationStatus!
@@ -3641,6 +3859,30 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     name: string; // String!
+  }
+  CommerceDashboardMetrics: { // field return type
+    completedWithdrawals: number; // Float!
+    confirmedPayments: number; // Float!
+    grossMerchandiseValue: number; // Float!
+    kompraFeesEarned: number; // Float!
+    pendingWithdrawals: number; // Float!
+    supplierFundsAvailable: number; // Float!
+    supplierFundsHeld: number; // Float!
+  }
+  CommercePaymentRow: { // field return type
+    buyerName: string | null; // String
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    environment: string; // String!
+    fee: number; // Float!
+    fundsStatus: string | null; // String
+    gross: number; // Float!
+    id: string; // String!
+    net: number; // Float!
+    poNumber: string | null; // String
+    provider: string; // String!
+    relatedId: string; // String!
+    status: string; // String!
+    supplierName: string | null; // String
   }
   Contact: { // field return type
     branch: NexusGenRootTypes['Branch'] | null; // Branch
@@ -4431,6 +4673,25 @@ export interface NexusGenFieldTypes {
     addItemToInventoryWithUnits: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     addItemsToInventory: NexusGenRootTypes['BatchPayload'] | null; // BatchPayload
     adjustStock: NexusGenRootTypes['SupplierInventoryMovement'] | null; // SupplierInventoryMovement
+    adminAdjustPlatformWallet: NexusGenRootTypes['PlatformWalletLedgerEntry']; // PlatformWalletLedgerEntry!
+    adminApproveOrganizationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
+    adminApproveOrganizationVerification: NexusGenRootTypes['Organization']; // Organization!
+    adminApproveWithdrawal: NexusGenRootTypes['Withdrawal']; // Withdrawal!
+    adminBanAgent: NexusGenRootTypes['Agent']; // Agent!
+    adminBanOrganization: NexusGenRootTypes['Organization']; // Organization!
+    adminConfirmSandboxPaymentReconciliation: NexusGenRootTypes['PaymentTransaction']; // PaymentTransaction!
+    adminRejectAgent: NexusGenRootTypes['Agent']; // Agent!
+    adminRejectOrganizationDocument: NexusGenRootTypes['BusinessVerificationDocument']; // BusinessVerificationDocument!
+    adminRejectOrganizationVerification: NexusGenRootTypes['Organization']; // Organization!
+    adminReleaseSupplierFunds: NexusGenRootTypes['Wallet']; // Wallet!
+    adminRestoreAgent: NexusGenRootTypes['Agent']; // Agent!
+    adminRestoreOrganization: NexusGenRootTypes['Organization']; // Organization!
+    adminSimulateSandboxPayout: NexusGenRootTypes['Withdrawal']; // Withdrawal!
+    adminSuspendAgent: NexusGenRootTypes['Agent']; // Agent!
+    adminSuspendOrganization: NexusGenRootTypes['Organization']; // Organization!
+    adminUnbanOrganization: NexusGenRootTypes['Organization']; // Organization!
+    adminVerifyAgent: NexusGenRootTypes['Agent']; // Agent!
+    adminVerifySandboxPayoutMethod: NexusGenRootTypes['PayoutMethod']; // PayoutMethod!
     approveOrganizationAgent: NexusGenRootTypes['ApproveOrRejectOrganizationAgentResponse']; // ApproveOrRejectOrganizationAgentResponse!
     approveProcurementAgent: NexusGenRootTypes['ProcurementInvitation']; // ProcurementInvitation!
     approveSupplier: NexusGenRootTypes['SupplierProfile'] | null; // SupplierProfile
@@ -4448,6 +4709,7 @@ export interface NexusGenFieldTypes {
     confirmDelivery: NexusGenRootTypes['SupplierOrder'] | null; // SupplierOrder
     confirmKompraOrder: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
     confirmOrderReceived: NexusGenRootTypes['KompraCOrder']; // KompraCOrder!
+    confirmPaymentForDevelopment: NexusGenRootTypes['PaymentTransaction']; // PaymentTransaction!
     counterOfferRFQ: NexusGenRootTypes['NegotiationOffer']; // NegotiationOffer!
     createAccountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     createBranch: NexusGenRootTypes['Branch']; // Branch!
@@ -4458,6 +4720,7 @@ export interface NexusGenFieldTypes {
     createContact: NexusGenRootTypes['Contact'] | null; // Contact
     createDepartment: NexusGenRootTypes['Department'] | null; // Department
     createEmployee: NexusGenRootTypes['Employee'] | null; // Employee
+    createFeeRule: NexusGenRootTypes['FeeRule']; // FeeRule!
     createGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     createHRUser: NexusGenRootTypes['User']; // User!
     createInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
@@ -4499,6 +4762,7 @@ export interface NexusGenFieldTypes {
     createVariantOption: NexusGenRootTypes['SupplierItemVariantOption']; // SupplierItemVariantOption!
     createVatType: NexusGenRootTypes['VatType'] | null; // VatType
     deactivateInventoryItemUnit: NexusGenRootTypes['InventoryItemUnit']; // InventoryItemUnit!
+    deactivateSupplierPayoutMethod: NexusGenRootTypes['PayoutMethod']; // PayoutMethod!
     deleteAccountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
     deleteBranch: NexusGenRootTypes['Branch']; // Branch!
     deleteBudgetEntry: NexusGenRootTypes['Budget'] | null; // Budget
@@ -4605,6 +4869,7 @@ export interface NexusGenFieldTypes {
     sendPoReceipt: NexusGenRootTypes['PurchaseOrder']; // PurchaseOrder!
     setItemPrimaryMedia: NexusGenRootTypes['Media'][]; // [Media!]!
     setPositionPermissions: NexusGenRootTypes['PositionPermission'][]; // [PositionPermission!]!
+    setSupplierPayoutMethodDefault: NexusGenRootTypes['PayoutMethod']; // PayoutMethod!
     setUserPermissionOverride: NexusGenRootTypes['UserPermissionOverride']; // UserPermissionOverride!
     shipSalesOrder: NexusGenRootTypes['SalesOrder'] | null; // SalesOrder
     signup: NexusGenRootTypes['User']; // User!
@@ -4616,6 +4881,7 @@ export interface NexusGenFieldTypes {
     timeIn: NexusGenRootTypes['Attendance'] | null; // Attendance
     timeOut: NexusGenRootTypes['Attendance'] | null; // Attendance
     toggleContact: NexusGenRootTypes['Contact'] | null; // Contact
+    toggleFeeRule: NexusGenRootTypes['FeeRule']; // FeeRule!
     toggleRestockCycle: NexusGenRootTypes['RestockCycle'] | null; // RestockCycle
     toggleRestockSchedule: NexusGenRootTypes['RestockSchedule'] | null; // RestockSchedule
     transferStock: NexusGenRootTypes['SupplierStockBatch'][]; // [SupplierStockBatch!]!
@@ -4632,6 +4898,7 @@ export interface NexusGenFieldTypes {
     updateDepartment: NexusGenRootTypes['Department'] | null; // Department
     updateDocument: NexusGenRootTypes['WholesaleDocument'] | null; // WholesaleDocument
     updateEmployee: NexusGenRootTypes['Employee'] | null; // Employee
+    updateFeeRule: NexusGenRootTypes['FeeRule']; // FeeRule!
     updateGISRow: NexusGenRootTypes['GISRow'] | null; // GISRow
     updateInventory: NexusGenRootTypes['Inventory'] | null; // Inventory
     updateInventoryItem: NexusGenRootTypes['InventoryItem'] | null; // InventoryItem
@@ -4747,9 +5014,13 @@ export interface NexusGenFieldTypes {
     stocks: string | null; // String
   }
   Organization: { // field return type
+    accountStatus: NexusGenEnums['OrganizationAccountStatus']; // OrganizationAccountStatus!
     accountTitles: NexusGenRootTypes['AccountTitle'][]; // [AccountTitle!]!
     attendances: NexusGenRootTypes['Attendance'][]; // [Attendance!]!
     averageRating: number; // Float!
+    banReason: string | null; // String
+    bannedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    bannedById: number | null; // Int
     bannerImg: string | null; // String
     bio: string | null; // String
     branches: NexusGenRootTypes['Branch'][]; // [Branch!]!
@@ -4809,6 +5080,9 @@ export interface NexusGenFieldTypes {
     supplierLinks: NexusGenRootTypes['SupplierOutletLink'][]; // [SupplierOutletLink!]!
     supplierOrders: NexusGenRootTypes['SupplierOrder'][]; // [SupplierOrder!]!
     supplierWarehouses: NexusGenRootTypes['SupplierWarehouse'][]; // [SupplierWarehouse!]!
+    suspendedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    suspendedById: number | null; // Int
+    suspensionReason: string | null; // String
     totalReviews: number; // Int!
     twitterLink: string | null; // String
     updatedAt: NexusGenScalars['DateTime'] | null; // DateTime
@@ -5107,14 +5381,19 @@ export interface NexusGenFieldTypes {
     deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
     environment: NexusGenEnums['Environment']; // Environment!
     feeAmount: number; // Float!
+    feeRuleId: string | null; // String
+    feeSnapshot: NexusGenScalars['Json'] | null; // Json
     gatewayReference: string | null; // String
     id: string; // String!
+    netAmount: number; // Float!
     payerAgentId: string | null; // String
     payerOrgId: number | null; // Int
     provider: NexusGenEnums['PaymentGatewayProvider']; // PaymentGatewayProvider!
+    providerFeeAmount: number; // Float!
     relatedId: string; // String!
     relatedType: NexusGenEnums['PaymentRelatedType']; // PaymentRelatedType!
     status: NexusGenEnums['PaymentTransactionStatus']; // PaymentTransactionStatus!
+    supplierOrgId: number | null; // Int
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
   }
   PaymongoAPIKeys: { // field return type
@@ -5128,7 +5407,9 @@ export interface NexusGenFieldTypes {
     bankName: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     deletedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    environment: NexusGenEnums['Environment']; // Environment!
     id: number; // Int!
+    isActive: boolean; // Boolean!
     isDefault: boolean; // Boolean!
     isVerified: boolean; // Boolean!
     maskedAccountNumber: string; // String!
@@ -5180,6 +5461,36 @@ export interface NexusGenFieldTypes {
     id: number; // Int!
     latitude: number; // Float!
     longitude: number; // Float!
+  }
+  PlatformWallet: { // field return type
+    balance: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    currency: string; // String!
+    heldBalance: number; // Float!
+    id: number; // Int!
+    updatedAt: NexusGenScalars['DateTime']; // DateTime!
+  }
+  PlatformWalletLedgerEntry: { // field return type
+    amount: number; // Float!
+    balanceAfter: number; // Float!
+    createdAt: NexusGenScalars['DateTime']; // DateTime!
+    description: string | null; // String
+    environment: NexusGenEnums['Environment']; // Environment!
+    id: string; // String!
+    paymentTransactionId: string | null; // String
+    referenceId: string | null; // String
+    sourceType: NexusGenEnums['PlatformLedgerSourceType']; // PlatformLedgerSourceType!
+    type: NexusGenEnums['LedgerEntryType']; // LedgerEntryType!
+    walletId: number; // Int!
+  }
+  PlatformWalletLedgerPage: { // field return type
+    hasNextPage: boolean; // Boolean!
+    hasPreviousPage: boolean; // Boolean!
+    items: NexusGenRootTypes['PlatformWalletLedgerEntry'][]; // [PlatformWalletLedgerEntry!]!
+    limit: number; // Int!
+    page: number; // Int!
+    total: number; // Int!
+    totalPages: number; // Int!
   }
   Position: { // field return type
     controlPermissions: NexusGenRootTypes['PositionControlPermission'][]; // [PositionControlPermission!]!
@@ -5392,6 +5703,8 @@ export interface NexusGenFieldTypes {
     conversationId: string | null; // String
     createdAt: NexusGenScalars['DateTime']; // DateTime!
     delivery: NexusGenRootTypes['Delivery'] | null; // Delivery
+    extraCharges: NexusGenScalars['Json'] | null; // Json
+    extraChargesTotal: number; // Float!
     id: string; // String!
     lineItems: NexusGenRootTypes['POLineItem'][]; // [POLineItem!]!
     notes: string | null; // String
@@ -5401,6 +5714,7 @@ export interface NexusGenFieldTypes {
     receiptSnapshot: NexusGenScalars['Json'] | null; // Json
     requestedDate: NexusGenScalars['DateTime'] | null; // DateTime
     status: NexusGenEnums['POStatus']; // POStatus!
+    subtotalAmount: number; // Float!
     supplierOrg: NexusGenRootTypes['Organization']; // Organization!
     totalAmount: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -5409,7 +5723,17 @@ export interface NexusGenFieldTypes {
   Query: { // field return type
     ME: NexusGenRootTypes['User']; // User!
     accountTitle: NexusGenRootTypes['AccountTitle'] | null; // AccountTitle
+    adminCommerceDashboard: NexusGenRootTypes['CommerceDashboardMetrics']; // CommerceDashboardMetrics!
+    adminCommercePayments: NexusGenRootTypes['CommercePaymentRow'][]; // [CommercePaymentRow!]!
+    adminCommerceWithdrawals: NexusGenRootTypes['AdminWithdrawalRow'][]; // [AdminWithdrawalRow!]!
     adminDashboard: NexusGenRootTypes['AdminDashboardResult']; // AdminDashboardResult!
+    adminGovernanceDashboard: NexusGenRootTypes['AdminGovernanceDashboard']; // AdminGovernanceDashboard!
+    adminOrganization: NexusGenRootTypes['Organization'] | null; // Organization
+    adminOrganizations: NexusGenRootTypes['AdminOrganizationPage']; // AdminOrganizationPage!
+    adminPayoutMethods: NexusGenRootTypes['AdminPayoutMethodRow'][]; // [AdminPayoutMethodRow!]!
+    adminSandboxPaymentReconciliations: NexusGenRootTypes['SandboxPaymentReconciliationRow'][]; // [SandboxPaymentReconciliationRow!]!
+    adminStandaloneAgent: NexusGenRootTypes['Agent'] | null; // Agent
+    adminStandaloneAgents: NexusGenRootTypes['AdminStandaloneAgentPage']; // AdminStandaloneAgentPage!
     adminUsers: NexusGenRootTypes['AdminUsersResult'] | null; // AdminUsersResult
     auditLogs: NexusGenRootTypes['AuditLogType'][]; // [AuditLogType!]!
     birDiscountLogbook: NexusGenRootTypes['BirDiscountLogbookEntry'][]; // [BirDiscountLogbookEntry!]!
@@ -5439,6 +5763,7 @@ export interface NexusGenFieldTypes {
     getCenters: Array<NexusGenRootTypes['Center'] | null> | null; // [Center]
     getDashboardInventoryStats: NexusGenRootTypes['DashboardInventoryStats'] | null; // DashboardInventoryStats
     getDashboardOrderStats: NexusGenRootTypes['DashboardOrderStats'] | null; // DashboardOrderStats
+    getFeeRule: NexusGenRootTypes['FeeRule'] | null; // FeeRule
     getInventoryByOutletId: NexusGenRootTypes['Outlet'] | null; // Outlet
     getInventoryItemById: NexusGenRootTypes['InventoryItems'] | null; // InventoryItems
     getInventoryItemsByRack: NexusGenRootTypes['ItemsByRack'][]; // [ItemsByRack!]!
@@ -5500,6 +5825,7 @@ export interface NexusGenFieldTypes {
     itemPriceHistory: NexusGenRootTypes['ItemPriceHistory'][]; // [ItemPriceHistory!]!
     items: NexusGenRootTypes['Item'][]; // [Item!]!
     kompraCOrder: NexusGenRootTypes['KompraCOrder'] | null; // KompraCOrder
+    listFeeRules: NexusGenRootTypes['FeeRule'][]; // [FeeRule!]!
     marketplaceListing: NexusGenRootTypes['MarketplaceListing'] | null; // MarketplaceListing
     marketplaceListings: NexusGenRootTypes['MarketplaceListing'][]; // [MarketplaceListing!]!
     marketplaceReadiness: NexusGenRootTypes['MarketplaceReadiness']; // MarketplaceReadiness!
@@ -5529,6 +5855,8 @@ export interface NexusGenFieldTypes {
     pendingSuppliers: Array<NexusGenRootTypes['SupplierProfile'] | null> | null; // [SupplierProfile]
     placeLocation: NexusGenRootTypes['PlaceLocation'] | null; // PlaceLocation
     placeLocations: Array<NexusGenRootTypes['PlaceLocation'] | null> | null; // [PlaceLocation]
+    platformWallet: NexusGenRootTypes['PlatformWallet']; // PlatformWallet!
+    platformWalletLedger: NexusGenRootTypes['PlatformWalletLedgerPage']; // PlatformWalletLedgerPage!
     position: NexusGenRootTypes['Position'] | null; // Position
     positions: NexusGenRootTypes['Position'][]; // [Position!]!
     pricingAnalytics: NexusGenRootTypes['PricingAnalytics'] | null; // PricingAnalytics
@@ -5836,6 +6164,21 @@ export interface NexusGenFieldTypes {
     orders: number; // Int!
     profit: number; // Float!
     revenue: number; // Float!
+  }
+  SandboxPaymentReconciliationRow: { // field return type
+    amount: number; // Float!
+    buyerName: string | null; // String
+    currency: string; // String!
+    environment: string; // String!
+    gatewayReference: string | null; // String
+    id: string; // String!
+    poNumber: string; // String!
+    provider: string; // String!
+    status: string; // String!
+    supplierName: string; // String!
+    verificationResult: string | null; // String
+    webhookReceivedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    webhookStatus: string | null; // String
   }
   ScPwdCustomer: { // field return type
     address: string | null; // String
@@ -6691,6 +7034,7 @@ export interface NexusGenFieldTypes {
     rejectionReason: string | null; // String
     requestedAt: NexusGenScalars['DateTime']; // DateTime!
     requestedById: number; // Int!
+    sandboxReference: string | null; // String
     status: NexusGenEnums['WithdrawalStatus']; // WithdrawalStatus!
     wallet: NexusGenRootTypes['Wallet']; // Wallet!
     walletId: number; // Int!
@@ -6721,15 +7065,76 @@ export interface NexusGenFieldTypeNames {
     recentUsers: 'DashboardRecentUser'
     stats: 'DashboardStats'
   }
+  AdminGovernanceDashboard: { // field return type name
+    bannedOrganizations: 'Int'
+    bannedStandaloneAgents: 'Int'
+    pendingOrganizations: 'Int'
+    pendingStandaloneAgents: 'Int'
+    platformFees30Days: 'Float'
+    platformFeesToday: 'Float'
+    platformWalletBalance: 'Float'
+    successfulPaymentCount: 'Int'
+    suspendedOrganizations: 'Int'
+    suspendedStandaloneAgents: 'Int'
+    totalOrganizations: 'Int'
+    totalStandaloneAgents: 'Int'
+    verifiedOrganizations: 'Int'
+    verifiedStandaloneAgents: 'Int'
+  }
+  AdminOrganizationPage: { // field return type name
+    hasNextPage: 'Boolean'
+    hasPreviousPage: 'Boolean'
+    items: 'Organization'
+    limit: 'Int'
+    page: 'Int'
+    total: 'Int'
+    totalPages: 'Int'
+  }
+  AdminPayoutMethodRow: { // field return type name
+    accountName: 'String'
+    bankName: 'String'
+    createdAt: 'DateTime'
+    environment: 'Environment'
+    id: 'Int'
+    isActive: 'Boolean'
+    isDefault: 'Boolean'
+    isVerified: 'Boolean'
+    maskedAccountNumber: 'String'
+    supplierName: 'String'
+    type: 'PayoutMethodType'
+    verifiedAt: 'DateTime'
+  }
+  AdminStandaloneAgentPage: { // field return type name
+    hasNextPage: 'Boolean'
+    hasPreviousPage: 'Boolean'
+    items: 'Agent'
+    limit: 'Int'
+    page: 'Int'
+    total: 'Int'
+    totalPages: 'Int'
+  }
   AdminUsersResult: { // field return type name
     items: 'User'
     page: 'Int'
     pageSize: 'Int'
     total: 'Int'
   }
+  AdminWithdrawalRow: { // field return type name
+    amount: 'Float'
+    environment: 'String'
+    id: 'Int'
+    payoutMethod: 'String'
+    requestedAt: 'DateTime'
+    sandboxReference: 'String'
+    status: 'WithdrawalStatus'
+    supplierName: 'String'
+  }
   Agent: { // field return type name
     address: 'String'
     agentType: 'AgentType'
+    banReason: 'String'
+    bannedAt: 'DateTime'
+    bannedById: 'Int'
     birthday: 'DateTime'
     city: 'String'
     civilStatus: 'String'
@@ -6751,6 +7156,9 @@ export interface NexusGenFieldTypeNames {
     phone: 'String'
     province: 'String'
     status: 'AgentStatus'
+    suspendedAt: 'DateTime'
+    suspendedById: 'Int'
+    suspensionReason: 'String'
     trustTier: 'String'
     updatedAt: 'DateTime'
     verificationStatus: 'VerificationStatus'
@@ -6995,6 +7403,30 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     items: 'Item'
     name: 'String'
+  }
+  CommerceDashboardMetrics: { // field return type name
+    completedWithdrawals: 'Float'
+    confirmedPayments: 'Float'
+    grossMerchandiseValue: 'Float'
+    kompraFeesEarned: 'Float'
+    pendingWithdrawals: 'Float'
+    supplierFundsAvailable: 'Float'
+    supplierFundsHeld: 'Float'
+  }
+  CommercePaymentRow: { // field return type name
+    buyerName: 'String'
+    createdAt: 'DateTime'
+    environment: 'String'
+    fee: 'Float'
+    fundsStatus: 'String'
+    gross: 'Float'
+    id: 'String'
+    net: 'Float'
+    poNumber: 'String'
+    provider: 'String'
+    relatedId: 'String'
+    status: 'String'
+    supplierName: 'String'
   }
   Contact: { // field return type name
     branch: 'Branch'
@@ -7785,6 +8217,25 @@ export interface NexusGenFieldTypeNames {
     addItemToInventoryWithUnits: 'InventoryItems'
     addItemsToInventory: 'BatchPayload'
     adjustStock: 'SupplierInventoryMovement'
+    adminAdjustPlatformWallet: 'PlatformWalletLedgerEntry'
+    adminApproveOrganizationDocument: 'BusinessVerificationDocument'
+    adminApproveOrganizationVerification: 'Organization'
+    adminApproveWithdrawal: 'Withdrawal'
+    adminBanAgent: 'Agent'
+    adminBanOrganization: 'Organization'
+    adminConfirmSandboxPaymentReconciliation: 'PaymentTransaction'
+    adminRejectAgent: 'Agent'
+    adminRejectOrganizationDocument: 'BusinessVerificationDocument'
+    adminRejectOrganizationVerification: 'Organization'
+    adminReleaseSupplierFunds: 'Wallet'
+    adminRestoreAgent: 'Agent'
+    adminRestoreOrganization: 'Organization'
+    adminSimulateSandboxPayout: 'Withdrawal'
+    adminSuspendAgent: 'Agent'
+    adminSuspendOrganization: 'Organization'
+    adminUnbanOrganization: 'Organization'
+    adminVerifyAgent: 'Agent'
+    adminVerifySandboxPayoutMethod: 'PayoutMethod'
     approveOrganizationAgent: 'ApproveOrRejectOrganizationAgentResponse'
     approveProcurementAgent: 'ProcurementInvitation'
     approveSupplier: 'SupplierProfile'
@@ -7802,6 +8253,7 @@ export interface NexusGenFieldTypeNames {
     confirmDelivery: 'SupplierOrder'
     confirmKompraOrder: 'KompraCOrder'
     confirmOrderReceived: 'KompraCOrder'
+    confirmPaymentForDevelopment: 'PaymentTransaction'
     counterOfferRFQ: 'NegotiationOffer'
     createAccountTitle: 'AccountTitle'
     createBranch: 'Branch'
@@ -7812,6 +8264,7 @@ export interface NexusGenFieldTypeNames {
     createContact: 'Contact'
     createDepartment: 'Department'
     createEmployee: 'Employee'
+    createFeeRule: 'FeeRule'
     createGISRow: 'GISRow'
     createHRUser: 'User'
     createInventory: 'Inventory'
@@ -7853,6 +8306,7 @@ export interface NexusGenFieldTypeNames {
     createVariantOption: 'SupplierItemVariantOption'
     createVatType: 'VatType'
     deactivateInventoryItemUnit: 'InventoryItemUnit'
+    deactivateSupplierPayoutMethod: 'PayoutMethod'
     deleteAccountTitle: 'AccountTitle'
     deleteBranch: 'Branch'
     deleteBudgetEntry: 'Budget'
@@ -7959,6 +8413,7 @@ export interface NexusGenFieldTypeNames {
     sendPoReceipt: 'PurchaseOrder'
     setItemPrimaryMedia: 'Media'
     setPositionPermissions: 'PositionPermission'
+    setSupplierPayoutMethodDefault: 'PayoutMethod'
     setUserPermissionOverride: 'UserPermissionOverride'
     shipSalesOrder: 'SalesOrder'
     signup: 'User'
@@ -7970,6 +8425,7 @@ export interface NexusGenFieldTypeNames {
     timeIn: 'Attendance'
     timeOut: 'Attendance'
     toggleContact: 'Contact'
+    toggleFeeRule: 'FeeRule'
     toggleRestockCycle: 'RestockCycle'
     toggleRestockSchedule: 'RestockSchedule'
     transferStock: 'SupplierStockBatch'
@@ -7986,6 +8442,7 @@ export interface NexusGenFieldTypeNames {
     updateDepartment: 'Department'
     updateDocument: 'WholesaleDocument'
     updateEmployee: 'Employee'
+    updateFeeRule: 'FeeRule'
     updateGISRow: 'GISRow'
     updateInventory: 'Inventory'
     updateInventoryItem: 'InventoryItem'
@@ -8101,9 +8558,13 @@ export interface NexusGenFieldTypeNames {
     stocks: 'String'
   }
   Organization: { // field return type name
+    accountStatus: 'OrganizationAccountStatus'
     accountTitles: 'AccountTitle'
     attendances: 'Attendance'
     averageRating: 'Float'
+    banReason: 'String'
+    bannedAt: 'DateTime'
+    bannedById: 'Int'
     bannerImg: 'String'
     bio: 'String'
     branches: 'Branch'
@@ -8163,6 +8624,9 @@ export interface NexusGenFieldTypeNames {
     supplierLinks: 'SupplierOutletLink'
     supplierOrders: 'SupplierOrder'
     supplierWarehouses: 'SupplierWarehouse'
+    suspendedAt: 'DateTime'
+    suspendedById: 'Int'
+    suspensionReason: 'String'
     totalReviews: 'Int'
     twitterLink: 'String'
     updatedAt: 'DateTime'
@@ -8461,14 +8925,19 @@ export interface NexusGenFieldTypeNames {
     deletedAt: 'DateTime'
     environment: 'Environment'
     feeAmount: 'Float'
+    feeRuleId: 'String'
+    feeSnapshot: 'Json'
     gatewayReference: 'String'
     id: 'String'
+    netAmount: 'Float'
     payerAgentId: 'String'
     payerOrgId: 'Int'
     provider: 'PaymentGatewayProvider'
+    providerFeeAmount: 'Float'
     relatedId: 'String'
     relatedType: 'PaymentRelatedType'
     status: 'PaymentTransactionStatus'
+    supplierOrgId: 'Int'
     updatedAt: 'DateTime'
   }
   PaymongoAPIKeys: { // field return type name
@@ -8482,7 +8951,9 @@ export interface NexusGenFieldTypeNames {
     bankName: 'String'
     createdAt: 'DateTime'
     deletedAt: 'DateTime'
+    environment: 'Environment'
     id: 'Int'
+    isActive: 'Boolean'
     isDefault: 'Boolean'
     isVerified: 'Boolean'
     maskedAccountNumber: 'String'
@@ -8534,6 +9005,36 @@ export interface NexusGenFieldTypeNames {
     id: 'Int'
     latitude: 'Float'
     longitude: 'Float'
+  }
+  PlatformWallet: { // field return type name
+    balance: 'Float'
+    createdAt: 'DateTime'
+    currency: 'String'
+    heldBalance: 'Float'
+    id: 'Int'
+    updatedAt: 'DateTime'
+  }
+  PlatformWalletLedgerEntry: { // field return type name
+    amount: 'Float'
+    balanceAfter: 'Float'
+    createdAt: 'DateTime'
+    description: 'String'
+    environment: 'Environment'
+    id: 'String'
+    paymentTransactionId: 'String'
+    referenceId: 'String'
+    sourceType: 'PlatformLedgerSourceType'
+    type: 'LedgerEntryType'
+    walletId: 'Int'
+  }
+  PlatformWalletLedgerPage: { // field return type name
+    hasNextPage: 'Boolean'
+    hasPreviousPage: 'Boolean'
+    items: 'PlatformWalletLedgerEntry'
+    limit: 'Int'
+    page: 'Int'
+    total: 'Int'
+    totalPages: 'Int'
   }
   Position: { // field return type name
     controlPermissions: 'PositionControlPermission'
@@ -8746,6 +9247,8 @@ export interface NexusGenFieldTypeNames {
     conversationId: 'String'
     createdAt: 'DateTime'
     delivery: 'Delivery'
+    extraCharges: 'Json'
+    extraChargesTotal: 'Float'
     id: 'String'
     lineItems: 'POLineItem'
     notes: 'String'
@@ -8755,6 +9258,7 @@ export interface NexusGenFieldTypeNames {
     receiptSnapshot: 'Json'
     requestedDate: 'DateTime'
     status: 'POStatus'
+    subtotalAmount: 'Float'
     supplierOrg: 'Organization'
     totalAmount: 'Float'
     updatedAt: 'DateTime'
@@ -8763,7 +9267,17 @@ export interface NexusGenFieldTypeNames {
   Query: { // field return type name
     ME: 'User'
     accountTitle: 'AccountTitle'
+    adminCommerceDashboard: 'CommerceDashboardMetrics'
+    adminCommercePayments: 'CommercePaymentRow'
+    adminCommerceWithdrawals: 'AdminWithdrawalRow'
     adminDashboard: 'AdminDashboardResult'
+    adminGovernanceDashboard: 'AdminGovernanceDashboard'
+    adminOrganization: 'Organization'
+    adminOrganizations: 'AdminOrganizationPage'
+    adminPayoutMethods: 'AdminPayoutMethodRow'
+    adminSandboxPaymentReconciliations: 'SandboxPaymentReconciliationRow'
+    adminStandaloneAgent: 'Agent'
+    adminStandaloneAgents: 'AdminStandaloneAgentPage'
     adminUsers: 'AdminUsersResult'
     auditLogs: 'AuditLogType'
     birDiscountLogbook: 'BirDiscountLogbookEntry'
@@ -8793,6 +9307,7 @@ export interface NexusGenFieldTypeNames {
     getCenters: 'Center'
     getDashboardInventoryStats: 'DashboardInventoryStats'
     getDashboardOrderStats: 'DashboardOrderStats'
+    getFeeRule: 'FeeRule'
     getInventoryByOutletId: 'Outlet'
     getInventoryItemById: 'InventoryItems'
     getInventoryItemsByRack: 'ItemsByRack'
@@ -8854,6 +9369,7 @@ export interface NexusGenFieldTypeNames {
     itemPriceHistory: 'ItemPriceHistory'
     items: 'Item'
     kompraCOrder: 'KompraCOrder'
+    listFeeRules: 'FeeRule'
     marketplaceListing: 'MarketplaceListing'
     marketplaceListings: 'MarketplaceListing'
     marketplaceReadiness: 'MarketplaceReadiness'
@@ -8883,6 +9399,8 @@ export interface NexusGenFieldTypeNames {
     pendingSuppliers: 'SupplierProfile'
     placeLocation: 'PlaceLocation'
     placeLocations: 'PlaceLocation'
+    platformWallet: 'PlatformWallet'
+    platformWalletLedger: 'PlatformWalletLedgerPage'
     position: 'Position'
     positions: 'Position'
     pricingAnalytics: 'PricingAnalytics'
@@ -9190,6 +9708,21 @@ export interface NexusGenFieldTypeNames {
     orders: 'Int'
     profit: 'Float'
     revenue: 'Float'
+  }
+  SandboxPaymentReconciliationRow: { // field return type name
+    amount: 'Float'
+    buyerName: 'String'
+    currency: 'String'
+    environment: 'String'
+    gatewayReference: 'String'
+    id: 'String'
+    poNumber: 'String'
+    provider: 'String'
+    status: 'String'
+    supplierName: 'String'
+    verificationResult: 'String'
+    webhookReceivedAt: 'DateTime'
+    webhookStatus: 'String'
   }
   ScPwdCustomer: { // field return type name
     address: 'String'
@@ -10045,6 +10578,7 @@ export interface NexusGenFieldTypeNames {
     rejectionReason: 'String'
     requestedAt: 'DateTime'
     requestedById: 'Int'
+    sandboxReference: 'String'
     status: 'WithdrawalStatus'
     wallet: 'Wallet'
     walletId: 'Int'
@@ -10110,6 +10644,78 @@ export interface NexusGenArgTypes {
       supplierItemId: string; // String!
       unitCost?: number | null; // Float
       warehouseId?: string | null; // String
+    }
+    adminAdjustPlatformWallet: { // args
+      amount: number; // Float!
+      description: string; // String!
+      referenceId?: string | null; // String
+    }
+    adminApproveOrganizationDocument: { // args
+      id: string; // String!
+      remarks?: string | null; // String
+    }
+    adminApproveOrganizationVerification: { // args
+      id: number; // Int!
+    }
+    adminApproveWithdrawal: { // args
+      withdrawalId: number; // Int!
+    }
+    adminBanAgent: { // args
+      id: string; // String!
+      reason?: string | null; // String
+    }
+    adminBanOrganization: { // args
+      id: number; // Int!
+      reason?: string | null; // String
+    }
+    adminConfirmSandboxPaymentReconciliation: { // args
+      paymentTransactionId: string; // String!
+      reason: string; // String!
+    }
+    adminRejectAgent: { // args
+      id: string; // String!
+      remarks: string; // String!
+    }
+    adminRejectOrganizationDocument: { // args
+      id: string; // String!
+      remarks: string; // String!
+    }
+    adminRejectOrganizationVerification: { // args
+      id: number; // Int!
+      remarks: string; // String!
+    }
+    adminReleaseSupplierFunds: { // args
+      paymentTransactionId: string; // String!
+    }
+    adminRestoreAgent: { // args
+      id: string; // String!
+      reason?: string | null; // String
+    }
+    adminRestoreOrganization: { // args
+      id: number; // Int!
+      reason?: string | null; // String
+    }
+    adminSimulateSandboxPayout: { // args
+      outcome?: NexusGenEnums['SandboxPayoutOutcome'] | null; // SandboxPayoutOutcome
+      withdrawalId: number; // Int!
+    }
+    adminSuspendAgent: { // args
+      id: string; // String!
+      reason?: string | null; // String
+    }
+    adminSuspendOrganization: { // args
+      id: number; // Int!
+      reason?: string | null; // String
+    }
+    adminUnbanOrganization: { // args
+      id: number; // Int!
+      reason?: string | null; // String
+    }
+    adminVerifyAgent: { // args
+      id: string; // String!
+    }
+    adminVerifySandboxPayoutMethod: { // args
+      payoutMethodId: number; // Int!
     }
     approveOrganizationAgent: { // args
       agentId: string; // String!
@@ -10179,6 +10785,9 @@ export interface NexusGenArgTypes {
       customerId: number; // Int!
       orderId: number; // Int!
     }
+    confirmPaymentForDevelopment: { // args
+      paymentTransactionId: string; // String!
+    }
     counterOfferRFQ: { // args
       input: NexusGenInputs['CounterOfferInput']; // CounterOfferInput!
     }
@@ -10230,6 +10839,17 @@ export interface NexusGenArgTypes {
       name?: string | null; // String
       orgId?: number | null; // Int
       positionId?: number | null; // Int
+    }
+    createFeeRule: { // args
+      appliesTo: NexusGenEnums['FeeApplication']; // FeeApplication!
+      category?: string | null; // String
+      effectiveFrom: NexusGenScalars['DateTime']; // DateTime!
+      effectiveTo?: NexusGenScalars['DateTime'] | null; // DateTime
+      isActive?: boolean | null; // Boolean
+      rate: number; // Float!
+      rateType: NexusGenEnums['FeeRateType']; // FeeRateType!
+      tierModifier?: number | null; // Float
+      unitType?: string | null; // String
     }
     createGISRow: { // args
       accountTitleId: number; // Int!
@@ -10457,9 +11077,10 @@ export interface NexusGenArgTypes {
     }
     createSupplierPayoutMethod: { // args
       accountName: string; // String!
+      accountNumber: string; // String!
       bankName?: string | null; // String
+      confirmAccountNumber: string; // String!
       isDefault?: boolean | null; // Boolean
-      maskedAccountNumber: string; // String!
       type: NexusGenEnums['PayoutMethodType']; // PayoutMethodType!
     }
     createTransaction: { // args
@@ -10512,6 +11133,9 @@ export interface NexusGenArgTypes {
     }
     deactivateInventoryItemUnit: { // args
       id: number; // Int!
+    }
+    deactivateSupplierPayoutMethod: { // args
+      payoutMethodId: number; // Int!
     }
     deleteAccountTitle: { // args
       id?: number | null; // Int
@@ -10908,6 +11532,9 @@ export interface NexusGenArgTypes {
       permissions: NexusGenInputs['PermissionInput'][]; // [PermissionInput!]!
       positionId: string; // String!
     }
+    setSupplierPayoutMethodDefault: { // args
+      payoutMethodId: number; // Int!
+    }
     setUserPermissionOverride: { // args
       canCreate?: boolean | null; // Boolean
       canDelete?: boolean | null; // Boolean
@@ -10957,6 +11584,10 @@ export interface NexusGenArgTypes {
     }
     toggleContact: { // args
       id: number; // Int!
+    }
+    toggleFeeRule: { // args
+      id: string; // String!
+      isActive: boolean; // Boolean!
     }
     toggleRestockCycle: { // args
       id: number; // Int!
@@ -11033,6 +11664,18 @@ export interface NexusGenArgTypes {
       id?: number | null; // Int
       name?: string | null; // String
       positionId?: number | null; // Int
+    }
+    updateFeeRule: { // args
+      appliesTo: NexusGenEnums['FeeApplication']; // FeeApplication!
+      category?: string | null; // String
+      effectiveFrom: NexusGenScalars['DateTime']; // DateTime!
+      effectiveTo?: NexusGenScalars['DateTime'] | null; // DateTime
+      id: string; // String!
+      isActive?: boolean | null; // Boolean
+      rate: number; // Float!
+      rateType: NexusGenEnums['FeeRateType']; // FeeRateType!
+      tierModifier?: number | null; // Float
+      unitType?: string | null; // String
     }
     updateGISRow: { // args
       accountTitleId?: number | null; // Int
@@ -11353,6 +11996,26 @@ export interface NexusGenArgTypes {
       endDate?: string | null; // String
       startDate?: string | null; // String
     }
+    adminOrganization: { // args
+      id: number; // Int!
+    }
+    adminOrganizations: { // args
+      accountStatus?: NexusGenEnums['OrganizationAccountStatus'] | null; // OrganizationAccountStatus
+      limit?: number | null; // Int
+      page?: number | null; // Int
+      search?: string | null; // String
+      verificationStatus?: NexusGenEnums['OrgVerificationStatus'] | null; // OrgVerificationStatus
+    }
+    adminStandaloneAgent: { // args
+      id: string; // String!
+    }
+    adminStandaloneAgents: { // args
+      limit?: number | null; // Int
+      page?: number | null; // Int
+      search?: string | null; // String
+      status?: NexusGenEnums['AgentStatus'] | null; // AgentStatus
+      verificationStatus?: NexusGenEnums['VerificationStatus'] | null; // VerificationStatus
+    }
     adminUsers: { // args
       active?: boolean | null; // Boolean
       page?: number | null; // Int
@@ -11442,6 +12105,9 @@ export interface NexusGenArgTypes {
       endDate?: string | null; // String
       organizationId?: number | null; // Int
       startDate?: string | null; // String
+    }
+    getFeeRule: { // args
+      id: string; // String!
     }
     getInventoryByOutletId: { // args
       outletId: number; // Int!
@@ -11716,6 +12382,13 @@ export interface NexusGenArgTypes {
     }
     placeLocations: { // args
       orgId?: number | null; // Int
+    }
+    platformWalletLedger: { // args
+      from?: NexusGenScalars['DateTime'] | null; // DateTime
+      limit?: number | null; // Int
+      page?: number | null; // Int
+      sourceType?: NexusGenEnums['PlatformLedgerSourceType'] | null; // PlatformLedgerSourceType
+      to?: NexusGenScalars['DateTime'] | null; // DateTime
     }
     position: { // args
       id: string; // String!

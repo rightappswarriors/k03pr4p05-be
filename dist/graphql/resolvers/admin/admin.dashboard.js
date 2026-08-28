@@ -1,5 +1,6 @@
 import { extendType, objectType, nullable, stringArg } from 'nexus';
 import { adminDashboardService } from '../../../services/admin.dashboard.service.js';
+import { requireAdminPermission } from '../../../lib/adminGovernance.js';
 // ─── Object Types ─────────────────────────────────────────────────────────────
 export const DashboardStats = objectType({
     name: 'DashboardStats',
@@ -95,7 +96,8 @@ export const AdminDashboardQuery = extendType({
                 startDate: nullable(stringArg()),
                 endDate: nullable(stringArg()),
             },
-            async resolve(_root, args, _ctx) {
+            async resolve(_root, args, ctx) {
+                requireAdminPermission(ctx, 'DASHBOARD_VIEW');
                 const data = await adminDashboardService.getDashboard({
                     startDate: args.startDate ?? undefined,
                     endDate: args.endDate ?? undefined,

@@ -21,6 +21,7 @@ export interface ContextUser {
     isVerified?: boolean;
     isOwner: boolean;
     orgId: number;
+    orgAccountStatus?: 'ACTIVE' | 'SUSPENDED' | 'BANNED' | null;
     approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
     position?: {
         id: string;

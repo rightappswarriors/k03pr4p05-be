@@ -28,6 +28,13 @@ model Organization {
   verificationExpiresAt          DateTime?
   verificationStatus             OrgVerificationStatus          @default(UNVERIFIED)
   passwordHash                   String?
+  accountStatus                  OrganizationAccountStatus      @default(ACTIVE)
+  banReason                      String?
+  bannedAt                       DateTime?
+  bannedById                     Int?
+  suspendedAt                    DateTime?
+  suspendedById                  Int?
+  suspensionReason               String?
   accountTitles                  AccountTitle[]
   linkedAgents                   Agent[]
   attendances                    Attendance[]
@@ -85,6 +92,8 @@ model Organization {
   users                          User[]
   vatTypes                       VatType[]
   wallet                         Wallet?
+
+  @@index([accountStatus])
 }
 
 model Subscription {
@@ -1212,19 +1221,26 @@ model Department {
 }
 
 model Notification {
-  id        Int              @id @default(autoincrement())
-  orgId     Int
-  outletId  Int?
-  itemId    Int?
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-  deletedAt DateTime?
-  item      Item?            @relation(fields: [itemId], references: [id])
-  org       Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  outlet    Outlet?          @relation(fields: [outletId], references: [id])
+  id             Int              @id @default(autoincrement())
+  orgId          Int?
+  outletId       Int?
+  itemId         Int?
+  type           NotificationType
+  title          String
+  message        String
+  isRead         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  deletedAt      DateTime?
+  agentId        String?
+  conversationId String?
+  Agent          Agent?           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  Conversation   Conversation?    @relation(fields: [conversationId], references: [id])
+  item           Item?            @relation(fields: [itemId], references: [id])
+  org            Organization?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  outlet         Outlet?          @relation(fields: [outletId], references: [id])
+
+  @@index([agentId, conversationId, isRead])
+  @@index([orgId, conversationId, isRead])
 }
 
 model Position {
@@ -2279,6 +2295,11 @@ model PurchaseOrder {
   buyerOrgId                 Int?
   supplierOrgId              Int
   status                     POStatus                  @default(PENDING)
+  source                     PurchaseOrderSource       @default(DIRECT_ORDER)
+  supplierConfirmation       SupplierConfirmation      @default(REVIEW_REQUIRED)
+  supplierConfirmedAt        DateTime?
+  supplierExpectedDeliveryAt DateTime?
+  supplierNote               String?
   notes                      String?
   requestedDate              DateTime?
   totalAmount                Float
@@ -2288,32 +2309,39 @@ model PurchaseOrder {
   deliveryOutletId           Int?
   supplierOrganizationLinkId String?
   agentId                    String?
-  conversationId             String?             @unique
-  paymentStatus              PaymentStatus       @default(PENDING)
+  conversationId             String?                   @unique
+  paymentStatus              PaymentStatus             @default(PENDING)
   receiptSnapshot            Json?
+  paymentMethod              PaymentMethod?
+  paymentPreparedAt          DateTime?
+  paymentReference           String?
+  rejectionReason            String?
+  extraCharges               Json?
+  extraChargesTotal          Float                     @default(0)
+  subtotalAmount             Float                     @default(0)
   delivery                   Delivery?
   lineItems                  POLineItem[]
+  agent                      Agent?                    @relation(fields: [agentId], references: [id])
   buyerOrg                   Organization?             @relation("BuyerOrg", fields: [buyerOrgId], references: [id])
+  Conversation               Conversation?             @relation(fields: [conversationId], references: [id])
   deliveryOutlet             Outlet?                   @relation(fields: [deliveryOutletId], references: [id])
   supplierOrg                Organization              @relation("SupplierOrg", fields: [supplierOrgId], references: [id])
   supplierOrganizationLink   SupplierOrganizationLink? @relation(fields: [supplierOrganizationLinkId], references: [id])
-  agent                      Agent?                    @relation(fields: [agentId], references: [id])
   purchaseOrderRfqs          PurchaseOrderRFQ[]
-  Conversation               Conversation?             @relation(fields: [conversationId], references: [id])
 }
 
 model POLineItem {
-  id               String        @id @default(cuid())
-  poId             String
-  supplierItemId   String
-  qty              Int
-  unitPrice        Float
-  subtotal         Float
-  itemName         String?
-  itemSku          String?
-  itemDescription  String?
-  po               PurchaseOrder @relation(fields: [poId], references: [id])
-  supplierItem     SupplierItem  @relation(fields: [supplierItemId], references: [id])
+  id              String        @id @default(cuid())
+  poId            String
+  supplierItemId  String
+  qty             Int
+  unitPrice       Float
+  subtotal        Float
+  itemName        String?
+  itemSku         String?
+  itemDescription String?
+  po              PurchaseOrder @relation(fields: [poId], references: [id])
+  supplierItem    SupplierItem  @relation(fields: [supplierItemId], references: [id])
 }
 
 model PurchaseOrderRFQ {
@@ -2327,20 +2355,22 @@ model PurchaseOrderRFQ {
 }
 
 model Delivery {
-  id            String         @id @default(cuid())
-  poId          String         @unique
-  scheduledDate DateTime
-  deliveredAt   DateTime?
-  status        DeliveryStatus @default(SCHEDULED)
-  driverName    String?
-  driverContact String?
-  notes         String?
-  latitude      Float?
-  longitude     Float?
-  address       String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  po            PurchaseOrder  @relation(fields: [poId], references: [id])
+  id               String         @id @default(cuid())
+  poId             String         @unique
+  scheduledDate    DateTime
+  deliveredAt      DateTime?
+  status           DeliveryStatus @default(SCHEDULED)
+  driverName       String?
+  driverContact    String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  address          String?
+  latitude         Float?
+  longitude        Float?
+  recipientContact String?
+  recipientName    String?
+  po               PurchaseOrder  @relation(fields: [poId], references: [id])
 }
 
 model SupplierOrganizationLink {
@@ -2505,21 +2535,28 @@ model Agent {
   province                  String?
   status                    AgentStatus                @default(REGISTERED)
   zipCode                   String?
+  banReason                 String?
+  bannedAt                  DateTime?
+  bannedById                Int?
+  suspendedAt               DateTime?
+  suspendedById             Int?
+  suspensionReason          String?
   organization              Organization?              @relation(fields: [organizationId], references: [id])
   verifications             AgentVerification[]
   ConversationMessage       ConversationMessage[]
   ConversationParticipant   ConversationParticipant[]
   mandates                  Mandate[]
   NegotiationOffer          NegotiationOffer[]
+  Notification              Notification[]
   OrganizationMembership    OrganizationMembership[]
   ProcurementAgentRequest   ProcurementAgentRequest[]
   ProcurementInvitation     ProcurementInvitation?
+  purchaseOrders            PurchaseOrder[]
   RequestForQuotation       RequestForQuotation[]
   RevokedRefreshToken       RevokedRefreshToken[]
   RfqOffer                  RfqOffer[]
   assignedOrganizationLinks SupplierOrganizationLink[]
   assignedSupplierLinks     SupplierOutletLink[]       @relation("AgentSupplierLinks")
-  purchaseOrders            PurchaseOrder[]
 
   @@index([organizationId])
   @@index([agentType, verificationStatus])
@@ -2623,25 +2660,63 @@ model WalletLedgerEntry {
   deletedAt    DateTime?
   wallet       Wallet            @relation(fields: [walletId], references: [id])
 
+  @@unique([walletId, sourceType, referenceId])
   @@index([walletId, createdAt])
   @@index([sourceType, referenceId])
 }
 
+/// Kompra-owned treasury. This is intentionally separate from organization
+/// wallets so supplier funds and platform revenue can never be commingled.
+model PlatformWallet {
+  id            Int                         @id @default(autoincrement())
+  currency      String                      @unique @default("PHP")
+  balance       Float                       @default(0)
+  heldBalance   Float                       @default(0)
+  createdAt     DateTime                    @default(now())
+  updatedAt     DateTime                    @updatedAt
+  ledgerEntries PlatformWalletLedgerEntry[]
+}
+
+/// Append-only platform treasury ledger. Corrections are recorded with an
+/// offsetting entry instead of altering historical revenue.
+model PlatformWalletLedgerEntry {
+  id                   String                   @id @default(cuid())
+  walletId             Int
+  type                 LedgerEntryType
+  sourceType           PlatformLedgerSourceType
+  referenceId          String?
+  paymentTransactionId String?
+  amount               Float
+  balanceAfter         Float
+  description          String?
+  environment          Environment              @default(PRODUCTION)
+  createdAt            DateTime                 @default(now())
+  wallet               PlatformWallet           @relation(fields: [walletId], references: [id])
+
+  @@unique([walletId, sourceType, referenceId])
+  @@index([walletId, createdAt])
+  @@index([paymentTransactionId])
+}
+
 model PayoutMethod {
-  id                  Int              @id @default(autoincrement())
-  orgId               Int
-  type                PayoutMethodType
-  accountName         String
-  maskedAccountNumber String
-  bankName            String?
-  isVerified          Boolean          @default(false)
-  isDefault           Boolean          @default(false)
-  verifiedAt          DateTime?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
-  deletedAt           DateTime?
-  organization        Organization     @relation(fields: [orgId], references: [id])
-  withdrawals         Withdrawal[]
+  id                   Int              @id @default(autoincrement())
+  orgId                Int
+  type                 PayoutMethodType
+  accountName          String
+  maskedAccountNumber  String
+  bankName             String?
+  isVerified           Boolean          @default(false)
+  isDefault            Boolean          @default(false)
+  verifiedAt           DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  deletedAt            DateTime?
+  encryptedDestination String
+  encryptionKeyVersion String           @default("v1")
+  environment          Environment      @default(PRODUCTION)
+  isActive             Boolean          @default(true)
+  organization         Organization     @relation(fields: [orgId], references: [id])
+  withdrawals          Withdrawal[]
 
   @@index([orgId])
 }
@@ -2649,23 +2724,45 @@ model PayoutMethod {
 /// Maker-checker: requestedById and approvedById must differ for amounts
 /// above the configurable auto-approve threshold (see SystemConfig).
 model Withdrawal {
-  id              Int              @id @default(autoincrement())
-  walletId        Int
-  payoutMethodId  Int
-  amount          Float
-  status          WithdrawalStatus @default(PENDING)
-  requestedById   Int
-  approvedById    Int?
-  requestedAt     DateTime         @default(now())
-  approvedAt      DateTime?
-  completedAt     DateTime?
-  rejectionReason String?
-  environment     Environment      @default(PRODUCTION)
-  deletedAt       DateTime?
-  payoutMethod    PayoutMethod     @relation(fields: [payoutMethodId], references: [id])
-  wallet          Wallet           @relation(fields: [walletId], references: [id])
+  id               Int              @id @default(autoincrement())
+  walletId         Int
+  payoutMethodId   Int
+  amount           Float
+  status           WithdrawalStatus @default(PENDING)
+  requestedById    Int
+  approvedById     Int?
+  requestedAt      DateTime         @default(now())
+  approvedAt       DateTime?
+  completedAt      DateTime?
+  rejectionReason  String?
+  environment      Environment      @default(PRODUCTION)
+  deletedAt        DateTime?
+  sandboxReference String?          @unique
+  payoutMethod     PayoutMethod     @relation(fields: [payoutMethodId], references: [id])
+  wallet           Wallet           @relation(fields: [walletId], references: [id])
 
   @@index([walletId, status])
+}
+
+/// Immutable platform-fee posting for each confirmed marketplace payment.
+/// This intentionally does not use an Organization row for Kompra itself.
+model PlatformFeeRecord {
+  id                   String      @id @default(cuid())
+  paymentTransactionId String      @unique
+  purchaseOrderId      String?
+  supplierOrgId        Int?
+  grossAmount          Float
+  feeAmount            Float
+  providerFeeAmount    Float       @default(0)
+  netAmount            Float
+  feeRuleId            String?
+  feeSnapshot          Json?
+  environment          Environment
+  createdAt            DateTime    @default(now())
+
+  @@index([createdAt])
+  @@index([supplierOrgId, createdAt])
+  @@index([purchaseOrderId])
 }
 
 /// Generalizes the existing PaymongoAPIKeys model to support multiple
@@ -2692,20 +2789,26 @@ model PaymentGatewayCredential {
 /// testing exercises end-to-end (webhook in, ledger entry out) without ever
 /// touching PRODUCTION credentials or counting toward real revenue.
 model PaymentTransaction {
-  id               String                   @id @default(cuid())
-  provider         PaymentGatewayProvider
-  environment      Environment
-  gatewayReference String?                  @unique
-  amount           Float
-  feeAmount        Float                    @default(0)
-  status           PaymentTransactionStatus @default(PENDING)
-  relatedType      PaymentRelatedType
-  relatedId        String
-  payerOrgId       Int?
-  payerAgentId     String?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  deletedAt        DateTime?
+  id                String                   @id @default(cuid())
+  provider          PaymentGatewayProvider
+  environment       Environment
+  gatewayReference  String?                  @unique
+  amount            Float
+  feeAmount         Float                    @default(0)
+  status            PaymentTransactionStatus @default(PENDING)
+  relatedType       PaymentRelatedType
+  relatedId         String
+  payerOrgId        Int?
+  payerAgentId      String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  deletedAt         DateTime?
+  feeRuleId         String?
+  feeSnapshot       Json?
+  netAmount         Float                    @default(0)
+  providerFeeAmount Float                    @default(0)
+  supplierOrgId     Int?
+  feeRule           FeeRule?                 @relation(fields: [feeRuleId], references: [id])
 
   @@index([relatedType, relatedId])
   @@index([provider, environment, status])
@@ -2760,19 +2863,20 @@ model EscrowRelease {
 /// effectiveFrom so historical transactions stay auditable at the rate
 /// that actually applied to them.
 model FeeRule {
-  id            String         @id @default(cuid())
-  appliesTo     FeeApplication
-  category      String?
-  unitType      String?
-  rateType      FeeRateType
-  rate          Float
-  tierModifier  Float?         @default(0)
-  effectiveFrom DateTime       @default(now())
-  effectiveTo   DateTime?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?
+  id                  String               @id @default(cuid())
+  appliesTo           FeeApplication
+  category            String?
+  unitType            String?
+  rateType            FeeRateType
+  rate                Float
+  tierModifier        Float?               @default(0)
+  effectiveFrom       DateTime             @default(now())
+  effectiveTo         DateTime?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
+  paymentTransactions PaymentTransaction[]
 
   @@index([appliesTo, category, unitType, isActive])
 }
@@ -3019,16 +3123,17 @@ model SupplierItemVariantImage {
 model Conversation {
   id                      String                    @id @default(cuid())
   rfqId                   String?                   @unique
-  poId                    String?                   @unique
   type                    ConversationType          @default(RFQ)
   createdAt               DateTime                  @default(now())
   updatedAt               DateTime                  @updatedAt
   deletedAt               DateTime?
+  poId                    String?                   @unique
   ConversationMessage     ConversationMessage[]
   ConversationParticipant ConversationParticipant[]
   NegotiationOffer        NegotiationOffer[]
-  RequestForQuotation     RequestForQuotation?
+  Notification            Notification[]
   PurchaseOrder           PurchaseOrder?
+  RequestForQuotation     RequestForQuotation?
 
   @@index([rfqId])
   @@index([poId])
@@ -3087,12 +3192,12 @@ model NegotiationOffer {
   deliveryDate         DateTime?
   notes                String?
   status               NegotiationOfferStatus @default(PENDING)
-  negotiationStatus    NegotiationStatus?     @default(PENDING)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   minimumOrderQuantity Int?
   estimatedLeadTime    String?
   validUntil           DateTime?
+  negotiationStatus    NegotiationStatus?     @default(PENDING)
   Conversation         Conversation           @relation(fields: [conversationId], references: [id])
   Agent                Agent?                 @relation(fields: [senderAgentId], references: [id])
   Organization         Organization?          @relation(fields: [senderOrgId], references: [id])
@@ -3196,12 +3301,12 @@ model RequestForQuotation {
   agentAcceptedAt      DateTime?
   supplierAcceptedAt   DateTime?
   supplierConfirmedAt  DateTime?
+  PurchaseOrderRFQ     PurchaseOrderRFQ[]
   Agent                Agent              @relation(fields: [agentId], references: [id])
   Conversation         Conversation?      @relation(fields: [conversationId], references: [id])
   SupplierItem         SupplierItem?      @relation(fields: [supplierItemId], references: [id])
   Organization         Organization?      @relation(fields: [supplierOrgId], references: [id])
   RfqOffer             RfqOffer[]
-  PurchaseOrderRFQ     PurchaseOrderRFQ[]
 
   @@index([agentId, status])
   @@index([createdAt])
@@ -3466,6 +3571,17 @@ enum POStatus {
   CANCELLED
 }
 
+enum PurchaseOrderSource {
+  DIRECT_ORDER
+  RFQ
+}
+
+enum SupplierConfirmation {
+  REVIEW_REQUIRED
+  CONFIRMED
+  DECLINED
+}
+
 enum DeliveryStatus {
   SCHEDULED
   IN_TRANSIT
@@ -3560,6 +3676,12 @@ enum OrgVerificationStatus {
   EXPIRED
 }
 
+enum OrganizationAccountStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
 enum AgentType {
   ORG_LINKED
   STANDALONE
@@ -3622,6 +3744,8 @@ enum WithdrawalStatus {
   PROCESSING
   COMPLETED
   REJECTED
+  FAILED
+  CANCELLED
 }
 
 enum PaymentGatewayProvider {
@@ -3636,6 +3760,11 @@ enum PaymentTransactionStatus {
   SUCCEEDED
   FAILED
   REFUNDED
+  AWAITING_PAYMENT
+  PROCESSING
+  RECONCILIATION_REQUIRED
+  CANCELLED
+  EXPIRED
 }
 
 enum PaymentRelatedType {
@@ -3643,6 +3772,7 @@ enum PaymentRelatedType {
   SALES_ORDER
   MANDATE_TRANSACTION
   SUBSCRIPTION
+  PURCHASE_ORDER
 }
 
 enum SettlementType {
@@ -3670,6 +3800,7 @@ enum DisputeStatus {
 enum FeeApplication {
   MANDATE_TRANSACTION
   RETAIL_ORDER
+  PURCHASE_ORDER
 }
 
 enum FeeRateType {
@@ -3714,6 +3845,17 @@ enum AgentStatus {
   PENDING_ORGANIZATION_APPROVAL
   ACTIVE
   REJECTED
+  SUSPENDED
+  BANNED
+}
+
+enum PlatformLedgerSourceType {
+  TRANSACTION_FEE
+  SUBSCRIPTION_FEE
+  WITHDRAWAL_FEE
+  REFUND
+  REVERSAL
+  MANUAL_ADJUSTMENT
 }
 
 enum ConversationRole {
@@ -3761,6 +3903,7 @@ enum PaymentStatus {
   PARTIAL
   PAID
   REFUNDED
+  PREPARING
 }
 
 enum NegotiationStatus {

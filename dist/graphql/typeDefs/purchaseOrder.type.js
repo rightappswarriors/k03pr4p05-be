@@ -24,6 +24,15 @@ export const PurchaseOrder = objectType({
         t.nonNull.string('id');
         t.nonNull.string('poNumber');
         t.nonNull.field('status', { type: 'POStatus' });
+        t.nonNull.field('source', { type: 'PurchaseOrderSource' });
+        t.nonNull.field('supplierConfirmation', { type: 'SupplierConfirmation' });
+        t.nullable.field('supplierConfirmedAt', { type: 'DateTime' });
+        t.nullable.field('supplierExpectedDeliveryAt', { type: 'DateTime' });
+        t.nullable.string('supplierNote');
+        t.nullable.string('rejectionReason');
+        t.nonNull.float('subtotalAmount');
+        t.nullable.field('extraCharges', { type: 'Json' });
+        t.nonNull.float('extraChargesTotal');
         t.nonNull.float('totalAmount');
         t.nonNull.float('vatAmount');
         t.nullable.string('notes');

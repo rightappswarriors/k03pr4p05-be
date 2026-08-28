@@ -2,6 +2,7 @@
 import { extendType, nonNull, intArg, arg, list, stringArg } from 'nexus';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { SupplierRFQService } from '../../../services/supplierRFQService.js';
+import { markConversationNotificationsRead } from '../../../services/notification.service.js';
 const service = new SupplierRFQService();
 // ─── Queries ──────────────────────────────────────────────────────────────────
 export const SupplierRfqQuery = extendType({
@@ -61,6 +62,8 @@ export const SupplierRfqQuery = extendType({
                 const conversationId = result.Conversation?.id;
                 if (conversationId) {
                     await service.markRead(conversationId, user.orgId).catch(() => { });
+                    // Also mark all notifications tied to this conversation as read
+                    void markConversationNotificationsRead(conversationId, user.orgId).catch(() => { });
                 }
                 return result;
             },
@@ -186,6 +189,8 @@ export const SupplierRfqMutation = extendType({
                     throw new Error('RFQ has no conversation');
                 }
                 await service.markRead(rfq.Conversation.id, user.orgId);
+                // Also mark DB notifications as read
+                void markConversationNotificationsRead(rfq.Conversation.id, user.orgId).catch(() => { });
                 return true;
             },
         });

@@ -118,6 +118,12 @@ export const PAGE_PERMISSIONS = {
     edit:   (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canEdit'),
     delete: (ctx: Context) => requirePagePermission(ctx, 'adminPage',  'canDelete'),
   },
+  feeConfig: {
+    view:   (ctx: Context) => requirePagePermission(ctx, 'feeConfigPage', 'canView'),
+    create: (ctx: Context) => requirePagePermission(ctx, 'feeConfigPage', 'canCreate'),
+    edit:   (ctx: Context) => requirePagePermission(ctx, 'feeConfigPage', 'canEdit'),
+    delete: (ctx: Context) => requirePagePermission(ctx, 'feeConfigPage', 'canDelete'),
+  },
   // SUPPLIER
   verification : {
     view: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canView'),

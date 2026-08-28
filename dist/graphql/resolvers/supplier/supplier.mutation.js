@@ -87,6 +87,8 @@ import { extendType, nonNull, stringArg, intArg, list, arg, booleanArg, floatArg
 import { sendEmail } from '../../../services/email/email.service.js';
 import { prisma } from '../../../lib/prisma.js';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { currentActorId, requestWithdrawal } from '../../../services/supplierSettlement.service.js';
+import { encryptPayoutDestination } from '../../../lib/payoutDestinationCrypto.js';
 export const SupplierMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -374,26 +376,9 @@ export const SupplierMutation = extendType({
             async resolve(_, { amount, payoutMethodId }, ctx) {
                 requireAuth(ctx);
                 const orgId = Number(ctx.user?.orgId);
-                const wallet = await prisma.wallet.findFirst({ where: { orgId } });
-                if (!wallet)
-                    throw new Error('Wallet not found');
-                const payoutMethod = await prisma.payoutMethod.findFirst({ where: { id: payoutMethodId, orgId, deletedAt: null } });
-                if (!payoutMethod)
-                    throw new Error('Payout method not found');
-                if (amount <= 0)
-                    throw new Error('Amount must be greater than zero');
-                if (amount > wallet.balance - wallet.heldBalance)
-                    throw new Error('Insufficient available balance');
-                return prisma.withdrawal.create({
-                    data: {
-                        walletId: wallet.id,
-                        payoutMethodId: payoutMethod.id,
-                        amount,
-                        status: 'PENDING',
-                        requestedById: Number(ctx.user?.userId ?? 0),
-                    },
-                    include: { payoutMethod: true },
-                });
+                const withdrawal = await prisma.$transaction((tx) => requestWithdrawal(tx, { orgId, payoutMethodId, amount, requestedById: currentActorId(ctx) }));
+                await prisma.auditLog.create({ data: { orgId, userId: currentActorId(ctx), pageKey: 'financePage', action: 'CREATE', recordType: 'Withdrawal', recordId: String(withdrawal.id), newValue: { amount, payoutMethodId } } });
+                return prisma.withdrawal.findUniqueOrThrow({ where: { id: withdrawal.id }, include: { payoutMethod: true } });
             },
         });
         t.field('createSupplierPayoutMethod', {
@@ -401,23 +386,94 @@ export const SupplierMutation = extendType({
             args: {
                 type: nonNull(arg({ type: 'PayoutMethodType' })),
                 accountName: nonNull(stringArg()),
-                maskedAccountNumber: nonNull(stringArg()),
+                accountNumber: nonNull(stringArg()),
+                confirmAccountNumber: nonNull(stringArg()),
                 bankName: stringArg(),
                 isDefault: booleanArg(),
             },
-            async resolve(_, { type, accountName, maskedAccountNumber, bankName, isDefault }, ctx) {
+            async resolve(_, { type, accountName, accountNumber, confirmAccountNumber, bankName, isDefault }, ctx) {
                 requireAuth(ctx);
                 const orgId = Number(ctx.user?.orgId);
+                const isSandbox = process.env.NODE_ENV !== 'production' && process.env.SANDBOX_SETTLEMENT_MODE === 'true';
+                if (!isSandbox && /sandbox|dev/i.test(bankName ?? ''))
+                    throw new Error('Sandbox payout methods are not allowed in production.');
+                const normalizedAccount = accountNumber.replace(/[\s-]/g, '');
+                if (!normalizedAccount || normalizedAccount !== confirmAccountNumber.replace(/[\s-]/g, ''))
+                    throw new Error('Account number confirmation does not match.');
+                const masked = `•••• ${normalizedAccount.slice(-4)}`;
+                if (isDefault)
+                    await prisma.payoutMethod.updateMany({ where: { orgId, deletedAt: null }, data: { isDefault: false } });
                 return prisma.payoutMethod.create({
                     data: {
                         orgId,
                         type,
                         accountName,
-                        maskedAccountNumber,
+                        maskedAccountNumber: masked,
+                        encryptedDestination: encryptPayoutDestination(normalizedAccount),
+                        encryptionKeyVersion: 'v1',
                         bankName: bankName ?? null,
                         isDefault: isDefault ?? false,
+                        environment: isSandbox ? 'SANDBOX' : 'PRODUCTION',
                     },
                 });
+            },
+        });
+        t.nonNull.field('setSupplierPayoutMethodDefault', {
+            type: 'PayoutMethod',
+            args: { payoutMethodId: nonNull(intArg()) },
+            async resolve(_, { payoutMethodId }, ctx) {
+                requireAuth(ctx);
+                const orgId = Number(ctx.user?.orgId);
+                const method = await prisma.payoutMethod.findFirst({
+                    where: { id: payoutMethodId, orgId, deletedAt: null, isActive: true, isVerified: true },
+                });
+                if (!method)
+                    throw new Error('Verified active payout method not found.');
+                await prisma.$transaction([
+                    prisma.payoutMethod.updateMany({ where: { orgId, deletedAt: null }, data: { isDefault: false } }),
+                    prisma.payoutMethod.update({ where: { id: method.id }, data: { isDefault: true } }),
+                ]);
+                await prisma.auditLog.create({
+                    data: {
+                        orgId,
+                        userId: currentActorId(ctx),
+                        pageKey: 'financePage',
+                        action: 'EDIT',
+                        recordType: 'PayoutMethod',
+                        recordId: String(method.id),
+                        newValue: { action: 'PAYOUT_METHOD_DEFAULT_CHANGED', maskedAccountNumber: method.maskedAccountNumber },
+                    },
+                });
+                return prisma.payoutMethod.findUniqueOrThrow({ where: { id: method.id } });
+            },
+        });
+        t.nonNull.field('deactivateSupplierPayoutMethod', {
+            type: 'PayoutMethod',
+            args: { payoutMethodId: nonNull(intArg()) },
+            async resolve(_, { payoutMethodId }, ctx) {
+                requireAuth(ctx);
+                const orgId = Number(ctx.user?.orgId);
+                const method = await prisma.payoutMethod.findFirst({
+                    where: { id: payoutMethodId, orgId, deletedAt: null },
+                });
+                if (!method)
+                    throw new Error('Payout method not found.');
+                const updated = await prisma.payoutMethod.update({
+                    where: { id: method.id },
+                    data: { isActive: false, isDefault: false },
+                });
+                await prisma.auditLog.create({
+                    data: {
+                        orgId,
+                        userId: currentActorId(ctx),
+                        pageKey: 'financePage',
+                        action: 'EDIT',
+                        recordType: 'PayoutMethod',
+                        recordId: String(method.id),
+                        newValue: { action: 'PAYOUT_METHOD_DEACTIVATED', maskedAccountNumber: method.maskedAccountNumber },
+                    },
+                });
+                return updated;
             },
         });
         // User confirms delivery — this is the final step that updates actual stock

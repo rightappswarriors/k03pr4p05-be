@@ -22,6 +22,13 @@ export const Organization = objectType({
         t.nonNull.boolean('isDevSeed');
         t.nonNull.field('verificationStatus', { type: 'OrgVerificationStatus'})
         t.nullable.dateTime('verificationExpiresAt')
+        t.nonNull.field('accountStatus', { type: 'OrganizationAccountStatus' })
+        t.nullable.string('suspensionReason')
+        t.nullable.dateTime('suspendedAt')
+        t.nullable.int('suspendedById')
+        t.nullable.string('banReason')
+        t.nullable.dateTime('bannedAt')
+        t.nullable.int('bannedById')
         t.nonNull.float('averageRating', {
             resolve: async (parent, _, ctx) => {
                 const aggregate = await ctx.prisma.organizationReview.aggregate({

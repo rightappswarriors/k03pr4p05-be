@@ -12,6 +12,11 @@ export class AppError extends Error {
         this.name = 'AppError';
     }
 }
+function legacyOtherCharge(amount) {
+    if (!Number.isFinite(amount) || amount < 0)
+        throw new AppError(400, 'Other charges must be a non-negative amount');
+    return amount > 0 ? [{ code: 'OTHER', label: 'Additional Charges', amount: Math.round(amount * 100) / 100 }] : [];
+}
 /** Eligible RFQ statuses for PO creation. */
 export const ELIGIBLE_RFQ_STATUSES = [
     'NEGOTIATION_ACCEPTED',
@@ -629,8 +634,14 @@ export class SupplierRFQService {
                     buyerOrgId,
                     supplierOrgId: supplierOrgId,
                     status: 'PENDING',
+                    source: 'RFQ',
+                    supplierConfirmation: 'CONFIRMED',
+                    supplierConfirmedAt: new Date(),
                     notes: rfq.notes,
                     requestedDate: new Date(),
+                    subtotalAmount: subtotal,
+                    extraCharges: [],
+                    extraChargesTotal: 0,
                     totalAmount,
                     vatAmount,
                     deliveryOutletId,
@@ -840,7 +851,9 @@ export class SupplierRFQService {
                 itemDescription: rfq.SupplierItem?.description,
             });
         }
-        const grandTotal = subtotal + totalVat + otherCharges;
+        const extraCharges = legacyOtherCharge(otherCharges);
+        const extraChargesTotal = extraCharges.reduce((sum, charge) => sum + charge.amount, 0);
+        const grandTotal = subtotal + totalVat + extraChargesTotal;
         const poNumber = await this.generatePONumber();
         const result = await prisma.$transaction(async (tx) => {
             // Create the consolidated PurchaseOrder
@@ -850,8 +863,14 @@ export class SupplierRFQService {
                     buyerOrgId,
                     supplierOrgId: supplierOrgId,
                     status: 'PENDING',
+                    source: 'RFQ',
+                    supplierConfirmation: 'CONFIRMED',
+                    supplierConfirmedAt: new Date(),
                     notes: notes,
                     requestedDate: new Date(),
+                    subtotalAmount: subtotal,
+                    extraCharges,
+                    extraChargesTotal,
                     totalAmount: grandTotal,
                     vatAmount: totalVat,
                     deliveryOutletId,

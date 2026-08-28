@@ -33,6 +33,12 @@ export class AppError extends Error {
   }
 }
 
+type ExtraCharge = { code: string; label: string; amount: number; taxable?: boolean; description?: string };
+function legacyOtherCharge(amount: number): ExtraCharge[] {
+  if (!Number.isFinite(amount) || amount < 0) throw new AppError(400, 'Other charges must be a non-negative amount');
+  return amount > 0 ? [{ code: 'OTHER', label: 'Additional Charges', amount: Math.round(amount * 100) / 100 }] : [];
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface InboxFilters {
@@ -783,8 +789,14 @@ export class SupplierRFQService {
           buyerOrgId,
           supplierOrgId: supplierOrgId,
           status: 'PENDING',
+          source: 'RFQ',
+          supplierConfirmation: 'CONFIRMED',
+          supplierConfirmedAt: new Date(),
           notes: rfq.notes,
           requestedDate: new Date(),
+          subtotalAmount: subtotal,
+          extraCharges: [],
+          extraChargesTotal: 0,
           totalAmount,
           vatAmount,
           deliveryOutletId,
@@ -1038,7 +1050,9 @@ export class SupplierRFQService {
       });
     }
 
-    const grandTotal = subtotal + totalVat + otherCharges;
+    const extraCharges = legacyOtherCharge(otherCharges);
+    const extraChargesTotal = extraCharges.reduce((sum, charge) => sum + charge.amount, 0);
+    const grandTotal = subtotal + totalVat + extraChargesTotal;
     const poNumber = await this.generatePONumber();
 
     const result = await prisma.$transaction(async (tx) => {
@@ -1049,8 +1063,14 @@ export class SupplierRFQService {
           buyerOrgId,
           supplierOrgId: supplierOrgId,
           status: 'PENDING',
+          source: 'RFQ',
+          supplierConfirmation: 'CONFIRMED',
+          supplierConfirmedAt: new Date(),
           notes: notes,
           requestedDate: new Date(),
+          subtotalAmount: subtotal,
+          extraCharges,
+          extraChargesTotal,
           totalAmount: grandTotal,
           vatAmount: totalVat,
           deliveryOutletId,
@@ -1486,6 +1506,7 @@ export class SupplierRFQService {
     // ...rest unchanged (notification + realtime emits)
     return updated;
   }
+  
   // ─── Mark as read ────────────────────────────────────────────────────────────
 
   async markRead(conversationId: string, supplierOrgId: number) {

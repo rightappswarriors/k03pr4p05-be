@@ -79,7 +79,7 @@ export const PurchaseOrderMutation = extendType({
             },
             resolve: async (_, { supplierOrgId, buyerOrgId, outletId, notes, requestedDate, lineItems }, ctx) => {
                 const poNumber = generatePONumber();
-                let totalAmount = 0;
+                let subtotalAmount = 0;
                 let vatAmount = 0;
                 const enrichedLines = [];
                 for (const li of lineItems) {
@@ -96,7 +96,7 @@ export const PurchaseOrderMutation = extendType({
                     }
                     const subtotal = unitPrice * li.qty;
                     const vat = item.isVatExempt ? 0 : subtotal * item.vatRate;
-                    totalAmount += subtotal + vat;
+                    subtotalAmount += subtotal;
                     vatAmount += vat;
                     enrichedLines.push({ supplierItemId: li.supplierItemId, qty: li.qty, unitPrice, subtotal });
                 }
@@ -105,10 +105,15 @@ export const PurchaseOrderMutation = extendType({
                         poNumber,
                         supplierOrgId,
                         buyerOrgId,
+                        source: 'DIRECT_ORDER',
+                        supplierConfirmation: 'REVIEW_REQUIRED',
                         outletId,
                         notes,
                         requestedDate,
-                        totalAmount,
+                        subtotalAmount,
+                        extraCharges: [],
+                        extraChargesTotal: 0,
+                        totalAmount: subtotalAmount + vatAmount,
                         vatAmount,
                         lineItems: { create: enrichedLines },
                     },
@@ -125,7 +130,7 @@ export const PurchaseOrderMutation = extendType({
                     select: { email: true },
                 });
                 if (supplierUser?.email) {
-                    sendNewPONotificationEmail(supplierUser.email, poNumber, po.buyerOrg.name, totalAmount).catch(() => { });
+                    sendNewPONotificationEmail(supplierUser.email, poNumber, po.buyerOrg.name, subtotalAmount + vatAmount).catch(() => { });
                 }
                 // Create the PO conversation (idempotent — no-op if already linked)
                 const convId = await ensurePOConversation(ctx.prisma, {
@@ -133,7 +138,7 @@ export const PurchaseOrderMutation = extendType({
                     poNumber,
                     supplierOrgId,
                     buyerOrgId,
-                    totalAmount,
+                    totalAmount: subtotalAmount + vatAmount,
                     vatAmount,
                     lineItems: po.lineItems,
                 });
@@ -152,7 +157,7 @@ export const PurchaseOrderMutation = extendType({
                     message: `Purchase Order ${poNumber} has been created.`,
                     type: 'ORDER_CREATED',
                     createdAt: new Date().toISOString(),
-                    metadata: { event: 'po_created', poId: po.id, poNumber, totalAmount, vatAmount },
+                    metadata: { event: 'po_created', poId: po.id, poNumber, subtotalAmount, totalAmount: subtotalAmount + vatAmount, vatAmount },
                 });
                 return po;
             },
@@ -161,23 +166,28 @@ export const PurchaseOrderMutation = extendType({
             type: 'PurchaseOrder',
             args: {
                 id: nonNull(stringArg()),
-                scheduledDate: nonNull(arg({ type: 'DateTime' })),
-                driverName: nullable(stringArg()),
-                driverContact: nullable(stringArg()),
+                expectedDeliveryDate: nullable(arg({ type: 'DateTime' })),
+                supplierNote: nullable(stringArg()),
             },
-            resolve: async (_, { id, scheduledDate, driverName, driverContact }, ctx) => {
+            resolve: async (_, { id, expectedDeliveryDate, supplierNote }, ctx) => {
+                requireAuth(ctx);
+                const supplierOrgId = ctx.user.orgId;
+                if (!supplierOrgId)
+                    throw new Error('A supplier organization is required to accept a purchase order.');
+                const existing = await ctx.prisma.purchaseOrder.findUniqueOrThrow({ where: { id } });
+                if (existing.supplierOrgId !== supplierOrgId)
+                    throw new Error('You do not have permission to accept this purchase order.');
+                if (existing.paymentStatus === 'PAID')
+                    throw new Error('Paid purchase orders cannot be changed.');
+                if (existing.supplierConfirmation !== 'REVIEW_REQUIRED')
+                    throw new Error('This purchase order has already been reviewed by the supplier.');
                 const po = await ctx.prisma.purchaseOrder.update({
                     where: { id },
                     data: {
-                        status: 'ACCEPTED',
-                        delivery: {
-                            create: {
-                                scheduledDate,
-                                driverName,
-                                driverContact,
-                                status: 'SCHEDULED',
-                            },
-                        },
+                        supplierConfirmation: 'CONFIRMED',
+                        supplierConfirmedAt: new Date(),
+                        supplierExpectedDeliveryAt: expectedDeliveryDate ?? null,
+                        supplierNote: supplierNote?.trim() || null,
                     },
                     include: {
                         lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
@@ -204,7 +214,7 @@ export const PurchaseOrderMutation = extendType({
                         type: 'PO_ACCEPTED',
                         message: `Purchase Order ${po.poNumber} has been accepted.`,
                         createdAt: new Date().toISOString(),
-                        metadata: { event: 'po_accepted', poId: po.id, poNumber: po.poNumber },
+                        metadata: { event: 'PO_ACCEPTED', poId: po.id, poNumber: po.poNumber, expectedDeliveryDate, supplierNote: supplierNote?.trim() || null },
                     });
                 }
                 return po;
@@ -214,11 +224,25 @@ export const PurchaseOrderMutation = extendType({
             type: 'PurchaseOrder',
             args: {
                 id: nonNull(stringArg()),
+                reason: nonNull(stringArg()),
             },
-            resolve: async (_, { id }, ctx) => {
+            resolve: async (_, { id, reason }, ctx) => {
+                requireAuth(ctx);
+                const supplierOrgId = ctx.user.orgId;
+                if (!supplierOrgId)
+                    throw new Error('A supplier organization is required to decline a purchase order.');
+                if (!reason.trim())
+                    throw new Error('A decline reason is required.');
+                const existing = await ctx.prisma.purchaseOrder.findUniqueOrThrow({ where: { id } });
+                if (existing.supplierOrgId !== supplierOrgId)
+                    throw new Error('You do not have permission to decline this purchase order.');
+                if (existing.paymentStatus === 'PAID')
+                    throw new Error('Paid purchase orders cannot be declined.');
+                if (existing.supplierConfirmation !== 'REVIEW_REQUIRED')
+                    throw new Error('This purchase order has already been reviewed by the supplier.');
                 const po = await ctx.prisma.purchaseOrder.update({
                     where: { id },
-                    data: { status: 'REJECTED' },
+                    data: { supplierConfirmation: 'DECLINED', rejectionReason: reason.trim() },
                     include: {
                         lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
                         delivery: true,
@@ -244,7 +268,7 @@ export const PurchaseOrderMutation = extendType({
                         type: 'PO_REJECTED',
                         message: `Purchase Order ${po.poNumber} has been rejected.`,
                         createdAt: new Date().toISOString(),
-                        metadata: { event: 'po_rejected', poId: po.id, poNumber: po.poNumber },
+                        metadata: { event: 'PO_DECLINED', poId: po.id, poNumber: po.poNumber, reason: reason.trim() },
                     });
                 }
                 return po;
@@ -345,6 +369,9 @@ export const PoReceiptMutation = extendType({
                         agentId: true,
                         totalAmount: true,
                         vatAmount: true,
+                        subtotalAmount: true,
+                        extraCharges: true,
+                        extraChargesTotal: true,
                         lineItems: { select: { id: true } },
                     },
                 });
@@ -389,6 +416,9 @@ export const PoReceiptMutation = extendType({
                         agentId: true,
                         totalAmount: true,
                         vatAmount: true,
+                        subtotalAmount: true,
+                        extraCharges: true,
+                        extraChargesTotal: true,
                         conversationId: true,
                         lineItems: { select: { id: true } },
                     },
@@ -407,20 +437,31 @@ export const PoReceiptMutation = extendType({
                         lineItems: po.lineItems,
                     });
                 }
+                // A supplier-provided receipt is never proof of payment.  A paid receipt
+                // may only be produced from an already-confirmed backend transaction.
+                const payment = await ctx.prisma.paymentTransaction.findFirst({
+                    where: { relatedType: 'PURCHASE_ORDER', relatedId: po.id, status: 'SUCCEEDED', deletedAt: null },
+                    orderBy: { updatedAt: 'desc' },
+                });
+                if (!payment)
+                    throw new Error('A confirmed payment transaction is required before creating a paid receipt.');
                 const receiptId = input.receiptId ?? `RCPT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
                 const receiptSnapshot = JSON.stringify({
                     receiptId,
-                    totalAmount: input.totalAmount,
-                    paymentMethod: input.paymentMethod,
-                    paymentReference: input.paymentReference ?? null,
-                    paidAt: input.paidAt ?? new Date().toISOString(),
+                    subtotalAmount: po.subtotalAmount,
+                    vatAmount: po.vatAmount,
+                    extraCharges: po.extraCharges,
+                    extraChargesTotal: po.extraChargesTotal,
+                    totalAmount: payment.amount,
+                    paymentMethod: po.paymentMethod,
+                    paymentReference: payment.gatewayReference,
+                    paidAt: payment.updatedAt.toISOString(),
                     pdfUrl: input.pdfUrl ?? null,
                 });
                 const updatedPO = await ctx.prisma.purchaseOrder.update({
                     where: { id: po.id },
                     data: {
                         receiptSnapshot: receiptSnapshot,
-                        paymentStatus: 'PAID',
                     },
                     include: {
                         lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
@@ -442,10 +483,10 @@ export const PoReceiptMutation = extendType({
                             poId: po.id,
                             poNumber: po.poNumber,
                             receiptId,
-                            totalAmount: input.totalAmount,
-                            paymentMethod: input.paymentMethod,
+                            totalAmount: payment.amount,
+                            paymentMethod: po.paymentMethod,
                             receiptUrl,
-                            paidAt: input.paidAt ?? new Date().toISOString(),
+                            paidAt: payment.updatedAt.toISOString(),
                         },
                     },
                 });
@@ -461,8 +502,8 @@ export const PoReceiptMutation = extendType({
                         poId: po.id,
                         poNumber: po.poNumber,
                         receiptId,
-                        totalAmount: input.totalAmount,
-                        paymentMethod: input.paymentMethod,
+                        totalAmount: payment.amount,
+                        paymentMethod: po.paymentMethod,
                         receiptUrl,
                     },
                 });

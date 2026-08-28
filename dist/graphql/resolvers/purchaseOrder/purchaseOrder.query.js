@@ -1,4 +1,5 @@
 import { extendType, nonNull, stringArg, intArg, nullable, arg, objectType } from 'nexus';
+import { markConversationNotificationsRead } from '../../../services/notification.service.js';
 export const PurchaseOrderQuery = extendType({
     type: 'Query',
     definition(t) {
@@ -50,7 +51,7 @@ export const PurchaseOrderQuery = extendType({
                 id: nonNull(stringArg()),
             },
             resolve: async (_, { id }, ctx) => {
-                return ctx.prisma.purchaseOrder.findUnique({
+                const po = await ctx.prisma.purchaseOrder.findUnique({
                     where: { id },
                     include: {
                         lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
@@ -66,6 +67,11 @@ export const PurchaseOrderQuery = extendType({
                         },
                     },
                 });
+                // Mark notifications tied to this PO's conversation as read for the authenticated user's org (best-effort)
+                if (po?.Conversation?.id && ctx.user?.orgId) {
+                    void markConversationNotificationsRead(po.Conversation.id, ctx.user.orgId).catch(() => { });
+                }
+                return po;
             },
         });
     },
