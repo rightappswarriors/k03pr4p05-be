@@ -688,20 +688,42 @@ export class SupplierRFQService {
             const subtotal = acceptedPrice * acceptedQty;
             const vatAmount = rfq.SupplierItem?.isVatExempt ? 0 : subtotal * (rfq.SupplierItem?.vatRate ?? 0.12);
             const totalAmount = subtotal + vatAmount;
-            // Look up the buyer organization's primary active outlet for delivery.
-            // For Retail flows an outlet may exist; for Wholesale it is optional and
-            // `deliveryOutletId` stays null (the Prisma field is nullable).
-            const buyerOrgId = rfq.Agent?.organizationId ?? 0;
-            const buyerOutlet = await tx.outlet.findFirst({
-                where: { orgId: buyerOrgId, isActive: true },
-                select: { id: true },
+            // Resolve the RFQ buyer inside this transaction. An agent remains a
+            // valid buyer when they are standalone; only an existing
+            // Organization.id may be written to buyerOrgId.
+            const agentBuyer = await tx.agent.findUnique({
+                where: { id: rfq.agentId },
+                select: { id: true, organizationId: true },
             });
+            if (!agentBuyer) {
+                throw new AppError(409, 'The RFQ buyer is no longer available.');
+            }
+            const buyerOrganization = agentBuyer.organizationId == null
+                ? null
+                : await tx.organization.findUnique({
+                    where: { id: agentBuyer.organizationId },
+                    select: { id: true },
+                });
+            const resolvedBuyerOrgId = buyerOrganization?.id ?? null;
+            const buyerOutlet = resolvedBuyerOrgId == null
+                ? null
+                : await tx.outlet.findFirst({
+                    where: { orgId: resolvedBuyerOrgId, isActive: true },
+                    select: { id: true },
+                });
             const deliveryOutletId = buyerOutlet?.id ?? null;
-            logDev('PO Creation', 'Resolved buyer outlet', { buyerOrgId, deliveryOutletId });
+            console.info('[PO Creation] Buyer resolution', {
+                rfqId,
+                agentId: agentBuyer.id,
+                rfqBuyerOrgId: rfq.Agent?.organizationId ?? null,
+                agentOrganizationId: agentBuyer.organizationId,
+                resolvedBuyerOrgId,
+                supplierOrgId,
+            });
             const po = await tx.purchaseOrder.create({
                 data: {
                     poNumber,
-                    buyerOrgId,
+                    buyerOrgId: resolvedBuyerOrgId,
                     supplierOrgId: supplierOrgId,
                     status: 'PENDING',
                     source: 'RFQ',
@@ -715,7 +737,7 @@ export class SupplierRFQService {
                     totalAmount,
                     vatAmount,
                     deliveryOutletId,
-                    agentId: rfq.Agent?.id ?? null,
+                    agentId: agentBuyer.id,
                     lineItems: {
                         create: [
                             {
