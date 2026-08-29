@@ -253,3 +253,13 @@ export const PlatformLedgerSourceType = enumType({
   name: 'PlatformLedgerSourceType',
   members: ['TRANSACTION_FEE', 'SUBSCRIPTION_FEE', 'WITHDRAWAL_FEE', 'REFUND', 'REVERSAL', 'MANUAL_ADJUSTMENT'],
 })
+
+export const PurchaseOrderSource = enumType({
+  name: 'PurchaseOrderSource',
+  members: ['DIRECT_ORDER', 'RFQ'],
+})
+
+export const SupplierConfirmation = enumType({
+  name: 'SupplierConfirmation',
+  members: ['REVIEW_REQUIRED', 'CONFIRMED', 'DECLINED'],
+})

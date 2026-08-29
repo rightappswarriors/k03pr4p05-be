@@ -539,21 +539,46 @@ export class SupplierRFQService {
   ) {
     await this.verifySupplierAccess(conversationId, supplierOrgId);
 
+    if (!Number.isInteger(offer.quantity) || offer.quantity <= 0 || !Number.isFinite(offer.unitPrice) || offer.unitPrice <= 0) {
+      throw new AppError(400, 'A counter offer requires a positive whole quantity and unit price.');
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // Create the negotiation offer
-      const createdOffer = await tx.negotiationOffer.create({
+      const conversation = await tx.conversation.findUnique({
+        where: { id: conversationId },
+        select: { rfqId: true },
+      });
+      if (!conversation?.rfqId) throw new AppError(400, 'Conversation is not linked to an RFQ.');
+
+      const rfq = await tx.requestForQuotation.findUnique({
+        where: { id: conversation.rfqId },
+        select: { id: true, status: true },
+      });
+      if (!rfq) throw new AppError(404, 'RFQ not found.');
+      if (rfq.status === 'PO_CREATED') throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+      if (['CANCELLED', 'EXPIRED'].includes(rfq.status)) throw new AppError(409, 'This RFQ is no longer actionable.');
+
+      const existingPO = await tx.purchaseOrderRFQ.findFirst({ where: { rfqId: rfq.id }, select: { id: true } });
+      if (existingPO) throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+
+      // `RfqOffer` is the shared history used by both Kompra.ph and Portal.
+      // This schema has no COUNTERED enum value; the latest pending offer is
+      // authoritative, so historical pending offers remain readable while the
+      // acceptance flow always resolves the newest one.
+      const createdOffer = await tx.rfqOffer.create({
         data: {
-          conversationId,
-          senderType: 'SUPPLIER',
-          senderOrgId: supplierOrgId,
+          id: `offer_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          rfqId: rfq.id,
+          senderSupplierId: supplierOrgId,
+          offerType: 'COUNTER_OFFER',
           quantity: offer.quantity,
           unitPrice: offer.unitPrice,
           deliveryDate: offer.deliveryDate,
-          minimumOrderQuantity: offer.minimumOrderQuantity,
-          estimatedLeadTime: offer.estimatedLeadTime,
+          estimatedLeadDays: offer.estimatedLeadTime ? Number.parseInt(offer.estimatedLeadTime, 10) || undefined : undefined,
           validUntil: offer.validUntil,
           notes: offer.notes,
           status: 'PENDING',
+          updatedAt: new Date(),
         },
       });
 
@@ -563,18 +588,10 @@ export class SupplierRFQService {
         data: { updatedAt: new Date() },
       });
 
-      // Update RFQ status to NEGOTIATING
-      const conversation = await tx.conversation.findUnique({
-        where: { id: conversationId },
-        select: { rfqId: true },
+      await tx.requestForQuotation.update({
+        where: { id: rfq.id },
+        data: { status: 'SUPPLIER_OFFERED' },
       });
-
-      if (conversation?.rfqId) {
-        await tx.requestForQuotation.update({
-          where: { id: conversation.rfqId },
-          data: { status: 'NEGOTIATING' },
-        });
-      }
 
       // ConversationMessage is the canonical record of the counter offer.
       await tx.conversationMessage.create({
@@ -638,7 +655,12 @@ export class SupplierRFQService {
     if (result.recipient?.Agent?.organizationId != null) {
       const agentOrgId = result.recipient.Agent.organizationId;
       // offer:counter → conversation room (both frontends listen for this)
-      sendToConversation(conversationId, 'offer:counter', result.createdOffer);
+      sendToConversation(conversationId, 'offer:counter', {
+        ...result.createdOffer,
+        conversationId,
+        senderType: 'SUPPLIER',
+        senderOrgId: supplierOrgId,
+      });
       // conversation:newMessage → conversation room with canonical payload (FIX #2, #3)
       sendToConversation(conversationId, 'conversation:newMessage', {
         id: result.createdOffer.id,
@@ -675,9 +697,6 @@ export class SupplierRFQService {
   ) {
     const rfq = await this.getRFQDetails(rfqId, supplierOrgId);
     if (!rfq.Conversation) throw new AppError(400, 'RFQ has no conversation');
-    if (!rfq.agentAcceptedAt) {
-      throw new AppError(409, 'The buyer must accept the offer before supplier confirmation.');
-    }
     // Idempotency guard — without this, tapping Accept twice creates
     // duplicate SUPPLIER_CONFIRMED events (this is why the screenshot
     // shows three "Both Parties Confirmed" cards).
@@ -688,26 +707,39 @@ export class SupplierRFQService {
     const agentOrgId = rfq.Agent?.organizationId;
     const conversationId = rfq.Conversation!.id;
 
-    const { updatedRfq, confirmedAt } = await prisma.$transaction(async (tx) => {
+    const { updatedRfq, confirmedAt, acceptedOffer } = await prisma.$transaction(async (tx) => {
       const confirmedAt = new Date();
 
       // Flip the actual NegotiationOffer record — this is what OfferCard's
       // color/buttons key off. Previously only the RFQ row changed, so the
       // card never turned green or lost its buttons.
-      const pendingOffer = await tx.negotiationOffer.findFirst({
-        where: { conversationId, status: 'PENDING' },
+      const existingPO = await tx.purchaseOrderRFQ.findFirst({ where: { rfqId }, select: { id: true } });
+      if (existingPO || rfq.status === 'PO_CREATED') {
+        throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+      }
+      if (['CANCELLED', 'EXPIRED'].includes(rfq.status)) {
+        throw new AppError(409, 'This RFQ is no longer actionable.');
+      }
+
+      const pendingOffer = await tx.rfqOffer.findFirst({
+        where: { rfqId, status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
       });
-      if (pendingOffer) {
-        await tx.negotiationOffer.update({
-          where: { id: pendingOffer.id },
-          data: { status: 'ACCEPTED' },
-        });
+      if (!pendingOffer) {
+        throw new AppError(409, 'There is no actionable offer to accept.');
       }
+      if (pendingOffer.senderSupplierId === supplierOrgId) {
+        throw new AppError(409, 'You cannot accept your own offer. The buyer must respond to it.');
+      }
+      await tx.rfqOffer.update({ where: { id: pendingOffer.id }, data: { status: 'ACCEPTED' } });
 
       const updatedRfq = await tx.requestForQuotation.update({
         where: { id: rfqId },
         data: {
+          acceptedPrice: pendingOffer.unitPrice,
+          acceptedQuantity: pendingOffer.quantity,
+          acceptedDeliveryDate: pendingOffer.deliveryDate ?? null,
+          agentAcceptedAt: rfq.agentAcceptedAt ?? (pendingOffer.senderAgentId ? pendingOffer.createdAt : null),
           supplierAcceptedAt: confirmedAt,
           status: 'WAITING_SUPPLIER_CONFIRMATION',
           supplierConfirmedAt: confirmedAt,
@@ -725,21 +757,46 @@ export class SupplierRFQService {
             rfqId,
             supplierOrgId,
             confirmedAt: confirmedAt.toISOString(),
-            acceptedPrice: rfq.acceptedPrice,
-            acceptedQuantity: rfq.acceptedQuantity,
+            offerId: pendingOffer.id,
+            acceptedPrice: pendingOffer.unitPrice,
+            acceptedQuantity: pendingOffer.quantity,
           },
         },
       });
 
       await tx.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
 
-      return { updatedRfq, confirmedAt };
+      return { updatedRfq, confirmedAt, acceptedOffer: pendingOffer };
     });
 
     if (agentOrgId != null) {
+      sendToOrg(agentOrgId, 'offer:accepted', { rfqId, supplierOrgId, offerId: acceptedOffer.id, confirmedAt: confirmedAt.toISOString() });
       sendToOrg(agentOrgId, 'supply:confirmed', { rfqId, supplierOrgId, confirmedAt: confirmedAt.toISOString() });
       sendToOrg(agentOrgId, 'notification:new', { conversationId, rfqId, category: 'Supplier Confirmation' });
     }
+    sendToConversation(conversationId, 'offer:accepted', {
+      rfqId,
+      offerId: acceptedOffer.id,
+      status: 'WAITING_SUPPLIER_CONFIRMATION',
+      unitPrice: acceptedOffer.unitPrice,
+      quantity: acceptedOffer.quantity,
+    });
+    sendToConversation(conversationId, 'conversation:newMessage', {
+      conversationId,
+      senderId: `org:${supplierOrgId}`,
+      senderRole: 'SUPPLIER',
+      senderOrgId: supplierOrgId,
+      message: 'Supplier accepted the buyer offer.',
+      type: 'SUPPLIER_CONFIRMED',
+      createdAt: confirmedAt.toISOString(),
+      metadata: {
+        event: 'offer_accepted',
+        rfqId,
+        offerId: acceptedOffer.id,
+        unitPrice: acceptedOffer.unitPrice,
+        quantity: acceptedOffer.quantity,
+      },
+    });
 
     return updatedRfq;
   }
@@ -748,9 +805,6 @@ export class SupplierRFQService {
   async createPurchaseOrder(
     rfqId: string,
     supplierOrgId: number,
-    deliveryDate: Date,
-    driverName?: string,
-    driverContact?: string,
   ) {
     const rfq = await this.getRFQDetails(rfqId, supplierOrgId);
 
@@ -762,6 +816,18 @@ export class SupplierRFQService {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // Atomically claim the accepted RFQ before creating a PO. This prevents
+      // concurrent accepts from producing duplicate purchase orders.
+      const claimed = await tx.requestForQuotation.updateMany({
+        where: { id: rfqId, status: 'WAITING_SUPPLIER_CONFIRMATION' },
+        data: { status: 'PO_CREATED' },
+      });
+      if (claimed.count !== 1) {
+        throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+      }
+      const existingPO = await tx.purchaseOrderRFQ.findFirst({ where: { rfqId }, select: { id: true } });
+      if (existingPO) throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+
       // Create PurchaseOrder
       const poNumber = await this.generatePONumber();
 
@@ -823,17 +889,6 @@ export class SupplierRFQService {
         },
       });
 
-      // Create Delivery
-      const delivery = await tx.delivery.create({
-        data: {
-          poId: po.id,
-          scheduledDate: deliveryDate,
-          status: 'SCHEDULED',
-          driverName,
-          driverContact,
-        },
-      });
-
       // Link the completed PO to its RFQ via the bridge table
       await tx.purchaseOrderRFQ.create({
         data: {
@@ -845,10 +900,8 @@ export class SupplierRFQService {
       await tx.requestForQuotation.update({
         where: { id: rfqId },
         data: {
-          status: 'PO_CREATED',
           acceptedPrice,
           acceptedQuantity: acceptedQty,
-          acceptedDeliveryDate: deliveryDate,
         },
       });
 
@@ -893,7 +946,6 @@ export class SupplierRFQService {
             poId: po.id,
             poNumber,
             rfqId,
-            deliveryDate: deliveryDate.toISOString(),
             totalAmount,
             vatAmount,
           },
@@ -912,7 +964,6 @@ export class SupplierRFQService {
             poId: po.id,
             poNumber,
             rfqId,
-            deliveryDate: deliveryDate.toISOString(),
             totalAmount,
             vatAmount,
           },
@@ -925,9 +976,7 @@ export class SupplierRFQService {
       });
 
       logDev('PO Creation', 'Purchase Order created', { poNumber, poId: po.id, poConversationId: poConversation.id });
-      logDev('Delivery Creation', 'Delivery created', { deliveryId: delivery.id, poNumber });
-
-      return { po, delivery, poConversation };
+      return { po, poConversation };
     });
 
     // Notification + realtime emits happen only after the transaction commits (FIX #1, #7)
@@ -1459,6 +1508,13 @@ export class SupplierRFQService {
   // ─── Reject negotiation ──────────────────────────────────────────────────────
   async rejectNegotiation(rfqId: string, supplierOrgId: number, reason?: string) {
     const rfq = await this.getRFQDetails(rfqId, supplierOrgId);
+
+    if (rfq.status === 'PO_CREATED' || await prisma.purchaseOrderRFQ.findFirst({ where: { rfqId }, select: { id: true } })) {
+      throw new AppError(409, 'This RFQ has already been converted to a Purchase Order.');
+    }
+    if (['CANCELLED', 'EXPIRED'].includes(rfq.status)) {
+      throw new AppError(409, 'This RFQ is no longer actionable.');
+    }
 
     const agentOrgId = rfq.Agent?.organizationId;
     const convId = rfq.Conversation?.id;

@@ -120,7 +120,7 @@ export const SupplierRfqMutation = extendType({
                 if (!rfq.Conversation) {
                     throw new Error('RFQ has no conversation');
                 }
-                return service.counterOffer(rfq.Conversation.id, user.orgId, {
+                const offer = await service.counterOffer(rfq.Conversation.id, user.orgId, {
                     quantity: input.quantity,
                     unitPrice: input.unitPrice,
                     deliveryDate: input.deliveryDate ?? undefined,
@@ -129,6 +129,14 @@ export const SupplierRfqMutation = extendType({
                     validUntil: input.validUntil ?? undefined,
                     notes: input.notes ?? undefined,
                 });
+                // Preserve the legacy GraphQL shape while persisting the offer
+                // in the shared RfqOffer history used by both applications.
+                return {
+                    ...offer,
+                    conversationId: rfq.Conversation.id,
+                    senderType: 'SUPPLIER',
+                    senderOrgId: user.orgId,
+                };
             },
         });
 
@@ -169,9 +177,6 @@ export const SupplierRfqMutation = extendType({
             type: 'CreatePurchaseOrderOutput',
             args: {
                 rfqId: nonNull(stringArg()),
-                deliveryDate: nonNull(arg({ type: 'DateTime' })),
-                driverName: stringArg(),
-                driverContact: stringArg(),
             },
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
@@ -180,9 +185,6 @@ export const SupplierRfqMutation = extendType({
                 const result = await service.createPurchaseOrder(
                     args.rfqId,
                     user.orgId,
-                    args.deliveryDate,
-                    args.driverName ?? undefined,
-                    args.driverContact ?? undefined,
                 );
                 return { success: true, poNumber: result.po.poNumber, purchaseOrder: result.po };
             },

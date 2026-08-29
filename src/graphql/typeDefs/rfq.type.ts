@@ -229,6 +229,26 @@ export const Conversation = objectType({
                     orderBy: orderBy as any,
                     take: take ?? undefined,
                     include: { Agent: true, Organization: true },
+                }).then(async (legacyOffers) => {
+                    if (!parent.rfqId) return legacyOffers;
+                    const rfqOffers = await ctx.prisma.rfqOffer.findMany({
+                        where: { rfqId: parent.rfqId },
+                        include: { Agent: true, Organization: true },
+                    });
+                    const sharedOffers = rfqOffers.map((offer) => ({
+                        ...offer,
+                        conversationId: parent.id,
+                        senderType: offer.senderAgentId ? 'AGENT' : 'SUPPLIER',
+                        senderOrgId: offer.senderSupplierId,
+                        estimatedLeadTime: offer.estimatedLeadDays?.toString() ?? null,
+                        minimumOrderQuantity: null,
+                    }));
+                    const direction = (orderBy as any)?.createdAt ?? 'asc';
+                    return [...legacyOffers, ...sharedOffers]
+                        .sort((a, b) => direction === 'desc'
+                            ? b.createdAt.getTime() - a.createdAt.getTime()
+                            : a.createdAt.getTime() - b.createdAt.getTime())
+                        .slice(0, take ?? undefined);
                 });
             },
         });
@@ -339,9 +359,6 @@ export const AcceptNegotiationInput = inputObjectType({
     name: 'AcceptNegotiationInput',
     definition(t) {
         t.nonNull.string('rfqId');
-        t.nonNull.field('deliveryDate', { type: 'DateTime' });
-        t.nullable.string('driverName');
-        t.nullable.string('driverContact');
     },
 });
 

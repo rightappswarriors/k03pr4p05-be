@@ -8,9 +8,6 @@ input AcceptInvitationInput {
 }
 
 input AcceptNegotiationInput {
-  deliveryDate: DateTime!
-  driverContact: String
-  driverName: String
   rfqId: String!
 }
 
@@ -1904,7 +1901,7 @@ type Mutation {
   AddOutletStaff(outletId: ID!, users: [OutletStaffInput!]!): AddedOutletStaffs!
   StaffLogout(outletId: ID!): Boolean!
   acceptNegotiation(input: AcceptNegotiationInput!): RequestForQuotation!
-  acceptPO(driverContact: String, driverName: String, id: String!, scheduledDate: DateTime!): PurchaseOrder!
+  acceptPO(expectedDeliveryDate: DateTime, id: String!, supplierNote: String): PurchaseOrder!
   addDeliveryAddress(customerId: Int!, input: AddDeliveryAddressInput!): DeliveryAddress!
   addExtraCharge(amount: Float!, label: String!, salesOrderId: String!): SalesOrder
   addInventoryItemUnits(inventoryItemId: Int!, units: [CreateInventoryItemUnitInput!]!): [InventoryItemUnit!]!
@@ -1975,7 +1972,7 @@ type Mutation {
   createPlaceLocation(address: String, name: String, orgId: Int): PlaceLocation
   createPosition(input: PositionInput!): Position!
   createPromoType(data: CreatePromoTypeInput!): PromoType!
-  createPurchaseOrder(deliveryDate: DateTime!, driverContact: String, driverName: String, rfqId: String!): CreatePurchaseOrderOutput!
+  createPurchaseOrder(rfqId: String!): CreatePurchaseOrderOutput!
   createRestockCycle(data: RestockCycleInput!): RestockCycle
   createRestockSchedule(data: RestockScheduleInput!): RestockSchedule
   createSalesOrder(branchId: Int, customer: String, customerContact: String, customerName: String, customerType: CustomerType, deliveryAddress: String, deliveryNotes: String, discountAmount: Float, discountRate: Float, discountType: DiscountType, extraCharges: [ExtraChargeInput!], items: [SalesOrderItemInput!]!, orderMode: OrderModeEnum!, outletId: Int, outletPromoId: Int, scPwdCustomerInput: ScPwdCustomerInput, scPwdPax: Int, subtotal: Float, total: Float, totalPax: Int, vatAmount: Float, vatRate: Float): SalesOrder
@@ -2085,7 +2082,7 @@ type Mutation {
   rejectApprovedOrganizationAgent(agentId: String!, reason: String!): OrganizationAgent!
   rejectNegotiation(input: RejectNegotiationInput!): RequestForQuotation!
   rejectOrganizationAgent(agentId: String!, reason: String!): ApproveOrRejectOrganizationAgentResponse!
-  rejectPO(id: String!): PurchaseOrder!
+  rejectPO(id: String!, reason: String!): PurchaseOrder!
   rejectProcurementAgent(id: String!, reason: String): ProcurementInvitation!
   rejectSupplier(reason: String, supplierId: Int!): SupplierProfile
   releaseReservation(quantity: Float!, reason: String, supplierItemId: String!): SupplierInventoryMovement
@@ -3241,13 +3238,24 @@ type PurchaseOrder {
   paymentStatus: PaymentStatus!
   poNumber: String!
   receiptSnapshot: Json
+  rejectionReason: String
   requestedDate: DateTime
+  source: PurchaseOrderSource!
   status: POStatus!
   subtotalAmount: Float!
+  supplierConfirmation: SupplierConfirmation!
+  supplierConfirmedAt: DateTime
+  supplierExpectedDeliveryAt: DateTime
+  supplierNote: String
   supplierOrg: Organization!
   totalAmount: Float!
   updatedAt: DateTime!
   vatAmount: Float!
+}
+
+enum PurchaseOrderSource {
+  DIRECT_ORDER
+  RFQ
 }
 
 type Query {
@@ -4139,6 +4147,12 @@ type SupplierCatalog {
   items: [SupplierItem!]!
   organization: Organization!
   organizationId: Int!
+}
+
+enum SupplierConfirmation {
+  CONFIRMED
+  DECLINED
+  REVIEW_REQUIRED
 }
 
 type SupplierDashboardStats {
