@@ -282,7 +282,8 @@ model Outlet {
   salesOrders           SalesOrder[]
   supplierLinks         SupplierOutletLink[]    @relation("OutletSupplierLinks")
   Transaction           Transaction[]
-
+  operatingHours        String?
+  bio                   String?
   @@unique([orgId, code])
 }
 
