@@ -41,9 +41,6 @@ export interface NexusGenInputs {
     userId: string; // String!
   }
   AcceptNegotiationInput: { // input type
-    deliveryDate: NexusGenScalars['DateTime']; // DateTime!
-    driverContact?: string | null; // String
-    driverName?: string | null; // String
     rfqId: string; // String!
   }
   AddDeliveryAddressInput: { // input type
@@ -743,6 +740,7 @@ export interface NexusGenEnums {
   PlatformLedgerSourceType: "MANUAL_ADJUSTMENT" | "REFUND" | "REVERSAL" | "SUBSCRIPTION_FEE" | "TRANSACTION_FEE" | "WITHDRAWAL_FEE"
   ProcurementAgentRequestStatus: "APPROVED" | "PENDING" | "REJECTED"
   ProcurementInvitationStatus: "ACCEPTED" | "EXPIRED" | "PENDING" | "REJECTED" | "REVOKED" | "USED"
+  PurchaseOrderSource: "DIRECT_ORDER" | "RFQ"
   RecurrenceType: "custom" | "daily" | "monthly" | "once" | "weekly"
   RfqStatus: "AGENT_ACCEPTED_FINAL" | "BUYER_COUNTERED" | "CANCELLED" | "COUNTER_OFFERED" | "DRAFT" | "EXPIRED" | "NEGOTIATING" | "NEGOTIATION_ACCEPTED" | "NEGOTIATION_COMPLETED" | "PENDING_SUPPLIER_RESPONSE" | "PO_CREATED" | "RFQ_RECEIVED" | "SUBMITTED" | "SUPPLIER_ACCEPTED_FINAL" | "SUPPLIER_OFFERED" | "UNDER_REVIEW" | "WAITING_SUPPLIER_CONFIRMATION"
   Role: "ADMIN" | "CASHIER" | "CUSTOMER" | "MANAGER" | "OWNER" | "STAFF" | "SUPPLIER"
@@ -754,6 +752,7 @@ export interface NexusGenEnums {
   Status: "CANCELED" | "COMPLETED" | "FAILED" | "PAID" | "PENDING" | "SYNCED"
   SubscriptionPlan: "BASIC" | "GOLD"
   SupplierCapabilityType: "DRAWING_CUSTOMIZATION" | "FULL_CUSTOMIZATION" | "MINOR_CUSTOMIZATION" | "ODM" | "OEM" | "SAMPLE_CUSTOMIZATION"
+  SupplierConfirmation: "CONFIRMED" | "DECLINED" | "REVIEW_REQUIRED"
   SupplierIncomingStatus: "CANCELLED" | "PENDING" | "RECEIVED"
   SupplierInventoryMovementType: "ADJUSTED" | "DAMAGED" | "EXPIRED" | "RECEIVED" | "RELEASED" | "RESERVED" | "RETURNED" | "SOLD" | "TRANSFERRED_IN" | "TRANSFERRED_OUT"
   SupplierLinkStatus: "ACCEPTED" | "ACTIVE" | "ARCHIVED" | "BLOCKED" | "PAUSED" | "PENDING" | "REQUESTED" | "SUGGESTED"
@@ -2504,9 +2503,15 @@ export interface NexusGenObjects {
     paymentStatus: NexusGenEnums['PaymentStatus']; // PaymentStatus!
     poNumber: string; // String!
     receiptSnapshot?: NexusGenScalars['Json'] | null; // Json
+    rejectionReason?: string | null; // String
     requestedDate?: NexusGenScalars['DateTime'] | null; // DateTime
+    source: NexusGenEnums['PurchaseOrderSource']; // PurchaseOrderSource!
     status: NexusGenEnums['POStatus']; // POStatus!
     subtotalAmount: number; // Float!
+    supplierConfirmation: NexusGenEnums['SupplierConfirmation']; // SupplierConfirmation!
+    supplierConfirmedAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    supplierExpectedDeliveryAt?: NexusGenScalars['DateTime'] | null; // DateTime
+    supplierNote?: string | null; // String
     totalAmount: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
     vatAmount: number; // Float!
@@ -5712,9 +5717,15 @@ export interface NexusGenFieldTypes {
     paymentStatus: NexusGenEnums['PaymentStatus']; // PaymentStatus!
     poNumber: string; // String!
     receiptSnapshot: NexusGenScalars['Json'] | null; // Json
+    rejectionReason: string | null; // String
     requestedDate: NexusGenScalars['DateTime'] | null; // DateTime
+    source: NexusGenEnums['PurchaseOrderSource']; // PurchaseOrderSource!
     status: NexusGenEnums['POStatus']; // POStatus!
     subtotalAmount: number; // Float!
+    supplierConfirmation: NexusGenEnums['SupplierConfirmation']; // SupplierConfirmation!
+    supplierConfirmedAt: NexusGenScalars['DateTime'] | null; // DateTime
+    supplierExpectedDeliveryAt: NexusGenScalars['DateTime'] | null; // DateTime
+    supplierNote: string | null; // String
     supplierOrg: NexusGenRootTypes['Organization']; // Organization!
     totalAmount: number; // Float!
     updatedAt: NexusGenScalars['DateTime']; // DateTime!
@@ -9256,9 +9267,15 @@ export interface NexusGenFieldTypeNames {
     paymentStatus: 'PaymentStatus'
     poNumber: 'String'
     receiptSnapshot: 'Json'
+    rejectionReason: 'String'
     requestedDate: 'DateTime'
+    source: 'PurchaseOrderSource'
     status: 'POStatus'
     subtotalAmount: 'Float'
+    supplierConfirmation: 'SupplierConfirmation'
+    supplierConfirmedAt: 'DateTime'
+    supplierExpectedDeliveryAt: 'DateTime'
+    supplierNote: 'String'
     supplierOrg: 'Organization'
     totalAmount: 'Float'
     updatedAt: 'DateTime'
@@ -10608,10 +10625,9 @@ export interface NexusGenArgTypes {
       input: NexusGenInputs['AcceptNegotiationInput']; // AcceptNegotiationInput!
     }
     acceptPO: { // args
-      driverContact?: string | null; // String
-      driverName?: string | null; // String
+      expectedDeliveryDate?: NexusGenScalars['DateTime'] | null; // DateTime
       id: string; // String!
-      scheduledDate: NexusGenScalars['DateTime']; // DateTime!
+      supplierNote?: string | null; // String
     }
     addDeliveryAddress: { // args
       customerId: number; // Int!
@@ -10952,9 +10968,6 @@ export interface NexusGenArgTypes {
       data: NexusGenInputs['CreatePromoTypeInput']; // CreatePromoTypeInput!
     }
     createPurchaseOrder: { // args
-      deliveryDate: NexusGenScalars['DateTime']; // DateTime!
-      driverContact?: string | null; // String
-      driverName?: string | null; // String
       rfqId: string; // String!
     }
     createRestockCycle: { // args
@@ -11454,6 +11467,7 @@ export interface NexusGenArgTypes {
     }
     rejectPO: { // args
       id: string; // String!
+      reason: string; // String!
     }
     rejectProcurementAgent: { // args
       id: string; // String!
