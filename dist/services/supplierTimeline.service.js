@@ -9,7 +9,7 @@ const EVENT_CONFIG = {
     NOTIFICATION: { icon: 'Bell', color: '#DC2626' },
 };
 function statusForPO(status) {
-    if (status === 'DELIVERED' || status === 'ACCEPTED')
+    if (status === 'DELIVERED' || status === 'SUPPLIER_ACCEPTED' || status === 'ACCEPTED')
         return 'SUCCESS';
     if (status === 'REJECTED' || status === 'CANCELLED')
         return 'ERROR';
@@ -31,7 +31,7 @@ function statusForMandate(status) {
         return 'SUCCESS';
     if (status === 'DISPUTED' || status === 'CANCELLED' || status === 'REFUNDED')
         return 'ERROR';
-    if (status === 'PENDING' || status === 'ACCEPTED')
+    if (status === 'PENDING' || status === 'SUPPLIER_ACCEPTED' || status === 'ACCEPTED')
         return 'PENDING';
     return 'INFO';
 }
@@ -138,7 +138,7 @@ export async function getSupplierOrderTimeline(prisma, filters) {
             : [],
         enabledTypes.has('WALLET')
             ? prisma.wallet.findUnique({
-                where: { orgId: supplierOrgId },
+                where: { orgId_environment: { orgId: supplierOrgId, environment: 'PRODUCTION' } },
                 include: {
                     organization: true,
                     ledgerEntries: {

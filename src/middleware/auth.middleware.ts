@@ -1,5 +1,14 @@
 import { Context, PagePermission } from "../lib/types.js";
 
+export function hasPrivilegedPageAccess(ctx: Context) {
+  return Boolean(
+    ctx.user?.isOwner ||
+    ctx.user?.role === "OWNER" ||
+    ctx.user?.role === "MANAGER" ||
+    ctx.user?.role === "ADMIN"
+  );
+}
+
 export function requireAuth(ctx: Context) {
   if (!ctx.user) {
     if (process.env.NODE_ENV === "development") console.error("Authentication required");
@@ -30,12 +39,12 @@ export function requirePagePermission(
     throw new Error('Organization account is suspended.');
   }
 
-  if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER") return; // bypass
+  if (hasPrivilegedPageAccess(ctx)) return;
 
   const perm = ctx.userPermissions[pageKey]; // ← just a map lookup, no DB
 
   if (!perm?.[action]) {
-    throw new Error(`Access denied: insufficient permission for ${pageKey}.${action}`);
+    throw new Error("You do not have permission to perform this action.");
   }
 
   ctx.permission = perm; // attach for resolver use
@@ -47,15 +56,14 @@ export function requireAnyPagePermission(
   pages: { pageKey: string; action: keyof PagePermission }[]
 ) {
   requireAuth(ctx);
-  if (ctx.user?.isOwner) return;
+  if (hasPrivilegedPageAccess(ctx)) return;
 
   const hasAny = pages.some(({ pageKey, action }) => {
     return ctx.userPermissions[pageKey]?.[action] === true;
   });
 
   if (!hasAny) {
-    const labels = pages.map(p => `${p.pageKey}.${p.action}`).join(' or ');
-    throw new Error(`Access denied: requires ${labels}`);
+    throw new Error("You do not have permission to perform this action.");
   }
 }
 // middleware/auth.middleware.ts
@@ -64,11 +72,11 @@ export function requireControlPermission(ctx: Context, controlKey: string) {
   if (ctx.user?.role !== 'ADMIN' && ctx.user?.orgAccountStatus !== null && ctx.user?.orgAccountStatus !== undefined && ctx.user.orgAccountStatus !== 'ACTIVE') {
     throw new Error(`Organization account is ${ctx.user.orgAccountStatus.toLowerCase()}.`);
   }
-  if (ctx.user?.isOwner || ctx.user?.role === "MANAGER" || ctx.user?.role === "OWNER") return;
+  if (hasPrivilegedPageAccess(ctx)) return;
 
   const isAllowed = ctx.controlPermissions?.[controlKey];
   if (!isAllowed) {
-    throw new Error(`Access denied: insufficient control permission for '${controlKey}'`);
+    throw new Error("You do not have permission to perform this action.");
   }
 }
 export async function requireOwnership(ctx: any, modelName: string, resourceId: number | string) {

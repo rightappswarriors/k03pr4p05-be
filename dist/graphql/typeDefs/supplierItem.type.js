@@ -22,6 +22,7 @@ export const SupplierItem = objectType({
         t.nonNull.string('unit');
         t.nonNull.float('unitPrice');
         t.nonNull.boolean('isVatExempt');
+        t.nonNull.boolean('vatInclusive');
         t.nonNull.float('vatRate');
         t.nullable.string('image');
         t.nullable.float('currentCost');
@@ -77,6 +78,16 @@ export const SupplierItem = objectType({
                 return ctx.prisma.supplierItem
                     .findUnique({ where: { id: parent.id, deletedAt: null, } })
                     .category();
+            },
+        });
+        t.field('globalCategory', {
+            type: 'Category',
+            resolve(parent, _, ctx) {
+                if (!parent.globalCategoryId)
+                    return null;
+                return ctx.prisma.supplierItem
+                    .findUnique({ where: { id: parent.id, deletedAt: null } })
+                    .globalCategory();
             },
         });
         t.field('group', {
@@ -786,6 +797,72 @@ export const SupplierInventoryDashboardType = objectType({
         t.nonNull.int('expiringSoonCount');
         t.nonNull.float('averageInventoryCost');
         t.float('averageMargin');
+    },
+});
+export const SupplierInventoryMovementPage = objectType({
+    name: 'SupplierInventoryMovementPage',
+    definition(t) {
+        t.nonNull.list.nonNull.field('items', { type: 'SupplierInventoryMovement' });
+        t.nonNull.int('total');
+        t.nonNull.int('page');
+        t.nonNull.int('limit');
+        t.nonNull.int('totalPages');
+    },
+});
+export const SupplierInventoryBatchListItem = objectType({
+    name: 'SupplierInventoryBatchListItem',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nonNull.string('itemName');
+        t.nullable.string('sku');
+        t.nonNull.string('unit');
+        t.nullable.string('batchNumber');
+        t.nonNull.float('quantity');
+        t.nonNull.float('remainingQty');
+        t.nonNull.float('unitCost');
+        t.nonNull.float('inventoryValue');
+        t.nonNull.dateTime('receivedAt');
+        t.nullable.dateTime('expiryDate');
+        t.nonNull.string('status');
+    },
+});
+export const SupplierInventoryBatchPage = objectType({
+    name: 'SupplierInventoryBatchPage',
+    definition(t) {
+        t.nonNull.list.nonNull.field('items', { type: 'SupplierInventoryBatchListItem' });
+        t.nonNull.int('total');
+        t.nonNull.int('page');
+        t.nonNull.int('limit');
+        t.nonNull.int('totalPages');
+    },
+});
+export const SupplierInventoryAlert = objectType({
+    name: 'SupplierInventoryAlert',
+    definition(t) {
+        t.nonNull.string('id');
+        t.nonNull.string('kind');
+        t.nonNull.string('severity');
+        t.nonNull.string('title');
+        t.nonNull.string('message');
+        t.nonNull.string('supplierItemId');
+        t.nonNull.string('itemName');
+        t.nullable.string('sku');
+        t.nullable.float('availableQty');
+        t.nullable.float('reorderLevel');
+        t.nullable.float('reorderQty');
+        t.nullable.string('batchId');
+        t.nullable.dateTime('expiryDate');
+    },
+});
+export const SupplierInventoryAlertPage = objectType({
+    name: 'SupplierInventoryAlertPage',
+    definition(t) {
+        t.nonNull.list.nonNull.field('items', { type: 'SupplierInventoryAlert' });
+        t.nonNull.int('total');
+        t.nonNull.int('page');
+        t.nonNull.int('limit');
+        t.nonNull.int('totalPages');
     },
 });
 export const SupplierScheduledPrice = objectType({

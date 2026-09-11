@@ -1,6 +1,8 @@
 // Variant write operations — groups, options, variants, and generator.
 import { extendType, nonNull, nullable, stringArg, intArg, floatArg, booleanArg, list, arg } from 'nexus'
 import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
+import { requireSupplierItemScope, requireSupplierVariantGroupScope, requireSupplierVariantOptionScope, requireSupplierVariantScope } from '../../../lib/supplierScope.js'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +37,8 @@ export const SupplierItemVariantMutation = extendType({
       },
       resolve: async (_, { supplierItemId, name, sortOrder, options }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.create(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId)
         return ctx.prisma.supplierItemVariantGroup.create({
           data: {
             supplierItemId,
@@ -63,8 +67,10 @@ export const SupplierItemVariantMutation = extendType({
         name: nullable(stringArg()),
         sortOrder: nullable(intArg()),
       },
-      resolve: (_, { id, name, sortOrder }, ctx) => {
+      resolve: async (_, { id, name, sortOrder }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.edit(ctx)
+        await requireSupplierVariantGroupScope(ctx, id)
         const data: any = {}
         if (name != null) data.name = name
         if (sortOrder != null) data.sortOrder = sortOrder
@@ -80,6 +86,8 @@ export const SupplierItemVariantMutation = extendType({
       args: { id: nonNull(stringArg()) },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.delete(ctx)
+        await requireSupplierVariantGroupScope(ctx, id)
         // Cascade in DB handles options and variant-values.
         await ctx.prisma.supplierItemVariantGroup.delete({ where: { id } })
         return true
@@ -97,8 +105,10 @@ export const SupplierItemVariantMutation = extendType({
         image: nullable(stringArg()),
         sortOrder: nullable(intArg()),
       },
-      resolve: (_, { variantGroupId, value, colorHex, image, sortOrder }, ctx) => {
+      resolve: async (_, { variantGroupId, value, colorHex, image, sortOrder }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.create(ctx)
+        await requireSupplierVariantGroupScope(ctx, variantGroupId)
         return ctx.prisma.supplierItemVariantOption.create({
           data: { variantGroupId, value, colorHex, image, sortOrder: sortOrder ?? 0 },
         })
@@ -114,8 +124,10 @@ export const SupplierItemVariantMutation = extendType({
         image: nullable(stringArg()),
         sortOrder: nullable(intArg()),
       },
-      resolve: (_, { id, ...updates }, ctx) => {
+      resolve: async (_, { id, ...updates }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.edit(ctx)
+        await requireSupplierVariantOptionScope(ctx, id)
         const data: any = {}
         for (const [k, v] of Object.entries(updates)) {
           if (v !== undefined) data[k] = v
@@ -128,6 +140,8 @@ export const SupplierItemVariantMutation = extendType({
       args: { id: nonNull(stringArg()) },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.delete(ctx)
+        await requireSupplierVariantOptionScope(ctx, id)
         await ctx.prisma.supplierItemVariantOption.delete({ where: { id } })
         return true
       },
@@ -140,7 +154,10 @@ export const SupplierItemVariantMutation = extendType({
       args: { input: nonNull(arg({ type: 'CreateVariantInput' })) },
       resolve: async (_, { input }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.create(ctx)
         const { supplierItemId, optionIds, availableQty, cost, isDefault, ...rest } = input as any
+        await requireSupplierItemScope(ctx, supplierItemId)
+        await Promise.all((optionIds as string[]).map((optionId) => requireSupplierVariantOptionScope(ctx, optionId)))
         const variant = await ctx.prisma.supplierItemVariant.create({
           data: {
             supplierItemId,
@@ -161,9 +178,11 @@ export const SupplierItemVariantMutation = extendType({
     t.nonNull.field('updateVariant', {
       type: 'SupplierItemVariant',
       args: { input: nonNull(arg({ type: 'UpdateVariantInput' })) },
-      resolve: (_, { input }, ctx) => {
+      resolve: async (_, { input }, ctx) => {
         requireAuth(ctx)
         const { id, ...updates } = input as any
+        PAGE_PERMISSIONS.supplierProducts.edit(ctx)
+        await requireSupplierVariantScope(ctx, id)
         const data: any = {}
         for (const [k, v] of Object.entries(updates)) {
           if (v !== undefined) data[k] = v
@@ -180,6 +199,8 @@ export const SupplierItemVariantMutation = extendType({
       args: { id: nonNull(stringArg()) },
       resolve: async (_, { id }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.delete(ctx)
+        await requireSupplierVariantScope(ctx, id)
         // Soft delete — keep for history.
         await ctx.prisma.supplierItemVariant.update({
           where: { id },
@@ -204,6 +225,8 @@ export const SupplierItemVariantMutation = extendType({
       },
       resolve: async (_, { supplierItemId, basePrice, baseCost }, ctx) => {
         requireAuth(ctx)
+        PAGE_PERMISSIONS.supplierProducts.create(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId)
 
         const groups = await ctx.prisma.supplierItemVariantGroup.findMany({
           where: { supplierItemId },

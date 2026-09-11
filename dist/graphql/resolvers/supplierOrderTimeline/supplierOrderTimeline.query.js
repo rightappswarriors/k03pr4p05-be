@@ -1,5 +1,7 @@
 import { arg, extendType, intArg, list, nonNull, nullable, stringArg } from 'nexus';
 import { getSupplierOrderTimeline } from '../../../services/supplierTimeline.service.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+import { requireSupplierOrganizationScope } from '../../../lib/supplierScope.js';
 function parseDate(value) {
     if (!value)
         return null;
@@ -23,6 +25,8 @@ export const SupplierOrderTimelineQuery = extendType({
                 sort: nullable(arg({ type: 'SupplierTimelineSort' })),
             },
             resolve: async (_, args, ctx) => {
+                PAGE_PERMISSIONS.supplierOrderTimeline.view(ctx);
+                requireSupplierOrganizationScope(ctx, args.supplierOrgId);
                 return getSupplierOrderTimeline(ctx.prisma, {
                     supplierOrgId: args.supplierOrgId,
                     search: args.search,

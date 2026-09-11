@@ -10,8 +10,11 @@ export async function releaseSupplierFunds(tx: any, paymentTransactionId: string
   const payment = await tx.paymentTransaction.findUniqueOrThrow({ where: { id: paymentTransactionId } });
   if (payment.status !== 'SUCCEEDED') throw new Error('Only confirmed payments can be released.');
   if (!payment.supplierOrgId) throw new Error('Payment is missing its supplier organization.');
+  if (payment.relatedType === 'PURCHASE_ORDER') {
+    throw new Error('Purchase order funds must be released through immutable settlement posting.');
+  }
 
-  const wallet = await tx.wallet.findUniqueOrThrow({ where: { orgId: payment.supplierOrgId } });
+  const wallet = await tx.wallet.findFirstOrThrow({ where: { orgId: payment.supplierOrgId, environment: payment.environment } });
   const existing = await tx.walletLedgerEntry.findFirst({
     where: { walletId: wallet.id, sourceType: 'ESCROW_RELEASE', referenceId: payment.id },
   });
@@ -36,19 +39,17 @@ export async function releaseSupplierFunds(tx: any, paymentTransactionId: string
 
 export async function requestWithdrawal(tx: any, { orgId, payoutMethodId, amount, requestedById }: { orgId: number; payoutMethodId: number; amount: number; requestedById: number }) {
   if (!Number.isFinite(amount) || amount <= 0) throw new Error('Amount must be greater than zero.');
-  const wallet = await tx.wallet.findUnique({ where: { orgId } });
-  if (!wallet) throw new Error('Wallet not found.');
   const payoutMethod = await tx.payoutMethod.findFirst({ where: { id: payoutMethodId, orgId, deletedAt: null, isActive: true } });
   if (!payoutMethod) throw new Error('Payout method not found.');
   if (!payoutMethod.isVerified) throw new Error('A verified payout method is required before withdrawing.');
-
-  const pending = await tx.withdrawal.aggregate({
-    _sum: { amount: true },
-    where: { walletId: wallet.id, status: { in: ['PENDING', 'APPROVED', 'PROCESSING'] }, deletedAt: null },
-  });
-  const reserved = pending._sum.amount ?? 0;
-  if (amount > wallet.balance - reserved) throw new Error('Insufficient available balance. Held and pending funds cannot be withdrawn.');
-  return tx.withdrawal.create({ data: { walletId: wallet.id, payoutMethodId, amount, status: 'PENDING', requestedById, environment: payoutMethod.environment } });
+  const wallet = await tx.wallet.findFirst({ where: { orgId, environment: payoutMethod.environment, deletedAt: null } });
+  if (!wallet) throw new Error('Wallet not found for this payout method environment.');
+  const reserved = await tx.wallet.updateMany({ where: { id: wallet.id, balance: { gte: amount } }, data: { balance: { decrement: amount }, heldBalance: { increment: amount } } });
+  if (reserved.count !== 1) throw new Error('Insufficient available balance.');
+  const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
+  const withdrawal = await tx.withdrawal.create({ data: { walletId: wallet.id, payoutMethodId, amount, status: 'PENDING', requestedById, environment: wallet.environment, payoutDestinationEncrypted: payoutMethod.encryptedDestination, payoutDestinationMasked: payoutMethod.maskedAccountNumber, payoutDestinationAccount: payoutMethod.accountName, payoutDestinationBank: payoutMethod.bankName, payoutMethodTypeSnapshot: payoutMethod.type } });
+  await tx.walletLedgerEntry.create({ data: { walletId: wallet.id, type: 'DEBIT', sourceType: 'WITHDRAWAL', referenceId: `withdrawal:${withdrawal.id}`, amount: -amount, balanceAfter: updatedWallet.balance, status: 'HELD', environment: wallet.environment } });
+  return withdrawal;
 }
 
 export async function verifySandboxPayoutMethod(tx: any, payoutMethodId: number) {

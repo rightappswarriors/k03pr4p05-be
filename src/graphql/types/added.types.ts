@@ -48,6 +48,17 @@ export const PositionPermissionType = objectType({
   }
 })
 
+export const ResolvedPagePermissionType = objectType({
+  name: 'ResolvedPagePermission',
+  definition(t) {
+    t.nonNull.string('key')
+    t.nonNull.boolean('canView')
+    t.nonNull.boolean('canCreate')
+    t.nonNull.boolean('canEdit')
+    t.nonNull.boolean('canDelete')
+  }
+})
+
 export const UserPermissionOverrideType = objectType({
   name: 'UserPermissionOverride',
   definition(t) {

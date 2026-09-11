@@ -1,6 +1,9 @@
 import { arg, extendType, intArg, nonNull, objectType, stringArg } from 'nexus';
 import { requireAdminPermission } from '../../../lib/adminGovernance.js';
-import { processSandboxWithdrawal, releaseSupplierFunds, verifySandboxPayoutMethod, } from '../../../services/supplierSettlement.service.js';
+import { releaseSupplierFunds, verifySandboxPayoutMethod } from '../../../services/supplierSettlement.service.js';
+import { approveWithdrawalReview } from '../../../services/adminWithdrawalReview.service.js';
+import { completeSandboxWithdrawalPayout, failSandboxWithdrawalPayout } from '../../../services/withdrawalPayout.service.js';
+import { sendToOrg } from '../../../lib/ws.js';
 const audit = (ctx, recordType, recordId, value) => ctx.prisma.auditLog.create({
     data: {
         orgId: Number(ctx.user?.orgId ?? 0),
@@ -154,7 +157,16 @@ export const CommerceQueries = extendType({
                     },
                     select: { referenceId: true },
                 });
+                const postedSettlements = await ctx.prisma.purchaseOrderSettlement.findMany({
+                    where: {
+                        paymentTransactionId: { in: payments.map((p) => p.id) },
+                        walletPostedAt: { not: null },
+                        walletLedgerEntryId: { not: null },
+                    },
+                    select: { paymentTransactionId: true },
+                });
                 const released = new Set(releases.map((entry) => entry.referenceId));
+                const posted = new Set(postedSettlements.map((settlement) => settlement.paymentTransactionId));
                 const orderById = new Map(orders.map((order) => [
                     order.id,
                     {
@@ -179,7 +191,7 @@ export const CommerceQueries = extendType({
                         poNumber: order?.poNumber ?? null,
                         buyerName: order?.buyerOrg?.name ?? null,
                         supplierName: order?.supplierOrg?.name ?? null,
-                        fundsStatus: payment.status !== 'SUCCEEDED' ? null : released.has(payment.id) ? 'AVAILABLE' : 'HELD',
+                        fundsStatus: payment.status !== 'SUCCEEDED' ? null : released.has(payment.id) || posted.has(payment.id) ? 'AVAILABLE' : 'HELD',
                     };
                 });
             },
@@ -302,16 +314,15 @@ export const CommerceMutations = extendType({
             args: { withdrawalId: nonNull(intArg()) },
             async resolve(_r, a, ctx) {
                 requireAdminPermission(ctx, 'WITHDRAWAL_ADMIN_MANAGE');
-                const updated = await ctx.prisma.withdrawal.update({
-                    where: { id: a.withdrawalId },
-                    data: {
-                        status: 'APPROVED',
-                        approvedAt: new Date(),
-                        approvedById: Number(ctx.user?.id ?? ctx.user?.userId ?? 0),
-                    },
-                });
-                await audit(ctx, 'Withdrawal', String(updated.id), { action: 'WITHDRAWAL_APPROVED' });
-                return updated;
+                if (!Number.isInteger(a.withdrawalId) || a.withdrawalId < 1)
+                    throw new Error('Withdrawal ID must be a positive integer.');
+                const actor = { id: Number(ctx.user?.id ?? ctx.user?.userId), orgId: Number(ctx.user?.orgId ?? 0) };
+                if (!Number.isInteger(actor.id) || actor.id < 1)
+                    throw new Error('Authenticated administrator identity is required.');
+                const result = await ctx.prisma.$transaction((tx) => approveWithdrawalReview(tx, a.withdrawalId, actor), { isolationLevel: 'Serializable' });
+                sendToOrg(result.supplierOrgId, 'withdrawal:updated', { withdrawalId: result.withdrawal.id, status: result.withdrawal.status });
+                sendToOrg(result.supplierOrgId, 'wallet:updated', { walletId: result.wallet.id });
+                return result.withdrawal;
             },
         });
         t.nonNull.field('adminSimulateSandboxPayout', {
@@ -322,11 +333,21 @@ export const CommerceMutations = extendType({
             },
             async resolve(_r, a, ctx) {
                 requireAdminPermission(ctx, 'WITHDRAWAL_ADMIN_MANAGE');
-                const updated = await ctx.prisma.$transaction((tx) => processSandboxWithdrawal(tx, a.withdrawalId, a.outcome));
+                if (!Number.isInteger(a.withdrawalId) || a.withdrawalId < 1)
+                    throw new Error('Withdrawal ID must be a positive integer.');
+                const actor = { id: Number(ctx.user?.id ?? ctx.user?.userId), orgId: Number(ctx.user?.orgId ?? 0) };
+                if (!Number.isInteger(actor.id) || actor.id < 1)
+                    throw new Error('Authenticated administrator identity is required.');
+                const result = await ctx.prisma.$transaction((tx) => a.outcome === 'FAILURE'
+                    ? failSandboxWithdrawalPayout(tx, a.withdrawalId, 'Sandbox payout failure test.', actor)
+                    : completeSandboxWithdrawalPayout(tx, a.withdrawalId, actor), { isolationLevel: 'Serializable' });
+                const updated = result.withdrawal;
                 await audit(ctx, 'Withdrawal', String(updated.id), {
                     action: updated.status === 'COMPLETED' ? 'WITHDRAWAL_COMPLETED' : 'WITHDRAWAL_FAILED',
                     sandboxReference: updated.sandboxReference,
                 });
+                sendToOrg(result.supplierOrgId, 'withdrawal:updated', { withdrawalId: updated.id, status: updated.status });
+                sendToOrg(result.supplierOrgId, 'wallet:updated', { walletId: result.walletId });
                 return updated;
             },
         });

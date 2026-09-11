@@ -1,5 +1,7 @@
 // src/graphql/typeDefs/user.type.ts    
 import { objectType, enumType } from 'nexus';
+import { hasPrivilegedPageAccess } from '../../middleware/auth.middleware.js';
+import { SUPPLIER_PAGE_KEYS } from '../../lib/permissions.map.js';
 export const Role = enumType({
     name: 'Role',
     members: ['ADMIN', 'STAFF', "MANAGER", "CASHIER", "OWNER", "SUPPLIER", "CUSTOMER"]
@@ -43,6 +45,26 @@ export const User = objectType({
             type: 'Position',
             resolve: (parent, _, ctx) => {
                 return ctx.prisma.user.findUnique({ where: { id: parent.id } }).position();
+            }
+        });
+        t.nonNull.list.nonNull.field('resolvedPermissions', {
+            type: 'ResolvedPagePermission',
+            resolve: (parent, _, ctx) => {
+                if (parent.id !== ctx.user?.id)
+                    return [];
+                if (hasPrivilegedPageAccess(ctx)) {
+                    return Object.values(SUPPLIER_PAGE_KEYS).map((key) => ({
+                        key,
+                        canView: true,
+                        canCreate: true,
+                        canEdit: true,
+                        canDelete: true,
+                    }));
+                }
+                return Object.entries(ctx.userPermissions).map(([key, permission]) => ({
+                    key,
+                    ...permission,
+                }));
             }
         });
         t.nullable.int('departmentId');

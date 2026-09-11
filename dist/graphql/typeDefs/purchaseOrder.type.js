@@ -28,6 +28,8 @@ export const PurchaseOrder = objectType({
         t.nonNull.field('supplierConfirmation', { type: 'SupplierConfirmation' });
         t.nullable.field('supplierConfirmedAt', { type: 'DateTime' });
         t.nullable.field('supplierExpectedDeliveryAt', { type: 'DateTime' });
+        t.nonNull.field('deliveryDateAgreementStatus', { type: 'DeliveryDateAgreementStatus' });
+        t.nullable.field('deliveryDateAgreedAt', { type: 'DateTime' });
         t.nullable.string('supplierNote');
         t.nullable.string('rejectionReason');
         t.nonNull.float('subtotalAmount');
@@ -64,6 +66,14 @@ export const PurchaseOrder = objectType({
         });
         t.nullable.string('agentId');
         t.nonNull.field('paymentStatus', { type: 'PaymentStatus' });
+        t.nullable.field('preparingAt', { type: 'DateTime' });
+        t.nullable.string('paymentAttemptStatus', {
+            resolve: (parent, _, ctx) => ctx.prisma.paymentTransaction.findFirst({
+                where: { relatedType: 'PURCHASE_ORDER', relatedId: parent.id, deletedAt: null },
+                orderBy: { updatedAt: 'desc' },
+                select: { status: true },
+            }).then((payment) => payment?.status ?? null),
+        });
         t.nullable.field('receiptSnapshot', { type: 'Json' });
         t.nullable.string('conversationId');
         t.nullable.field('conversation', {

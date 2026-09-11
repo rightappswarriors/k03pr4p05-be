@@ -148,7 +148,7 @@ export const LedgerSourceType = enumType({
     'SUBSCRIPTION_FEE',
     'PLATFORM_FEE',
     "ADJUSTMENT", "ESCROW_HOLD",
-    "ESCROW_RELEASE"
+    "ESCROW_RELEASE", "PURCHASE_ORDER_SETTLEMENT"
 
   ]
 })
@@ -262,4 +262,9 @@ export const PurchaseOrderSource = enumType({
 export const SupplierConfirmation = enumType({
   name: 'SupplierConfirmation',
   members: ['REVIEW_REQUIRED', 'CONFIRMED', 'DECLINED'],
+})
+
+export const DeliveryDateAgreementStatus = enumType({
+  name: 'DeliveryDateAgreementStatus',
+  members: ['PENDING_SUPPLIER', 'PENDING_BUYER', 'AGREED'],
 })

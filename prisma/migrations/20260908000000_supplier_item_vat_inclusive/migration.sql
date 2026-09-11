@@ -1,0 +1,1 @@
+ALTER TABLE "SupplierItem" ADD COLUMN "vatInclusive" BOOLEAN NOT NULL DEFAULT false;

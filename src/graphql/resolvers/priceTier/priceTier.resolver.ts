@@ -1,4 +1,12 @@
 import { arg, list, nonNull, objectType, inputObjectType, queryField, mutationField } from 'nexus'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
+import { requireSupplierCatalogScope, requireSupplierItemScope } from '../../../lib/supplierScope.js'
+
+async function requireScheduledPriceScope(ctx: any, id: string | null | undefined) {
+    const scheduled = id ? await ctx.prisma.supplierScheduledPrice.findFirst({ where: { id, deletedAt: null }, select: { supplierItemId: true } }) : null
+    if (!scheduled) throw new Error('Resource not found.')
+    await requireSupplierItemScope(ctx, scheduled.supplierItemId)
+}
 
 // ─────────────────────────────────────────────────────────────
 // OUTPUT TYPES
@@ -36,8 +44,11 @@ export const PricingListItem = objectType({
         t.nonNull.boolean('isActive')
         t.nonNull.field('supplierItem', {
             type: 'SupplierItem',
-            resolve: (parent: { id: string }, _: unknown, ctx: any) =>
-                ctx.prisma.supplierItem.findUniqueOrThrow({ where: { id: parent.id } }),
+            resolve: async (parent: { id: string }, _: unknown, ctx: any) => {
+                PAGE_PERMISSIONS.supplierPricing.view(ctx)
+                await requireSupplierItemScope(ctx, parent.id)
+                return ctx.prisma.supplierItem.findUniqueOrThrow({ where: { id: parent.id } })
+            },
         })
     },
 })
@@ -127,6 +138,8 @@ export const pricingDashboard = queryField('pricingDashboard', {
         catalogId: 'String',
     },
     resolve: async (_root, { catalogId }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierCatalogScope(ctx, catalogId!)
         const items = await ctx.prisma.supplierItem.findMany({
             where: { catalogId, deletedAt: null, isActive: true },
         })
@@ -189,6 +202,8 @@ export const pricingList = queryField('pricingList', {
         filter: 'PricingListFilterInput',
     },
     resolve: async (_root, { catalogId, page, pageSize, filter }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierCatalogScope(ctx, catalogId!)
         const take = pageSize ?? 20
         const skip = ((page ?? 1) - 1) * take
 
@@ -257,6 +272,8 @@ export const pricingDetail = queryField('pricingDetail', {
         supplierItemId: 'String',
     },
     resolve: async (_root, { supplierItemId }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
         const item = await ctx.prisma.supplierItem.findUniqueOrThrow({
             where: { id: supplierItemId! },
             include: { priceTiers: true },
@@ -278,6 +295,8 @@ export const pricingAnalytics = queryField('pricingAnalytics', {
         supplierItemId: 'String',
     },
     resolve: async (_root, { supplierItemId }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
         const priceTrend = await ctx.prisma.supplierItemPriceHistory.findMany({
             where: { supplierItemId: supplierItemId! },
             orderBy: { effectiveAt: 'asc' },
@@ -316,11 +335,14 @@ export const supplierItemPriceHistoryList = queryField('supplierItemPriceHistory
     args: {
         supplierItemId: 'String',
     },
-    resolve: (_root, { supplierItemId }, ctx) =>
-        ctx.prisma.supplierItemPriceHistory.findMany({
+    resolve: async (_root, { supplierItemId }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
+        return ctx.prisma.supplierItemPriceHistory.findMany({
             where: { supplierItemId: supplierItemId! },
             orderBy: { effectiveAt: 'desc' },
-        }),
+        })
+    },
 })
 
 export const scheduledPricesList = queryField('scheduledPricesList', {
@@ -328,11 +350,14 @@ export const scheduledPricesList = queryField('scheduledPricesList', {
     args: {
         supplierItemId: 'String',
     },
-    resolve: (_root, { supplierItemId }, ctx) =>
-        ctx.prisma.supplierScheduledPrice.findMany({
+    resolve: async (_root, { supplierItemId }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.view(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
+        return ctx.prisma.supplierScheduledPrice.findMany({
             where: { supplierItemId: supplierItemId!, deletedAt: null },
             orderBy: { effectiveAt: 'desc' },
-        }),
+        })
+    },
 })
 
 // ─────────────────────────────────────────────────────────────
@@ -352,6 +377,8 @@ export const updatePrice = mutationField('updatePrice', {
         effectiveAt: 'DateTime',
     },
     resolve: async (_root, { supplierItemId, price, vatRate, moq, reason, changedById, priceTiers, effectiveAt }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.edit(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
         const existing = await ctx.prisma.supplierItem.findUniqueOrThrow({
             where: { id: supplierItemId! },
             include: { priceTiers: true },
@@ -405,6 +432,8 @@ export const bulkUpdatePrices = mutationField('bulkUpdatePrices', {
         changedById: 'Int',
     },
     resolve: async (_root, { items, reason, changedById }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.edit(ctx)
+        await Promise.all(items!.map(({ supplierItemId }) => requireSupplierItemScope(ctx, supplierItemId)))
         const results: Array<any> = []
         for (const { supplierItemId, price } of items!) {
             const existing = await ctx.prisma.supplierItem.findUniqueOrThrow({
@@ -441,8 +470,10 @@ export const createScheduledPrice = mutationField('createScheduledPrice', {
         createdById: 'Int',
         reason: 'String',
     },
-    resolve: (_root, { supplierItemId, price, effectiveAt, expiresAt, createdById }, ctx) =>
-        ctx.prisma.supplierScheduledPrice.create({
+    resolve: async (_root, { supplierItemId, price, effectiveAt, expiresAt, createdById }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.edit(ctx)
+        await requireSupplierItemScope(ctx, supplierItemId!)
+        return ctx.prisma.supplierScheduledPrice.create({
             data: {
                 supplierItemId: supplierItemId!,
                 price: price!,
@@ -451,7 +482,8 @@ export const createScheduledPrice = mutationField('createScheduledPrice', {
                 createdById,
                 status: 'PENDING',
             },
-        }),
+        })
+    },
 })
 
 export const editScheduledPrice = mutationField('editScheduledPrice', {
@@ -463,15 +495,18 @@ export const editScheduledPrice = mutationField('editScheduledPrice', {
         expiresAt: 'DateTime',
         reason: 'String',
     },
-    resolve: (_root, { id, price, effectiveAt, expiresAt }, ctx) =>
-        ctx.prisma.supplierScheduledPrice.update({
+    resolve: async (_root, { id, price, effectiveAt, expiresAt }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.edit(ctx)
+        await requireScheduledPriceScope(ctx, id)
+        return ctx.prisma.supplierScheduledPrice.update({
             where: { id: id! },
             data: {
                 ...(price != null ? { price } : {}),
                 ...(effectiveAt != null ? { effectiveAt } : {}),
                 ...(expiresAt !== undefined ? { expiresAt } : {}),
             },
-        }),
+        })
+    },
 })
 
 export const cancelScheduledPrice = mutationField('cancelScheduledPrice', {
@@ -479,11 +514,14 @@ export const cancelScheduledPrice = mutationField('cancelScheduledPrice', {
     args: {
         id: 'String',
     },
-    resolve: (_root, { id }, ctx) =>
-        ctx.prisma.supplierScheduledPrice.update({
+    resolve: async (_root, { id }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.edit(ctx)
+        await requireScheduledPriceScope(ctx, id)
+        return ctx.prisma.supplierScheduledPrice.update({
             where: { id: id! },
             data: { status: 'CANCELLED' },
-        }),
+        })
+    },
 })
 
 export const deleteScheduledPrice = mutationField('deleteScheduledPrice', {
@@ -491,9 +529,12 @@ export const deleteScheduledPrice = mutationField('deleteScheduledPrice', {
     args: {
         id: 'String',
     },
-    resolve: (_root, { id }, ctx) =>
-        ctx.prisma.supplierScheduledPrice.update({
+    resolve: async (_root, { id }, ctx) => {
+        PAGE_PERMISSIONS.supplierPricing.delete(ctx)
+        await requireScheduledPriceScope(ctx, id)
+        return ctx.prisma.supplierScheduledPrice.update({
             where: { id: id! },
             data: { deletedAt: new Date() },
-        }),
+        })
+    },
 })

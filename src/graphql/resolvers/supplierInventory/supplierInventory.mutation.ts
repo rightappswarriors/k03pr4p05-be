@@ -2,15 +2,12 @@ import { extendType, nonNull, nullable, stringArg, intArg, floatArg, arg } from 
 //import { requireOrgRole } from '../../auth/rbac'
 import * as inventoryService from '../../../services/supplierInventory.service.js'
 import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
+import { requireSupplierItemScope, requireSupplierOrganizationScope } from '../../../lib/supplierScope.js'
 
 async function requireSupplierOrgForItem(ctx: any, supplierItemId: string, roles: string[]) {
-  const item = await ctx.prisma.supplierItem.findUniqueOrThrow({
-    where: { id: supplierItemId },
-    include: { catalog: true },
-  })
-  //await requireOrgRole(ctx, item.catalog.organizationId, roles, 'SUPPLIER')
   requireAuth(ctx)
-  return item
+  await requireSupplierItemScope(ctx, supplierItemId)
 }
 
 export const SupplierInventoryMutation = extendType({
@@ -27,6 +24,7 @@ export const SupplierInventoryMutation = extendType({
         expiryDate: nullable(arg({ type: 'DateTime' })),
       },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.create(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.receiveStock(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -43,6 +41,7 @@ export const SupplierInventoryMutation = extendType({
         notes: nullable(stringArg()),
       },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.create(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.logIncomingStock(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -51,6 +50,7 @@ export const SupplierInventoryMutation = extendType({
     t.boolean('cancelIncomingStock', {
       args: { incomingStockId: nonNull(stringArg()) },
       resolve: async (_, { incomingStockId }, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.delete(ctx)
         const incoming = await ctx.prisma.supplierIncomingStock.findUniqueOrThrow({ where: { id: incomingStockId } })
         await requireSupplierOrgForItem(ctx, incoming.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         await inventoryService.cancelIncomingStock(ctx.prisma, incomingStockId)
@@ -67,6 +67,7 @@ export const SupplierInventoryMutation = extendType({
         expiryDate: nullable(arg({ type: 'DateTime' })),
       },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.create(ctx)
         const incoming = await ctx.prisma.supplierIncomingStock.findUniqueOrThrow({ where: { id: args.incomingStockId } })
         await requireSupplierOrgForItem(ctx, incoming.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.receiveIncomingStock(ctx.prisma, { ...args, createdById: ctx.userId })
@@ -77,6 +78,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), quantity: nonNull(floatArg()), referenceType: nullable(stringArg()), referenceId: nullable(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.reserveStock(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -86,6 +88,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), quantity: nonNull(floatArg()), reason: nullable(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.releaseReservation(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -95,6 +98,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), delta: nonNull(floatArg()), unitCost: nullable(floatArg()), warehouseId: nullable(stringArg()), reason: nonNull(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.adjustStock(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -104,6 +108,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), quantity: nonNull(floatArg()), warehouseId: nullable(stringArg()), reason: nonNull(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.markDamaged(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -113,6 +118,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), quantity: nonNull(floatArg()), reason: nullable(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.markReturned(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -122,6 +128,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierInventoryMovement',
       args: { supplierItemId: nonNull(stringArg()), quantity: nonNull(floatArg()), unitCost: nonNull(floatArg()), warehouseId: nullable(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.restockReturnedItem(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -131,6 +138,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'SupplierStockBatch',
       args: { supplierItemId: nonNull(stringArg()), fromWarehouseId: nonNull(stringArg()), toWarehouseId: nonNull(stringArg()), quantity: nonNull(floatArg()), reason: nullable(stringArg()) },
       resolve: async (_, args, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, args.supplierItemId, ['ORG_OWNER', 'ORG_MANAGER'])
         return inventoryService.transferStock(ctx.prisma, { ...args, createdById: ctx.userId })
       },
@@ -140,6 +148,7 @@ export const SupplierInventoryMutation = extendType({
       type: 'InventoryReconcileResult',
       args: { supplierItemId: nonNull(stringArg()) },
       resolve: async (_, { supplierItemId }, ctx) => {
+        PAGE_PERMISSIONS.supplierInventory.edit(ctx)
         await requireSupplierOrgForItem(ctx, supplierItemId, ['ORG_OWNER']) // owner-only — this is a data-integrity tool, not routine ops
         return inventoryService.reconcileInventoryRollups(ctx.prisma, supplierItemId)
       },
@@ -158,6 +167,14 @@ export const SupplierInventoryMutation = extendType({
       },
       resolve: async (_, { id, organizationId, ...data }, ctx) => {
         requireAuth(ctx)
+        requireSupplierOrganizationScope(ctx, organizationId)
+        if (id) {
+          PAGE_PERMISSIONS.supplierInventory.edit(ctx)
+          const warehouse = await ctx.prisma.supplierWarehouse.findFirst({ where: { id, organizationId }, select: { id: true } })
+          if (!warehouse) throw new Error('Resource not found.')
+        } else {
+          PAGE_PERMISSIONS.supplierInventory.create(ctx)
+        }
         return id
           ? ctx.prisma.supplierWarehouse.update({ where: { id }, data })
           : ctx.prisma.supplierWarehouse.create({ data: { organizationId, ...data } })

@@ -1,6 +1,8 @@
 // Variant read operations.
 import { extendType, nonNull, stringArg } from 'nexus';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+import { requireSupplierItemScope, requireSupplierVariantGroupScope, requireSupplierVariantScope } from '../../../lib/supplierScope.js';
 export const SupplierItemVariantQuery = extendType({
     type: 'Query',
     definition(t) {
@@ -8,8 +10,10 @@ export const SupplierItemVariantQuery = extendType({
         t.nonNull.list.nonNull.field('supplierItemVariants', {
             type: 'SupplierItemVariant',
             args: { supplierItemId: nonNull(stringArg()) },
-            resolve: (_, { supplierItemId }, ctx) => {
+            resolve: async (_, { supplierItemId }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierProducts.view(ctx);
+                await requireSupplierItemScope(ctx, supplierItemId);
                 return ctx.prisma.supplierItemVariant.findMany({
                     where: { supplierItemId, deletedAt: null },
                     orderBy: { createdAt: 'asc' },
@@ -21,8 +25,10 @@ export const SupplierItemVariantQuery = extendType({
         t.nullable.field('supplierItemVariant', {
             type: 'SupplierItemVariant',
             args: { id: nonNull(stringArg()) },
-            resolve: (_, { id }, ctx) => {
+            resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierProducts.view(ctx);
+                await requireSupplierVariantScope(ctx, id);
                 return ctx.prisma.supplierItemVariant.findUnique({
                     where: { id },
                     include: { variantValues: { include: { option: true } } },
@@ -33,8 +39,10 @@ export const SupplierItemVariantQuery = extendType({
         t.nonNull.list.nonNull.field('variantGroups', {
             type: 'SupplierItemVariantGroup',
             args: { supplierItemId: nonNull(stringArg()) },
-            resolve: (_, { supplierItemId }, ctx) => {
+            resolve: async (_, { supplierItemId }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierProducts.view(ctx);
+                await requireSupplierItemScope(ctx, supplierItemId);
                 return ctx.prisma.supplierItemVariantGroup.findMany({
                     where: { supplierItemId },
                     orderBy: { sortOrder: 'asc' },
@@ -46,8 +54,10 @@ export const SupplierItemVariantQuery = extendType({
         t.nonNull.list.nonNull.field('variantOptions', {
             type: 'SupplierItemVariantOption',
             args: { variantGroupId: nonNull(stringArg()) },
-            resolve: (_, { variantGroupId }, ctx) => {
+            resolve: async (_, { variantGroupId }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierProducts.view(ctx);
+                await requireSupplierVariantGroupScope(ctx, variantGroupId);
                 return ctx.prisma.supplierItemVariantOption.findMany({
                     where: { variantGroupId },
                     orderBy: { sortOrder: 'asc' },

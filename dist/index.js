@@ -22,6 +22,7 @@ import { DateTimeScalar, JsonScalar } from './lib/scalars.js';
 // import * as OutletPromo from "./graphql/typeDefs/outletPromo.type.js"
 import http from "http";
 import { initWebSocket } from "./lib/ws.js";
+import { resolvePermissionState } from "./lib/permissionResolution.js";
 // PromoType
 import * as Resolvers from "./graphql/resolvers/index.js";
 import * as TypeDefs from "./graphql/typeDefs/index.js";
@@ -97,6 +98,7 @@ async function startApolloServer() {
         context: async ({ req, res }) => {
             let user = null;
             let userPermissions = {};
+            let controlPermissions = {};
             const token = req.headers["authorization"]?.split(" ")[1];
             if (token) {
                 try {
@@ -109,15 +111,17 @@ async function startApolloServer() {
                                 role: true,
                                 email: true,
                                 orgId: true,
+                                approvalStatus: true,
                                 isVerified: true,
                                 fullname: true,
                                 username: true,
                                 isOwner: true,
-                                org: { select: { accountStatus: true } },
+                                org: { select: { accountStatus: true, roles: true } },
                                 position: {
                                     select: {
                                         id: true,
                                         name: true,
+                                        orgId: true,
                                         // PositionPermission[] → Page
                                         permissions: {
                                             select: {
@@ -134,38 +138,40 @@ async function startApolloServer() {
                                                     }
                                                 }
                                             }
-                                        }
+                                        },
+                                        controlPermissions: {
+                                            select: { controlKey: true, isAllowed: true }
+                                        },
                                     }
-                                }
+                                },
+                                permissionOverrides: {
+                                    select: {
+                                        canView: true,
+                                        canCreate: true,
+                                        canEdit: true,
+                                        canDelete: true,
+                                        page: { select: { key: true } },
+                                    }
+                                },
                             }
                         });
                         if (user) {
                             user.userId = user.id;
                             user.orgAccountStatus = user.org?.accountStatus ?? null;
+                            user.orgRoles = user.org?.roles ?? [];
                             // Build lookup map — only for non-owners
                             // Owners bypass permission checks entirely
-                            if (!user.isOwner) {
-                                for (const p of user.position?.permissions ?? []) {
-                                    userPermissions[p.page.key] = {
-                                        canView: p.canView,
-                                        canCreate: p.canCreate,
-                                        canEdit: p.canEdit,
-                                        canDelete: p.canDelete,
-                                    };
-                                }
-                                // TODO: when you're ready to add overrides, add this block:
-                                // const overrides = await prisma.userPermissionOverride.findMany({
-                                //   where: { userId: user.id },
-                                //   select: { canView: true, canCreate: true, canEdit: true, canDelete: true, page: { select: { key: true } } }
-                                // });
-                                // for (const o of overrides) {
-                                //   userPermissions[o.page.key] = {
-                                //     canView: o.canView ?? userPermissions[o.page.key]?.canView ?? false,
-                                //     canCreate: o.canCreate ?? userPermissions[o.page.key]?.canCreate ?? false,
-                                //     canEdit: o.canEdit ?? userPermissions[o.page.key]?.canEdit ?? false,
-                                //     canDelete: o.canDelete ?? userPermissions[o.page.key]?.canDelete ?? false,
-                                //   };
-                                // }
+                            const privileged = user.isOwner || user.role === 'OWNER' || user.role === 'MANAGER' || user.role === 'ADMIN';
+                            if (!privileged) {
+                                const resolved = resolvePermissionState({
+                                    userOrgId: user.orgId,
+                                    positionOrgId: user.position?.orgId,
+                                    positionPermissions: user.position?.permissions,
+                                    overrides: user.permissionOverrides,
+                                    controlPermissions: user.position?.controlPermissions,
+                                });
+                                userPermissions = resolved.userPermissions;
+                                controlPermissions = resolved.controlPermissions;
                             }
                         }
                     }
@@ -179,7 +185,7 @@ async function startApolloServer() {
                     }
                 }
             }
-            return { prisma, redisClient, user, userPermissions, req, res };
+            return { prisma, redisClient, user, userPermissions, controlPermissions, req, res };
         }
     }));
     const PORT = Number(process.env.PORT) || 4000;
