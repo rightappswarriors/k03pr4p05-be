@@ -89,6 +89,7 @@ import { prisma } from '../../../lib/prisma.js';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { currentActorId, requestWithdrawal } from '../../../services/supplierSettlement.service.js';
 import { encryptPayoutDestination } from '../../../lib/payoutDestinationCrypto.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 export const SupplierMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -375,9 +376,10 @@ export const SupplierMutation = extendType({
             },
             async resolve(_, { amount, payoutMethodId }, ctx) {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierWithdrawals.create(ctx);
                 const orgId = Number(ctx.user?.orgId);
-                const withdrawal = await prisma.$transaction((tx) => requestWithdrawal(tx, { orgId, payoutMethodId, amount, requestedById: currentActorId(ctx) }));
-                await prisma.auditLog.create({ data: { orgId, userId: currentActorId(ctx), pageKey: 'financePage', action: 'CREATE', recordType: 'Withdrawal', recordId: String(withdrawal.id), newValue: { amount, payoutMethodId } } });
+                const withdrawal = await prisma.$transaction((tx) => requestWithdrawal(tx, { orgId, payoutMethodId, amount, requestedById: currentActorId(ctx) }), { isolationLevel: 'Serializable' });
+                await prisma.auditLog.create({ data: { orgId, userId: currentActorId(ctx), pageKey: 'supplierWithdrawalsPage', action: 'CREATE', recordType: 'Withdrawal', recordId: String(withdrawal.id), newValue: { amount, payoutMethodId } } });
                 return prisma.withdrawal.findUniqueOrThrow({ where: { id: withdrawal.id }, include: { payoutMethod: true } });
             },
         });
@@ -393,6 +395,7 @@ export const SupplierMutation = extendType({
             },
             async resolve(_, { type, accountName, accountNumber, confirmAccountNumber, bankName, isDefault }, ctx) {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierPayoutMethods.create(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const isSandbox = process.env.NODE_ENV !== 'production' && process.env.SANDBOX_SETTLEMENT_MODE === 'true';
                 if (!isSandbox && /sandbox|dev/i.test(bankName ?? ''))
@@ -423,6 +426,7 @@ export const SupplierMutation = extendType({
             args: { payoutMethodId: nonNull(intArg()) },
             async resolve(_, { payoutMethodId }, ctx) {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierPayoutMethods.edit(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const method = await prisma.payoutMethod.findFirst({
                     where: { id: payoutMethodId, orgId, deletedAt: null, isActive: true, isVerified: true },
@@ -437,7 +441,7 @@ export const SupplierMutation = extendType({
                     data: {
                         orgId,
                         userId: currentActorId(ctx),
-                        pageKey: 'financePage',
+                        pageKey: 'supplierPayoutMethodsPage',
                         action: 'EDIT',
                         recordType: 'PayoutMethod',
                         recordId: String(method.id),
@@ -452,6 +456,7 @@ export const SupplierMutation = extendType({
             args: { payoutMethodId: nonNull(intArg()) },
             async resolve(_, { payoutMethodId }, ctx) {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierPayoutMethods.delete(ctx);
                 const orgId = Number(ctx.user?.orgId);
                 const method = await prisma.payoutMethod.findFirst({
                     where: { id: payoutMethodId, orgId, deletedAt: null },
@@ -466,7 +471,7 @@ export const SupplierMutation = extendType({
                     data: {
                         orgId,
                         userId: currentActorId(ctx),
-                        pageKey: 'financePage',
+                        pageKey: 'supplierPayoutMethodsPage',
                         action: 'EDIT',
                         recordType: 'PayoutMethod',
                         recordId: String(method.id),

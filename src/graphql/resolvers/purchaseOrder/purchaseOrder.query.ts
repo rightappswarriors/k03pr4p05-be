@@ -1,5 +1,8 @@
 import { extendType, nonNull, stringArg, intArg, nullable, list, arg, objectType } from 'nexus'
 import { markConversationNotificationsRead } from '../../../services/notification.service.js'
+import { requireAuth } from '../../../middleware/auth.middleware.js'
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js'
+import { requireSupplierOrganizationScope, requireSupplierPurchaseOrderScope } from '../../../lib/supplierScope.js'
 
 export const PurchaseOrderQuery = extendType({
   type: 'Query',
@@ -11,6 +14,8 @@ export const PurchaseOrderQuery = extendType({
         status: nullable(arg({ type: 'POStatus' })),
       },
       resolve: async (_, { supplierOrgId, status }, ctx) => {
+        PAGE_PERMISSIONS.supplierPurchaseOrders.view(ctx)
+        requireSupplierOrganizationScope(ctx, supplierOrgId)
         return ctx.prisma.purchaseOrder.findMany({
           where: {
             supplierOrgId,
@@ -34,6 +39,8 @@ export const PurchaseOrderQuery = extendType({
         status: nullable(arg({ type: 'POStatus' })),
       },
       resolve: async (_, { buyerOrgId, status }, ctx) => {
+        requireAuth(ctx)
+        if (Number(ctx.user?.orgId) !== buyerOrgId) throw new Error('Resource not found.')
         return ctx.prisma.purchaseOrder.findMany({
           where: {
             buyerOrgId,
@@ -56,6 +63,7 @@ export const PurchaseOrderQuery = extendType({
         id: nonNull(stringArg()),
       },
       resolve: async (_, { id }, ctx) => {
+        requireAuth(ctx)
         const po = await ctx.prisma.purchaseOrder.findUnique({
           where: { id },
           include: {
@@ -72,6 +80,10 @@ export const PurchaseOrderQuery = extendType({
             },
           },
         });
+        if (!po) return null
+        const currentOrgId = Number(ctx.user?.orgId)
+        if (po.supplierOrgId === currentOrgId) PAGE_PERMISSIONS.supplierPurchaseOrders.view(ctx)
+        else if (po.buyerOrgId !== currentOrgId) throw new Error('Resource not found.')
 
         // Mark notifications tied to this PO's conversation as read for the authenticated user's org (best-effort)
         if (po?.Conversation?.id && ctx.user?.orgId) {
@@ -107,6 +119,14 @@ export const PurchaseOrderActivityQuery = extendType({
       type: 'AuditLogEntry',
       args: { poId: nonNull(stringArg()) },
       resolve: async (_, { poId }, ctx) => {
+        requireAuth(ctx)
+        const po = await ctx.prisma.purchaseOrder.findUnique({ where: { id: poId }, select: { supplierOrgId: true, buyerOrgId: true } })
+        if (!po) throw new Error('Resource not found.')
+        const currentOrgId = Number(ctx.user?.orgId)
+        if (po.supplierOrgId === currentOrgId) {
+          PAGE_PERMISSIONS.supplierOrderTimeline.view(ctx)
+          await requireSupplierPurchaseOrderScope(ctx, poId)
+        } else if (po.buyerOrgId !== currentOrgId) throw new Error('Resource not found.')
         return ctx.prisma.auditLog.findMany({
           where: { recordType: 'PurchaseOrder', recordId: poId, deletedAt: null },
           orderBy: { createdAt: 'desc' },

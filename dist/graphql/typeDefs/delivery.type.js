@@ -12,6 +12,8 @@ export const Delivery = objectType({
         t.nullable.float('latitude');
         t.nullable.float('longitude');
         t.nullable.string('address');
+        t.nullable.string('recipientName');
+        t.nullable.string('recipientContact');
         t.nonNull.field('po', {
             type: 'PurchaseOrder',
             resolve: (parent, _, ctx) => ctx.prisma.purchaseOrder.findUniqueOrThrow({ where: { id: parent.poId } }),

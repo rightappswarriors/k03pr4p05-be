@@ -78,5 +78,6 @@ export * from './organizationMembership.type.js';
 export * from './supplier/supplierOutletLink.type.js';
 export * from './supplierProfile.type.js';
 export * from './platformWallet.type.js';
+export * from './globalCategory.type.js';
 // RFQ & Conversation types
 export * from './rfq.type.js';

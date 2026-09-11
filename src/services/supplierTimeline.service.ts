@@ -82,7 +82,7 @@ const EVENT_CONFIG: Record<TimelineEventType, { icon: string; color: string }> =
 }
 
 function statusForPO(status: string): TimelineStatus {
-  if (status === 'DELIVERED' || status === 'ACCEPTED') return 'SUCCESS'
+  if (status === 'DELIVERED' || status === 'SUPPLIER_ACCEPTED' || status === 'ACCEPTED') return 'SUCCESS'
   if (status === 'REJECTED' || status === 'CANCELLED') return 'ERROR'
   if (status === 'IN_TRANSIT') return 'INFO'
   return 'PENDING'
@@ -98,7 +98,7 @@ function statusForDelivery(status: string): TimelineStatus {
 function statusForMandate(status: string): TimelineStatus {
   if (status === 'COMPLETED' || status === 'SETTLED' || status === 'FUNDED') return 'SUCCESS'
   if (status === 'DISPUTED' || status === 'CANCELLED' || status === 'REFUNDED') return 'ERROR'
-  if (status === 'PENDING' || status === 'ACCEPTED') return 'PENDING'
+  if (status === 'PENDING' || status === 'SUPPLIER_ACCEPTED' || status === 'ACCEPTED') return 'PENDING'
   return 'INFO'
 }
 
@@ -221,7 +221,7 @@ export async function getSupplierOrderTimeline(
         : [],
       enabledTypes.has('WALLET')
         ? prisma.wallet.findUnique({
-            where: { orgId: supplierOrgId },
+            where: { orgId_environment: { orgId: supplierOrgId, environment: 'PRODUCTION' } },
             include: {
               organization: true,
               ledgerEntries: {

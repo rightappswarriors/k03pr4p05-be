@@ -4,6 +4,7 @@ import { extendType, nonNull, intArg, arg, list, stringArg, nullable, booleanArg
 import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { SupplierRFQService, RfqEligibilityResult, ELIGIBLE_RFQ_STATUSES } from '../../../services/supplierRFQService.js';
 import { markConversationNotificationsRead } from '../../../services/notification.service.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
 
 const service = new SupplierRFQService();
 
@@ -26,6 +27,7 @@ export const SupplierRfqQuery = extendType({
             },
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.view(ctx);
                 const user = ctx.user!;
                 if (user.orgId !== args.supplierOrgId) {
                     throw new Error('Unauthorized: supplierOrgId does not match user organization');
@@ -49,6 +51,7 @@ export const SupplierRfqQuery = extendType({
             },
             resolve: async (_, { rfqId }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.view(ctx);
                 const user = ctx.user!;
                 return service.validateRFQEligibility(rfqId, user.orgId);
             },
@@ -62,6 +65,7 @@ export const SupplierRfqQuery = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.view(ctx);
                 const user = ctx.user!;
                 const result = await service.getRFQDetails(id, user.orgId);
 
@@ -92,6 +96,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, { input }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.create(ctx);
                 const user = ctx.user!;
                 const rfq = await service.getRFQDetails(input.rfqId, user.orgId);
                 if (!rfq.Conversation) {
@@ -115,6 +120,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, { input }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.edit(ctx);
                 const user = ctx.user!;
                 const rfq = await service.getRFQDetails(input.rfqId, user.orgId);
                 if (!rfq.Conversation) {
@@ -148,6 +154,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, { input }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.edit(ctx);
                 const user = ctx.user!;
                 await service.getRFQDetails(input.rfqId, user.orgId); // ownership check
                 return service.confirmSupplierAgreement(input.rfqId, user.orgId);
@@ -162,6 +169,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, { input }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.edit(ctx);
                 const user = ctx.user!;
                 await service.getRFQDetails(input.rfqId, user.orgId); // ownership check
                 return service.rejectNegotiation(
@@ -180,6 +188,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierPurchaseOrders.create(ctx);
                 const user = ctx.user!;
                 await service.getRFQDetails(args.rfqId, user.orgId); // ownership check
                 const result = await service.createPurchaseOrder(
@@ -203,6 +212,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, args, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierPurchaseOrders.create(ctx);
                 const user = ctx.user!;
                 // Ownership check is performed inside createConsolidatedPurchaseOrder
                 const result = await service.createConsolidatedPurchaseOrder(
@@ -225,6 +235,7 @@ export const SupplierRfqMutation = extendType({
             },
             resolve: async (_, { id }, ctx) => {
                 requireAuth(ctx);
+                PAGE_PERMISSIONS.supplierRfq.edit(ctx);
                 const user = ctx.user!;
                 const rfq = await service.getRFQDetails(id, user.orgId);
                 if (!rfq.Conversation) {

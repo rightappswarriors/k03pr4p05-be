@@ -2,6 +2,13 @@
 import { objectType, extendType, nonNull, intArg, enumType } from "nexus";
 import * as notificationService from "../../services/notification.service.js";
 import { requireAuth, requireRole } from "../../middleware/auth.middleware.js";
+import { PAGE_PERMISSIONS } from "../../lib/permissions.map.js";
+function requireNotificationPermission(ctx, action) {
+    if (ctx.user?.orgRoles?.includes('SUPPLIER'))
+        PAGE_PERMISSIONS.supplierNotifications[action](ctx);
+    else
+        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+}
 export const NotificationType = objectType({
     name: "Notification",
     definition(t) {
@@ -52,14 +59,14 @@ export const NotificationQuery = extendType({
             args: { limit: intArg() },
             async resolve(_, { limit }, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                requireNotificationPermission(ctx, 'view');
                 return notificationService.getNotifications(ctx.user.orgId, limit ?? 20);
             },
         });
         t.nonNull.int("getUnreadCount", {
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
-                requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+                requireNotificationPermission(ctx, 'view');
                 return notificationService.getUnreadCount(ctx.user.orgId);
             },
         });
@@ -73,12 +80,17 @@ export const NotificationMutation = extendType({
             args: { id: nonNull(intArg()) },
             async resolve(_, { id }, ctx) {
                 requireAuth(ctx);
+                requireNotificationPermission(ctx, 'edit');
+                const notification = await ctx.prisma.notification.findFirst({ where: { id, orgId: ctx.user.orgId, deletedAt: null }, select: { id: true } });
+                if (!notification)
+                    throw new Error('Resource not found.');
                 return notificationService.markAsRead(id);
             },
         });
         t.nonNull.boolean("markAllNotificationsRead", {
             async resolve(_, __, ctx) {
                 requireAuth(ctx);
+                requireNotificationPermission(ctx, 'edit');
                 await notificationService.markAllAsRead(ctx.user.orgId);
                 return true;
             },

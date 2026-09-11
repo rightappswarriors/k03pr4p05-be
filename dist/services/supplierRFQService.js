@@ -222,7 +222,7 @@ export class SupplierRFQService {
                 },
             },
         });
-        if (existingPO && ['PENDING', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(existingPO.po.status)) {
+        if (existingPO && ['PENDING', 'SUPPLIER_ACCEPTED', 'ACCEPTED', 'IN_TRANSIT', 'DELIVERED'].includes(existingPO.po.status)) {
             result.reason = 'RFQ is already attached to an active purchase order';
             return result;
         }
@@ -727,8 +727,7 @@ export class SupplierRFQService {
                     supplierOrgId: supplierOrgId,
                     status: 'PENDING',
                     source: 'RFQ',
-                    supplierConfirmation: 'CONFIRMED',
-                    supplierConfirmedAt: new Date(),
+                    supplierConfirmation: 'REVIEW_REQUIRED',
                     notes: rfq.notes,
                     requestedDate: new Date(),
                     subtotalAmount: subtotal,
@@ -941,8 +940,7 @@ export class SupplierRFQService {
                     supplierOrgId: supplierOrgId,
                     status: 'PENDING',
                     source: 'RFQ',
-                    supplierConfirmation: 'CONFIRMED',
-                    supplierConfirmedAt: new Date(),
+                    supplierConfirmation: 'REVIEW_REQUIRED',
                     notes: notes,
                     requestedDate: new Date(),
                     subtotalAmount: subtotal,
@@ -984,16 +982,6 @@ export class SupplierRFQService {
                     },
                 });
             }
-            // Create a single delivery for the consolidated PO
-            const delivery = await tx.delivery.create({
-                data: {
-                    poId: po.id,
-                    scheduledDate: deliveryDate,
-                    status: 'SCHEDULED',
-                    driverName,
-                    driverContact,
-                },
-            });
             // ── Create a dedicated PO conversation (type: ORDER) ──────────────
             const agentId = rfqs[0]?.Agent?.id ?? null;
             const poConversation = await tx.conversation.create({
@@ -1063,7 +1051,7 @@ export class SupplierRFQService {
             logDev('Consolidated PO Creation', 'Purchase Order created', {
                 poNumber, poId: po.id, rfqCount: rfqIds.length, totalAmount: grandTotal,
             });
-            return { po, delivery, poConversation };
+            return { po, poConversation };
         });
         // PO conversation realtime emit
         sendToConversation(result.poConversation.id, 'conversation:newMessage', {

@@ -1,6 +1,31 @@
 // lib/permissions.map.ts
-import { requireAuth, requireControlPermission, requirePagePermission } from "../middleware/auth.middleware.js";
+import { hasPrivilegedPageAccess, requireAuth, requireControlPermission, requirePagePermission } from "../middleware/auth.middleware.js";
 import { Context } from "./types.js";
+
+export const SUPPLIER_PAGE_KEYS = {
+  dashboard: 'supplierDashboardPage',
+  rfq: 'supplierRFQPage',
+  purchaseOrders: 'supplierPurchaseOrderPage',
+  deliveries: 'supplierDeliveriesPage',
+  orderTimeline: 'supplierOrderTimelinePage',
+  products: 'supplierProductsPage',
+  categories: 'supplierCategoriesPage',
+  pricing: 'supplierPricingPage',
+  inventory: 'supplierInventoryPage',
+  wallet: 'supplierWalletPage',
+  transactions: 'supplierTransactionsPage',
+  withdrawals: 'supplierWithdrawalsPage',
+  payoutMethods: 'supplierPayoutMethodsPage',
+  feeHistory: 'supplierFeeHistoryPage',
+  employees: 'supplierEmployeesPage',
+  branches: 'supplierBranchesPage',
+  links: 'supplierLinksPage',
+  notifications: 'supplierNotificationsPage',
+  analytics: 'supplierAnalyticsPage',
+  security: 'supplierSecurityPage',
+  settings: 'supplierSettingsPage',
+} as const;
+
 export const PAGE_PERMISSIONS = {
   //Retailer
   //Dashboard
@@ -130,7 +155,28 @@ export const PAGE_PERMISSIONS = {
     create: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canCreate'),
     edit: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canEdit'),
     delete: (ctx: Context) => requirePagePermission(ctx, 'verificationPage', 'canDelete')
-  }
+  },
+  supplierDashboard: pagePermission(SUPPLIER_PAGE_KEYS.dashboard),
+  supplierRfq: pagePermission(SUPPLIER_PAGE_KEYS.rfq),
+  supplierPurchaseOrders: pagePermission(SUPPLIER_PAGE_KEYS.purchaseOrders),
+  supplierDeliveries: pagePermission(SUPPLIER_PAGE_KEYS.deliveries),
+  supplierOrderTimeline: pagePermission(SUPPLIER_PAGE_KEYS.orderTimeline),
+  supplierProducts: pagePermission(SUPPLIER_PAGE_KEYS.products),
+  supplierCategories: pagePermission(SUPPLIER_PAGE_KEYS.categories),
+  supplierPricing: pagePermission(SUPPLIER_PAGE_KEYS.pricing),
+  supplierInventory: pagePermission(SUPPLIER_PAGE_KEYS.inventory),
+  supplierWallet: pagePermission(SUPPLIER_PAGE_KEYS.wallet),
+  supplierTransactions: pagePermission(SUPPLIER_PAGE_KEYS.transactions),
+  supplierWithdrawals: pagePermission(SUPPLIER_PAGE_KEYS.withdrawals),
+  supplierPayoutMethods: pagePermission(SUPPLIER_PAGE_KEYS.payoutMethods),
+  supplierFeeHistory: pagePermission(SUPPLIER_PAGE_KEYS.feeHistory),
+  supplierEmployees: pagePermission(SUPPLIER_PAGE_KEYS.employees),
+  supplierBranches: pagePermission(SUPPLIER_PAGE_KEYS.branches),
+  supplierLinks: pagePermission(SUPPLIER_PAGE_KEYS.links),
+  supplierNotifications: pagePermission(SUPPLIER_PAGE_KEYS.notifications),
+  supplierAnalytics: pagePermission(SUPPLIER_PAGE_KEYS.analytics),
+  supplierSecurity: pagePermission(SUPPLIER_PAGE_KEYS.security),
+  supplierSettings: pagePermission(SUPPLIER_PAGE_KEYS.settings),
 } as const;
 
 // Control permissions map
@@ -149,7 +195,7 @@ export function requireAny(
   ...checks: ((ctx: Context) => void)[]
 ) {
   requireAuth(ctx);
-  if (ctx.user?.role === "OWNER") return;
+  if (hasPrivilegedPageAccess(ctx)) return;
 
   const passed = checks.some(check => {
     try { check(ctx); return true; }
@@ -157,6 +203,15 @@ export function requireAny(
   });
 
   if (!passed) {
-    throw new Error('Access denied: insufficient permissions');
+    throw new Error('You do not have permission to perform this action.');
   }
+}
+
+function pagePermission(pageKey: string) {
+  return {
+    view: (ctx: Context) => requirePagePermission(ctx, pageKey, 'canView'),
+    create: (ctx: Context) => requirePagePermission(ctx, pageKey, 'canCreate'),
+    edit: (ctx: Context) => requirePagePermission(ctx, pageKey, 'canEdit'),
+    delete: (ctx: Context) => requirePagePermission(ctx, pageKey, 'canDelete'),
+  };
 }

@@ -136,6 +136,11 @@ export const MessageTypeEnum = enumType({
         "PO_REJECTED",
         "RECEIPT_UPLOADED",
         "PAYMENT_RECEIVED",
+        "ORDER_PREPARING",
+        "ORDER_READY_FOR_DISPATCH",
+        "ORDER_DISPATCHED",
+        "ORDER_DELIVERED",
+        "ORDER_RECEIVED",
         "DELIVERY_SCHEDULED",
         "SHIPMENT_DISPATCHED",
         "DELIVERY_COMPLETED"

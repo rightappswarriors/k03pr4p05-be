@@ -17,8 +17,8 @@ export async function settleSuccessfulPayment(tx: any, paymentId: string) {
   }
 
   const supplierWallet = await tx.wallet.upsert({
-    where: { orgId: payment.supplierOrgId },
-    create: { orgId: payment.supplierOrgId, currency: 'PHP', balance: 0, heldBalance: 0 },
+    where: { orgId_environment: { orgId: payment.supplierOrgId, environment: payment.environment } },
+    create: { orgId: payment.supplierOrgId, environment: payment.environment, currency: 'PHP', balance: 0, heldBalance: 0 },
     update: {},
   });
 

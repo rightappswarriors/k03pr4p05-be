@@ -92,7 +92,29 @@ const pages: PageType[] = [
         key: 'verificationPage',
         label: 'Verification',
         sortOrder: 17,
+        access: 'SUPPLIER',
     },
+    { key: 'supplierDashboardPage', label: 'Supplier Dashboard', sortOrder: 100, access: 'SUPPLIER' },
+    { key: 'supplierRFQPage', label: 'Supplier RFQ', sortOrder: 101, access: 'SUPPLIER' },
+    { key: 'supplierPurchaseOrderPage', label: 'Supplier Purchase Orders', sortOrder: 102, access: 'SUPPLIER' },
+    { key: 'supplierDeliveriesPage', label: 'Supplier Deliveries', sortOrder: 103, access: 'SUPPLIER' },
+    { key: 'supplierOrderTimelinePage', label: 'Supplier Order Timeline', sortOrder: 104, access: 'SUPPLIER' },
+    { key: 'supplierProductsPage', label: 'Supplier Products', sortOrder: 105, access: 'SUPPLIER' },
+    { key: 'supplierCategoriesPage', label: 'Supplier Categories', sortOrder: 106, access: 'SUPPLIER' },
+    { key: 'supplierPricingPage', label: 'Supplier Pricing', sortOrder: 107, access: 'SUPPLIER' },
+    { key: 'supplierInventoryPage', label: 'Supplier Inventory', sortOrder: 108, access: 'SUPPLIER' },
+    { key: 'supplierWalletPage', label: 'Supplier Wallet', sortOrder: 109, access: 'SUPPLIER' },
+    { key: 'supplierTransactionsPage', label: 'Supplier Transactions', sortOrder: 110, access: 'SUPPLIER' },
+    { key: 'supplierWithdrawalsPage', label: 'Supplier Withdrawals', sortOrder: 111, access: 'SUPPLIER' },
+    { key: 'supplierPayoutMethodsPage', label: 'Supplier Payout Methods', sortOrder: 112, access: 'SUPPLIER' },
+    { key: 'supplierFeeHistoryPage', label: 'Supplier Fee History', sortOrder: 113, access: 'SUPPLIER' },
+    { key: 'supplierEmployeesPage', label: 'Supplier Employees', sortOrder: 114, access: 'SUPPLIER' },
+    { key: 'supplierBranchesPage', label: 'Supplier Branches', sortOrder: 115, access: 'SUPPLIER' },
+    { key: 'supplierLinksPage', label: 'Supplier Links', sortOrder: 116, access: 'SUPPLIER' },
+    { key: 'supplierNotificationsPage', label: 'Supplier Notifications', sortOrder: 117, access: 'SUPPLIER' },
+    { key: 'supplierAnalyticsPage', label: 'Supplier Analytics', sortOrder: 118, access: 'SUPPLIER' },
+    { key: 'supplierSecurityPage', label: 'Supplier Security', sortOrder: 119, access: 'SUPPLIER' },
+    { key: 'supplierSettingsPage', label: 'Supplier Settings', sortOrder: 120, access: 'SUPPLIER' },
 ];
 
 async function main() {
@@ -205,6 +227,38 @@ async function main() {
             });
 
             console.log(`✅ Permission granted: ${page.key}`);
+        }
+    }
+
+    // Preserve the pre-RBAC Supplier experience for existing custom positions.
+    // Only missing rows are created; configured permissions are never overwritten.
+    const supplierPages = dbPages.filter((page) => page.access === 'SUPPLIER');
+    const supplierPositions = await prisma.position.findMany({
+        where: {
+            deletedAt: null,
+            org: { roles: { has: 'SUPPLIER' } },
+        },
+        select: { id: true, name: true },
+    });
+
+    for (const position of supplierPositions) {
+        for (const page of supplierPages) {
+            const existing = await prisma.positionPermission.findFirst({
+                where: { positionId: position.id, pageId: page.id },
+            });
+            if (!existing) {
+                await prisma.positionPermission.create({
+                    data: {
+                        positionId: position.id,
+                        pageId: page.id,
+                        canView: true,
+                        canCreate: true,
+                        canEdit: true,
+                        canDelete: true,
+                    },
+                });
+                console.log(`✅ Supplier default granted: ${position.name} / ${page.key}`);
+            }
         }
     }
 

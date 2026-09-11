@@ -1,5 +1,7 @@
 import { extendType, nonNull, stringArg, nullable } from 'nexus';
 import { sendDeliveryConfirmationEmail } from '../../../services/email/kompraSupplier.email.js';
+import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+import { requireSupplierPurchaseOrderScope } from '../../../lib/supplierScope.js';
 export const DeliveryMutation = extendType({
     type: 'Mutation',
     definition(t) {
@@ -9,6 +11,8 @@ export const DeliveryMutation = extendType({
                 poId: nonNull(stringArg()),
             },
             resolve: async (_, { poId }, ctx) => {
+                PAGE_PERMISSIONS.supplierDeliveries.edit(ctx);
+                await requireSupplierPurchaseOrderScope(ctx, poId);
                 await ctx.prisma.purchaseOrder.update({
                     where: { id: poId },
                     data: { status: 'IN_TRANSIT' },
@@ -27,6 +31,8 @@ export const DeliveryMutation = extendType({
                 notes: nullable(stringArg()),
             },
             resolve: async (_, { poId, notes }, ctx) => {
+                PAGE_PERMISSIONS.supplierDeliveries.edit(ctx);
+                await requireSupplierPurchaseOrderScope(ctx, poId);
                 const po = await ctx.prisma.purchaseOrder.findUniqueOrThrow({
                     where: { id: poId },
                     include: {

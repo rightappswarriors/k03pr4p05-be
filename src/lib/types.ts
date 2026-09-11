@@ -22,10 +22,12 @@ export interface ContextUser {
     isOwner: boolean;
     orgId: number;
     orgAccountStatus?: 'ACTIVE' | 'SUSPENDED' | 'BANNED' | null;
+    orgRoles?: string[];
     approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
     position?: {
         id: string;
         name: string;
+        orgId?: number | null;
         permissions: {
             canView: boolean;
             canCreate: boolean;
