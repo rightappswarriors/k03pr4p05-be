@@ -8,7 +8,22 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/index.js",
-    "dev": "nodemon --watch src --exec \"tsc && node ./dist/index.js\"",
+    "dev": "nodemon --watch src --ext ts,json --exec \"tsc && node ./dist/index.js\"",
+    "verify:supplier-links": "tsx scripts/verify-supplier-links.ts",
+    "verify:retailer-ordering": "tsx scripts/verify-retailer-ordering.ts",
+    "verify:retailer-po-policy": "tsx scripts/verify-retailer-po-policy.ts",
+    "verify:day21-3:live": "tsx scripts/verify-day21-3-live.ts",
+    "verify:day21-4": "tsx scripts/verify-day21-4-platform-finance.ts",
+    "verify:payment-reconciliation": "tsx scripts/verify-sandbox-reconciliation-relay.ts",
+    "verify:supplier-wallet-escrow": "tsx scripts/verify-supplier-wallet-escrow.ts",
+    "verify:purchase-order-cancellation": "tsx scripts/verify-purchase-order-cancellation.ts",
+    "verify:delivery-detail-ux": "tsx scripts/verify-delivery-detail-ux.ts",
+    "verify:supplier-po-pagination": "tsx scripts/verify-supplier-po-append-pagination.ts",
+    "verify:delivery-agreement": "tsx scripts/verify-delivery-agreement.ts",
+    "verify:delivery-agreement-timeout": "tsx scripts/verify-delivery-agreement-timeout.ts",
+    "verify:notification-center": "tsx scripts/verify-notification-center.ts",
+    "verify:notification-record-navigation": "tsx scripts/verify-notification-record-navigation.ts",
+    "verify:po-deep-links": "tsx scripts/verify-po-deep-links.ts",
     "postinstall": "prisma generate"
   },
   "engines": {

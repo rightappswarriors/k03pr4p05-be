@@ -188,7 +188,7 @@ export const LedgerEntryStatus = enumType({
 
 export const PaymentTransactionStatus = enumType({
   name: 'PaymentTransactionStatus',
-  members: ['PENDING', 'AWAITING_PAYMENT', 'PROCESSING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'REFUNDED']
+  members: ['PENDING', 'AWAITING_PAYMENT', 'PROCESSING', 'RECONCILIATION_REQUIRED', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'EXPIRED', 'REFUNDED']
 })
 
 export const PaymentRelatedType = enumType({
@@ -251,7 +251,7 @@ export const OrganizationAccountStatus = enumType({
 
 export const PlatformLedgerSourceType = enumType({
   name: 'PlatformLedgerSourceType',
-  members: ['TRANSACTION_FEE', 'SUBSCRIPTION_FEE', 'WITHDRAWAL_FEE', 'REFUND', 'REVERSAL', 'MANUAL_ADJUSTMENT'],
+  members: ['PURCHASE_ORDER_PLATFORM_FEE', 'PLATFORM_WITHDRAWAL', 'TRANSACTION_FEE', 'SUBSCRIPTION_FEE', 'WITHDRAWAL_FEE', 'REFUND', 'REVERSAL', 'MANUAL_ADJUSTMENT'],
 })
 
 export const PurchaseOrderSource = enumType({

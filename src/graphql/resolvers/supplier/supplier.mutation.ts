@@ -91,6 +91,7 @@ import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { currentActorId, requestWithdrawal } from '../../../services/supplierSettlement.service.js';
 import { encryptPayoutDestination } from '../../../lib/payoutDestinationCrypto.js';
 import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+import { persistPlatformAdminNotification, publishPlatformAdminNotification } from '../../../services/notification.service.js';
 
 export const SupplierMutation = extendType({
   type: 'Mutation',
@@ -412,7 +413,19 @@ export const SupplierMutation = extendType({
         requireAuth(ctx);
         PAGE_PERMISSIONS.supplierWithdrawals.create(ctx);
         const orgId = Number(ctx.user?.orgId);
-        const withdrawal = await prisma.$transaction((tx) => requestWithdrawal(tx, { orgId, payoutMethodId, amount, requestedById: currentActorId(ctx) }), { isolationLevel: 'Serializable' });
+        const result = await prisma.$transaction(async (tx) => {
+          const withdrawal = await requestWithdrawal(tx, { orgId, payoutMethodId, amount, requestedById: currentActorId(ctx) });
+          const persisted = await persistPlatformAdminNotification(tx, {
+            type: 'NEW_TRANSACTION',
+            title: 'Withdrawal awaiting approval',
+            message: `Supplier organization ${orgId} submitted withdrawal #${withdrawal.id} for review.`,
+            referenceType: 'WITHDRAWAL',
+            referenceId: String(withdrawal.id),
+          });
+          return { withdrawal, adminNotification: persisted.created ? persisted.notification : null };
+        }, { isolationLevel: 'Serializable' });
+        const withdrawal = result.withdrawal;
+        publishPlatformAdminNotification(result.adminNotification);
         await prisma.auditLog.create({ data: { orgId, userId: currentActorId(ctx), pageKey: 'supplierWithdrawalsPage', action: 'CREATE', recordType: 'Withdrawal', recordId: String(withdrawal.id), newValue: { amount, payoutMethodId } } });
         return prisma.withdrawal.findUniqueOrThrow({ where: { id: withdrawal.id }, include: { payoutMethod: true } });
       },

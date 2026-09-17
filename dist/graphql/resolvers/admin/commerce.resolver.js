@@ -4,6 +4,7 @@ import { releaseSupplierFunds, verifySandboxPayoutMethod } from '../../../servic
 import { approveWithdrawalReview } from '../../../services/adminWithdrawalReview.service.js';
 import { completeSandboxWithdrawalPayout, failSandboxWithdrawalPayout } from '../../../services/withdrawalPayout.service.js';
 import { sendToOrg } from '../../../lib/ws.js';
+import { confirmSandboxPaymentThroughSettlementService, SettlementRelayError } from '../../../services/sandboxSettlementRelay.service.js';
 const audit = (ctx, recordType, recordId, value) => ctx.prisma.auditLog.create({
     data: {
         orgId: Number(ctx.user?.orgId ?? 0),
@@ -281,18 +282,25 @@ export const CommerceMutations = extendType({
                 const baseUrl = process.env.KOMPRA_WEB_API_URL;
                 const serviceKey = process.env.SANDBOX_SETTLEMENT_SERVICE_KEY;
                 if (!baseUrl || !serviceKey)
-                    throw new Error('Sandbox reconciliation relay is not configured.');
-                const response = await fetch(`${baseUrl.replace(/\/$/, '')}/payments/admin/sandbox-reconciliation/${encodeURIComponent(a.paymentTransactionId)}/confirm`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-sandbox-settlement-key': serviceKey }, body: JSON.stringify({ reason: a.reason }),
+                    throw new SettlementRelayError('SETTLEMENT_SERVICE_NOT_CONFIGURED', 'Sandbox settlement service is not configured. No payment status was changed.');
+                const actorUserId = Number(ctx.user?.id ?? ctx.user?.userId ?? 0);
+                const actorOrgId = Number(ctx.user?.orgId ?? 0);
+                const confirmation = await confirmSandboxPaymentThroughSettlementService({
+                    baseUrl,
+                    serviceKey,
+                    paymentTransactionId: a.paymentTransactionId,
+                    reason: a.reason,
+                    actorUserId,
+                    actorOrgId,
+                    timeoutMs: Number(process.env.SANDBOX_SETTLEMENT_TIMEOUT_MS ?? 10_000),
                 });
-                const body = await response.json().catch(() => ({}));
-                if (!response.ok || !body?.success)
-                    throw new Error(body?.message ?? body?.error ?? 'Sandbox payment confirmation was rejected.');
                 const payment = await ctx.prisma.paymentTransaction.findUniqueOrThrow({ where: { id: a.paymentTransactionId } });
-                if (!body.data.alreadyConfirmed)
+                if (!confirmation.alreadyConfirmed)
                     await audit(ctx, 'SANDBOX_PAYMENT_MANUALLY_CONFIRMED', payment.id, {
-                        actorId: Number(ctx.user?.id ?? ctx.user?.userId ?? 0), paymentTransactionId: payment.id, poId: payment.relatedId,
-                        provider: payment.provider, amount: payment.amount, gatewayReference: payment.gatewayReference, reason: a.reason.trim(),
+                        actorId: actorUserId, actorOrgId, paymentTransactionId: payment.id, poId: payment.relatedId,
+                        provider: payment.provider, amount: payment.amount, currency: 'PHP', gatewayReference: payment.gatewayReference,
+                        environment: payment.environment, reason: a.reason.trim(), confirmedAt: new Date().toISOString(),
+                        evidenceSnapshot: payment.feeSnapshot?.sandboxReconciliationAudit?.evidence ?? null,
                     });
                 return payment;
             },

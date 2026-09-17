@@ -3,7 +3,7 @@ import { objectType } from 'nexus';
 export const PlatformWallet = objectType({
   name: 'PlatformWallet',
   definition(t) {
-    t.nonNull.int('id'); t.nonNull.string('currency'); t.nonNull.float('balance'); t.nonNull.float('heldBalance');
+    t.nonNull.int('id'); t.nonNull.string('currency'); t.nonNull.field('environment', { type: 'Environment' }); t.nonNull.float('balance'); t.nonNull.float('heldBalance');
     t.nonNull.dateTime('createdAt'); t.nonNull.dateTime('updatedAt');
   },
 });

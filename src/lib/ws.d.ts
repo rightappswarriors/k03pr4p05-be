@@ -13,6 +13,12 @@ export function sendToOrg(
   payload: unknown
 ): void;
 
+export function sendToRole(
+  role: string,
+  event: string,
+  payload: unknown
+): void;
+
 export function sendToConversation(
   conversationId: string,
   event: string,

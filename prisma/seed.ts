@@ -29,6 +29,7 @@ const pages: PageType[] = [
     { key: 'hrPage', label: 'HR', sortOrder: 8 },
     { key: 'salesAnalyticsPage', label: 'Sales Analytics', sortOrder: 9 },
     { key: 'masterFilePage', label: 'Master File', sortOrder: 10 },
+    { key: 'notificationsPage', label: 'Notifications', sortOrder: 22, access: 'SELLER' },
     { key: 'branchAndOutletPage', label: 'Branch & Outlet', sortOrder: 11 },
     {
         key: 'outletPage',

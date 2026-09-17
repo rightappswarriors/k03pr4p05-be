@@ -1,29 +1,57 @@
 // graphql/resolvers/notification/notification.type.ts
-import { objectType, extendType, nonNull, intArg, enumType } from "nexus";
+import { objectType, extendType, nonNull, intArg, arg, enumType } from "nexus";
 import * as notificationService from "../../services/notification.service.js";
 import { requireAuth, requireRole } from "../../middleware/auth.middleware.js";
 import { PAGE_PERMISSIONS } from "../../lib/permissions.map.js";
-function requireNotificationPermission(ctx, action) {
-    if (ctx.user?.orgRoles?.includes('SUPPLIER'))
-        PAGE_PERMISSIONS.supplierNotifications[action](ctx);
-    else
-        requireRole(ctx, ["ADMIN", "OWNER", "MANAGER"]);
+function notificationAccountContext(ctx, requested) {
+    if (requested)
+        return requested;
+    if (ctx.user?.role === 'ADMIN')
+        return 'ADMIN';
+    return ctx.user?.orgRoles?.includes('SUPPLIER') ? 'SUPPLIER' : 'RETAIL';
 }
+function requireNotificationScope(ctx, requested, action) {
+    requireAuth(ctx);
+    const accountContext = notificationAccountContext(ctx, requested);
+    if (accountContext === 'ADMIN') {
+        requireRole(ctx, ['ADMIN']);
+        return { recipientAudience: 'PLATFORM_ADMIN', orgId: null };
+    }
+    const orgId = Number(ctx.user?.orgId);
+    if (!Number.isInteger(orgId) || orgId < 1)
+        throw new Error('An authenticated organization is required.');
+    if (accountContext === 'SUPPLIER') {
+        if (!ctx.user?.orgRoles?.includes('SUPPLIER'))
+            throw new Error('Resource not found.');
+        PAGE_PERMISSIONS.supplierNotifications[action](ctx);
+    }
+    else {
+        if (!ctx.user?.orgRoles?.includes('SELLER'))
+            throw new Error('Resource not found.');
+        PAGE_PERMISSIONS.notifications[action](ctx);
+    }
+    return { recipientAudience: 'ACCOUNT', orgId };
+}
+export const NotificationAccountContextEnum = enumType({ name: 'NotificationAccountContext', members: ['SUPPLIER', 'RETAIL', 'ADMIN'] });
+export const NotificationFilterEnum = enumType({ name: 'NotificationFilter', members: ['ALL', 'UNREAD', 'ORDERS', 'PAYMENTS', 'DELIVERY', 'RFQ', 'MESSAGES', 'FINANCE', 'SUPPLIER_LINKS', 'SYSTEM'] });
 export const NotificationType = objectType({
     name: "Notification",
     definition(t) {
         t.nonNull.int("id");
-        t.nonNull.int("orgId");
+        t.nullable.int("orgId");
         t.nullable.int("outletId");
         t.nullable.int("itemId");
-        t.nonNull.string("type");
         t.nonNull.string("title");
         t.nonNull.string("message");
         t.nonNull.boolean("isRead");
-        t.nonNull.string("createdAt");
+        t.nonNull.string("createdAt", { resolve: (parent) => parent.createdAt instanceof Date ? parent.createdAt.toISOString() : String(parent.createdAt) });
         t.nonNull.field("type", {
             type: "NotificationType"
         });
+        t.nonNull.string('category', { resolve: (parent) => notificationService.categorizeNotification(parent) });
+        t.nullable.string('conversationId');
+        t.nullable.string('referenceType');
+        t.nullable.string('referenceId');
         t.nullable.field("outlet", {
             type: "Outlet",
             resolve: (parent, _, ctx) => parent.outletId
@@ -36,6 +64,17 @@ export const NotificationType = objectType({
                 ? ctx.prisma.item.findUnique({ where: { id: parent.itemId } })
                 : null,
         });
+    },
+});
+export const NotificationPage = objectType({
+    name: 'NotificationPage',
+    definition(t) {
+        t.nonNull.list.nonNull.field('items', { type: 'Notification' });
+        t.nonNull.int('total');
+        t.nonNull.int('unreadCount');
+        t.nonNull.int('page');
+        t.nonNull.int('pageSize');
+        t.nonNull.boolean('hasNextPage');
     },
 });
 export const NotificationTypeEnum = enumType({
@@ -54,20 +93,36 @@ export const NotificationTypeEnum = enumType({
 export const NotificationQuery = extendType({
     type: "Query",
     definition(t) {
+        t.nonNull.field('notificationPage', {
+            type: 'NotificationPage',
+            args: {
+                accountContext: nonNull(arg({ type: 'NotificationAccountContext' })),
+                filter: arg({ type: 'NotificationFilter' }),
+                page: intArg(),
+                pageSize: intArg(),
+            },
+            resolve(_, { accountContext, filter, page, pageSize }, ctx) {
+                const scope = requireNotificationScope(ctx, accountContext, 'view');
+                return notificationService.getNotificationPage(scope, (filter ?? 'ALL'), page ?? 1, pageSize ?? 20);
+            },
+        });
+        t.nonNull.int('notificationUnreadCount', {
+            args: { accountContext: nonNull(arg({ type: 'NotificationAccountContext' })) },
+            resolve(_, { accountContext }, ctx) {
+                return notificationService.getScopedUnreadCount(requireNotificationScope(ctx, accountContext, 'view'));
+            },
+        });
         t.nonNull.list.nonNull.field("getNotifications", {
             type: "Notification",
             args: { limit: intArg() },
             async resolve(_, { limit }, ctx) {
-                requireAuth(ctx);
-                requireNotificationPermission(ctx, 'view');
-                return notificationService.getNotifications(ctx.user.orgId, limit ?? 20);
+                const scope = requireNotificationScope(ctx, null, 'view');
+                return (await notificationService.getNotificationPage(scope, 'ALL', 1, limit ?? 20)).items;
             },
         });
         t.nonNull.int("getUnreadCount", {
             async resolve(_, __, ctx) {
-                requireAuth(ctx);
-                requireNotificationPermission(ctx, 'view');
-                return notificationService.getUnreadCount(ctx.user.orgId);
+                return notificationService.getScopedUnreadCount(requireNotificationScope(ctx, null, 'view'));
             },
         });
     },
@@ -77,21 +132,15 @@ export const NotificationMutation = extendType({
     definition(t) {
         t.nonNull.field("markNotificationRead", {
             type: "Notification",
-            args: { id: nonNull(intArg()) },
-            async resolve(_, { id }, ctx) {
-                requireAuth(ctx);
-                requireNotificationPermission(ctx, 'edit');
-                const notification = await ctx.prisma.notification.findFirst({ where: { id, orgId: ctx.user.orgId, deletedAt: null }, select: { id: true } });
-                if (!notification)
-                    throw new Error('Resource not found.');
-                return notificationService.markAsRead(id);
+            args: { id: nonNull(intArg()), accountContext: arg({ type: 'NotificationAccountContext' }) },
+            async resolve(_, { id, accountContext }, ctx) {
+                return notificationService.markScopedNotificationRead(requireNotificationScope(ctx, accountContext, 'edit'), id);
             },
         });
         t.nonNull.boolean("markAllNotificationsRead", {
-            async resolve(_, __, ctx) {
-                requireAuth(ctx);
-                requireNotificationPermission(ctx, 'edit');
-                await notificationService.markAllAsRead(ctx.user.orgId);
+            args: { accountContext: arg({ type: 'NotificationAccountContext' }) },
+            async resolve(_, { accountContext }, ctx) {
+                await notificationService.markAllScopedNotificationsRead(requireNotificationScope(ctx, accountContext, 'edit'));
                 return true;
             },
         });
