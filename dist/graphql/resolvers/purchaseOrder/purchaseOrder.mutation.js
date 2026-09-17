@@ -3,6 +3,9 @@ import { sendNewPONotificationEmail, sendPOStatusEmail } from '../../../services
 import { sendToOrg, sendToConversation } from '../../../lib/ws.js';
 import { requireAuth } from '../../../middleware/auth.middleware.js';
 import { PAGE_PERMISSIONS } from '../../../lib/permissions.map.js';
+import { persistBusinessNotification, publishBusinessNotification } from '../../../services/notification.service.js';
+import { hasConfirmedDeliveryLocation, inspectPurchaseOrderFunding, isPurchaseOrderFundingSatisfied } from '../../../services/purchaseOrderPolicy.service.js';
+import { deliveryDateNotAgreedError, enqueueDeliveryAgreementTimeout, nextSupplierProposalDeadline, supplierAcceptRetailerPurchaseOrderDeliveryDate, supplierProposePurchaseOrderDeliveryDate } from '../../../services/purchaseOrderDeliveryAgreement.service.js';
 export const POLineItemInput = inputObjectType({
     name: 'POLineItemInput',
     definition(t) {
@@ -39,7 +42,7 @@ async function transitionSupplierFulfillment(ctx, purchaseOrderId, expectedStatu
     const supplierOrgId = ctx.user.orgId;
     if (!supplierOrgId)
         throw new Error('You are not authorized to update this purchase order.');
-    const po = await ctx.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId } });
+    const po = await ctx.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId }, include: { delivery: true } });
     if (!po || po.supplierOrgId !== supplierOrgId)
         throw new Error('You are not authorized to update this purchase order.');
     if (po.status === 'REJECTED' || po.status === 'CANCELLED' || po.status === 'COMPLETED')
@@ -48,16 +51,37 @@ async function transitionSupplierFulfillment(ctx, purchaseOrderId, expectedStatu
         throw new Error(`This order must be ${expectedStatus.replaceAll('_', ' ').toLowerCase()} before this action.`);
     if (po.supplierConfirmation !== 'CONFIRMED')
         throw new Error('Supplier confirmation is required before fulfillment can continue.');
-    if (nextStatus === 'READY_FOR_DISPATCH' && po.deliveryDateAgreementStatus !== 'AGREED')
-        throw new Error('Buyer and supplier must agree on the delivery date before this order can be marked ready for dispatch.');
-    const payment = await ctx.prisma.paymentTransaction.findFirst({ where: { relatedType: 'PURCHASE_ORDER', relatedId: po.id, deletedAt: null }, orderBy: { updatedAt: 'desc' }, select: { status: true } });
-    if (payment?.status === 'RECONCILIATION_REQUIRED')
+    if (!hasConfirmedDeliveryLocation(po.delivery))
+        throw new Error('The buyer must confirm the delivery address before fulfillment can continue.');
+    if (po.source === 'DIRECT_ORDER' && ['READY_FOR_DISPATCH', 'IN_TRANSIT'].includes(nextStatus) && po.deliveryDateAgreementStatus !== 'AGREED')
+        throw deliveryDateNotAgreedError(nextStatus === 'IN_TRANSIT' ? 'dispatched' : 'marked ready for dispatch');
+    const funding = await inspectPurchaseOrderFunding(ctx.prisma, po);
+    if (funding.latestPayment?.status === 'RECONCILIATION_REQUIRED' && funding.classification !== 'PREPAID_PAID')
         throw new Error('Payment is awaiting reconciliation and cannot enter fulfillment yet.');
-    if (payment?.status !== 'SUCCEEDED')
-        throw new Error('Payment must be confirmed before fulfillment can continue.');
+    if (!isPurchaseOrderFundingSatisfied(po, funding.authoritativePayment))
+        throw new Error('Payment requirements must be satisfied before fulfillment can continue.');
     const timestamp = new Date();
     const updated = await ctx.prisma.$transaction(async (tx) => {
-        const transitioned = await tx.purchaseOrder.updateMany({ where: { id: po.id, supplierOrgId, status: expectedStatus }, data: { status: nextStatus, ...(nextStatus === 'READY_FOR_DISPATCH' ? { readyForDispatchAt: timestamp } : {}), ...(nextStatus === 'IN_TRANSIT' ? { dispatchedAt: timestamp } : {}) } });
+        await tx.$queryRaw `SELECT id FROM "PurchaseOrder" WHERE id = ${po.id} FOR UPDATE`;
+        const current = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: po.id }, include: { delivery: true } });
+        if (current.status !== expectedStatus)
+            throw new Error('This order changed before the fulfillment action could be completed. Refresh and try again.');
+        const cancellation = await tx.purchaseOrderCancellation.findUnique({ where: { purchaseOrderId: po.id } });
+        if (cancellation?.status === 'REQUESTED')
+            throw new Error('Resolve the pending cancellation request before continuing fulfillment.');
+        const refund = await tx.paymentRefund.findUnique({ where: { purchaseOrderId: po.id }, select: { id: true } });
+        if (refund)
+            throw new Error('Fulfillment cannot continue while this order has a refund record.');
+        if (!hasConfirmedDeliveryLocation(current.delivery))
+            throw new Error('The buyer must confirm the delivery address before fulfillment can continue.');
+        if (current.source === 'DIRECT_ORDER' && ['READY_FOR_DISPATCH', 'IN_TRANSIT'].includes(nextStatus) && current.deliveryDateAgreementStatus !== 'AGREED')
+            throw deliveryDateNotAgreedError(nextStatus === 'IN_TRANSIT' ? 'dispatched' : 'marked ready for dispatch');
+        const currentFunding = await inspectPurchaseOrderFunding(tx, current);
+        if (currentFunding.latestPayment?.status === 'RECONCILIATION_REQUIRED' && currentFunding.classification !== 'PREPAID_PAID')
+            throw new Error('Payment is awaiting reconciliation and cannot enter fulfillment yet.');
+        if (!isPurchaseOrderFundingSatisfied(current, currentFunding.authoritativePayment))
+            throw new Error('Payment requirements must be satisfied before fulfillment can continue.');
+        const transitioned = await tx.purchaseOrder.updateMany({ where: { id: po.id, supplierOrgId, status: expectedStatus, ...(current.source === 'DIRECT_ORDER' && ['READY_FOR_DISPATCH', 'IN_TRANSIT'].includes(nextStatus) ? { deliveryDateAgreementStatus: 'AGREED' } : {}) }, data: { status: nextStatus, ...(nextStatus === 'READY_FOR_DISPATCH' ? { readyForDispatchAt: timestamp } : {}), ...(nextStatus === 'IN_TRANSIT' ? { dispatchedAt: timestamp } : {}) } });
         if (transitioned.count !== 1)
             throw new Error('This order can no longer make that fulfillment transition.');
         if (nextStatus === 'IN_TRANSIT' || nextStatus === 'DELIVERED')
@@ -66,10 +90,11 @@ async function transitionSupplierFulfillment(ctx, purchaseOrderId, expectedStatu
         if (result.conversationId)
             await tx.conversationMessage.create({ data: { conversationId: result.conversationId, senderOrgId: supplierOrgId, type: eventType, message: nextStatus.replaceAll('_', ' '), metadata: { event: eventType, poId: result.id, poNumber: result.poNumber, timestamp: timestamp.toISOString(), ...deliveryData } } });
         return result;
-    });
+    }, { isolationLevel: 'Serializable' });
     const payload = { poId: updated.id, poNumber: updated.poNumber, status: updated.status, timestamp: timestamp.toISOString(), ...deliveryData };
     if (updated.buyerOrgId)
         sendToOrg(updated.buyerOrgId, realtimeEvent, payload);
+    sendToOrg(updated.supplierOrgId, realtimeEvent, payload);
     if (updated.conversationId)
         sendToConversation(updated.conversationId, 'conversation:newMessage', { conversationId: updated.conversationId, type: eventType, message: updated.status.replaceAll('_', ' '), createdAt: timestamp.toISOString(), metadata: payload });
     return updated;
@@ -85,16 +110,18 @@ async function ensurePOConversation(client, po) {
     if (existing?.conversationId) {
         return existing.conversationId;
     }
+    const participants = [
+        ...(po.agentId ? [{ agentId: po.agentId, role: 'AGENT' }] : []),
+        ...(po.buyerOrgId ? [{ organizationId: po.buyerOrgId, role: 'AGENT' }] : []),
+        { organizationId: po.supplierOrgId, role: 'SUPPLIER' },
+    ];
     const conv = await client.$transaction(async (tx) => {
         const conversation = await tx.conversation.create({
             data: {
                 poId: po.id,
                 type: 'ORDER',
                 ConversationParticipant: {
-                    create: [
-                        { agentId: po.agentId, role: 'AGENT' },
-                        { organizationId: po.supplierOrgId, role: 'SUPPLIER' },
-                    ],
+                    create: participants,
                 },
             },
         });
@@ -247,6 +274,8 @@ export const PurchaseOrderMutation = extendType({
                 today.setHours(0, 0, 0, 0);
                 if (expectedDeliveryDate < today)
                     throw new Error('The expected delivery date cannot be in the past.');
+                const proposalStartedAt = new Date();
+                const proposalDeadline = nextSupplierProposalDeadline({ ...existing, status: 'SUPPLIER_ACCEPTED' }, proposalStartedAt);
                 const po = await ctx.prisma.$transaction(async (tx) => {
                     await tx.delivery.upsert({
                         where: { poId: id },
@@ -270,8 +299,10 @@ export const PurchaseOrderMutation = extendType({
                             supplierConfirmation: 'CONFIRMED',
                             supplierConfirmedAt: new Date(),
                             supplierExpectedDeliveryAt: expectedDeliveryDate,
-                            deliveryDateAgreementStatus: existing.requestedDate && existing.requestedDate.getTime() === expectedDeliveryDate.getTime() ? 'AGREED' : 'PENDING_BUYER',
-                            deliveryDateAgreedAt: existing.requestedDate && existing.requestedDate.getTime() === expectedDeliveryDate.getTime() ? new Date() : null,
+                            deliveryDateAgreementStatus: existing.source === 'DIRECT_ORDER' ? 'PENDING_BUYER' : existing.requestedDate && existing.requestedDate.getTime() === expectedDeliveryDate.getTime() ? 'AGREED' : 'PENDING_BUYER',
+                            deliveryDateAgreedAt: existing.source === 'DIRECT_ORDER' ? null : existing.requestedDate && existing.requestedDate.getTime() === expectedDeliveryDate.getTime() ? new Date() : null,
+                            deliveryDateAgreementMethod: existing.source === 'DIRECT_ORDER' ? null : existing.requestedDate && existing.requestedDate.getTime() === expectedDeliveryDate.getTime() ? 'SUPPLIER_ACCEPTED' : null,
+                            ...(existing.source === 'DIRECT_ORDER' ? proposalDeadline : { deliveryDateResponseDeadlineAt: null }),
                             supplierNote: supplierNote?.trim() || null,
                         },
                         include: {
@@ -282,7 +313,7 @@ export const PurchaseOrderMutation = extendType({
                             outlet: true,
                         },
                     });
-                });
+                }, { isolationLevel: 'Serializable' });
                 const buyerUser = await ctx.prisma.user.findFirst({
                     where: { organizationId: po.buyerOrgId },
                     select: { email: true },
@@ -303,6 +334,9 @@ export const PurchaseOrderMutation = extendType({
                         metadata: { event: 'PO_ACCEPTED', poId: po.id, poNumber: po.poNumber, expectedDeliveryDate, driverName: driverName?.trim() || null, driverContact: driverContact?.trim() || null, supplierNote: supplierNote?.trim() || null },
                     });
                 }
+                if (po.deliveryDateResponseDeadlineAt && po.supplierExpectedDeliveryAt) {
+                    void enqueueDeliveryAgreementTimeout({ purchaseOrderId: po.id, proposalVersion: po.deliveryDateProposalVersion, deadline: po.deliveryDateResponseDeadlineAt, supplierProposal: po.supplierExpectedDeliveryAt }).catch(() => { });
+                }
                 return po;
             },
         });
@@ -319,27 +353,74 @@ export const PurchaseOrderMutation = extendType({
                 today.setHours(0, 0, 0, 0);
                 if (input.expectedDeliveryDate < today)
                     throw new Error('The expected delivery date cannot be in the past.');
-                const existing = await ctx.prisma.purchaseOrder.findUniqueOrThrow({ where: { id: input.purchaseOrderId } });
-                if (existing.supplierOrgId !== supplierOrgId)
-                    throw new Error('You do not have permission to accept this purchase order.');
-                const repairingLegacyCommitment = existing.supplierConfirmation === 'CONFIRMED' && !existing.supplierExpectedDeliveryAt && existing.paymentStatus === 'PENDING';
-                if (existing.paymentStatus === 'PAID' || (existing.supplierConfirmation !== 'REVIEW_REQUIRED' && !repairingLegacyCommitment))
-                    throw new Error('This purchase order can no longer be reviewed.');
-                const po = await ctx.prisma.$transaction(async (tx) => {
+                const result = await ctx.prisma.$transaction(async (tx) => {
+                    await tx.$queryRaw `SELECT id FROM "PurchaseOrder" WHERE id = ${input.purchaseOrderId} FOR UPDATE`;
+                    const existing = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: input.purchaseOrderId } });
+                    if (existing.supplierOrgId !== supplierOrgId)
+                        throw new Error('Purchase order not found.');
+                    if (existing.supplierConfirmation === 'CONFIRMED' && ['SUPPLIER_ACCEPTED', 'ACCEPTED'].includes(existing.status) && existing.supplierExpectedDeliveryAt)
+                        return { po: existing, notification: null, message: null };
+                    const repairingLegacyCommitment = existing.supplierConfirmation === 'CONFIRMED' && !existing.supplierExpectedDeliveryAt && existing.paymentStatus === 'PENDING';
+                    const explicitLegacyReview = existing.status === 'ACCEPTED' && existing.supplierConfirmation === 'REVIEW_REQUIRED';
+                    const normalReview = existing.status === 'PENDING' && existing.supplierConfirmation === 'REVIEW_REQUIRED' && existing.paymentStatus !== 'PAID';
+                    if (!normalReview && !explicitLegacyReview && !repairingLegacyCommitment)
+                        throw new Error('This purchase order can no longer be reviewed.');
+                    const cancellation = await tx.purchaseOrderCancellation.findUnique({ where: { purchaseOrderId: existing.id }, select: { status: true } });
+                    if (cancellation?.status === 'REQUESTED')
+                        throw new Error('Resolve the pending cancellation request before accepting this purchase order.');
+                    const refund = await tx.paymentRefund.findUnique({ where: { purchaseOrderId: existing.id }, select: { id: true } });
+                    if (refund)
+                        throw new Error('This purchase order cannot be accepted while it has a refund record.');
+                    if (!existing.buyerOrgId)
+                        throw new Error('This purchase order has no Retailer organization to approve its delivery schedule.');
+                    const proposalStartedAt = new Date();
+                    const proposalDeadline = nextSupplierProposalDeadline({ ...existing, status: 'SUPPLIER_ACCEPTED' }, proposalStartedAt);
                     await tx.delivery.upsert({
                         where: { poId: existing.id },
                         create: { poId: existing.id, scheduledDate: input.expectedDeliveryDate, status: 'SCHEDULED', driverName: input.driverName?.trim() || null, driverContact: input.driverContact?.trim() || null },
                         update: { scheduledDate: input.expectedDeliveryDate, driverName: input.driverName?.trim() || null, driverContact: input.driverContact?.trim() || null },
                     });
-                    return tx.purchaseOrder.update({
+                    const updated = await tx.purchaseOrder.update({
                         where: { id: existing.id },
-                        data: { status: 'SUPPLIER_ACCEPTED', supplierConfirmation: 'CONFIRMED', supplierConfirmedAt: new Date(), supplierExpectedDeliveryAt: input.expectedDeliveryDate, deliveryDateAgreementStatus: existing.requestedDate && existing.requestedDate.getTime() === input.expectedDeliveryDate.getTime() ? 'AGREED' : 'PENDING_BUYER', deliveryDateAgreedAt: existing.requestedDate && existing.requestedDate.getTime() === input.expectedDeliveryDate.getTime() ? new Date() : null, supplierNote: input.supplierNote?.trim() || null },
+                        data: {
+                            status: 'SUPPLIER_ACCEPTED',
+                            supplierConfirmation: 'CONFIRMED',
+                            supplierConfirmedAt: proposalStartedAt,
+                            supplierExpectedDeliveryAt: input.expectedDeliveryDate,
+                            deliveryDateAgreementStatus: existing.source === 'DIRECT_ORDER' ? 'PENDING_BUYER' : existing.requestedDate && existing.requestedDate.getTime() === input.expectedDeliveryDate.getTime() ? 'AGREED' : 'PENDING_BUYER',
+                            deliveryDateAgreedAt: existing.source === 'DIRECT_ORDER' ? null : existing.requestedDate && existing.requestedDate.getTime() === input.expectedDeliveryDate.getTime() ? new Date() : null,
+                            deliveryDateAgreementMethod: existing.source === 'DIRECT_ORDER' ? null : existing.requestedDate && existing.requestedDate.getTime() === input.expectedDeliveryDate.getTime() ? 'SUPPLIER_ACCEPTED' : null,
+                            ...(existing.source === 'DIRECT_ORDER' ? proposalDeadline : { deliveryDateResponseDeadlineAt: null }),
+                            supplierNote: input.supplierNote?.trim() || null,
+                        },
                     });
-                });
+                    const persisted = await persistBusinessNotification(tx, {
+                        orgId: updated.buyerOrgId,
+                        outletId: updated.deliveryOutletId,
+                        conversationId: updated.conversationId,
+                        type: 'NEW_TRANSACTION',
+                        title: 'Delivery schedule requires your response',
+                        referenceType: 'PURCHASE_ORDER',
+                        referenceId: updated.id,
+                        message: updated.deliveryDateResponseDeadlineAt
+                            ? `Purchase Order ${updated.poNumber} was accepted. Respond to the Supplier's proposed delivery schedule by ${updated.deliveryDateResponseDeadlineAt.toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Manila' })}.`
+                            : `Purchase Order ${updated.poNumber} was accepted. Its delivery agreement requires account review.`,
+                    });
+                    const message = updated.conversationId ? await tx.conversationMessage.create({ data: { conversationId: updated.conversationId, senderOrgId: supplierOrgId, type: 'PO_ACCEPTED', message: `Supplier accepted Purchase Order ${updated.poNumber} and proposed delivery for ${input.expectedDeliveryDate.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}.`, metadata: { event: 'PO_ACCEPTED', poId: updated.id, expectedDeliveryDate: input.expectedDeliveryDate.toISOString(), deliveryDateAgreementStatus: updated.deliveryDateAgreementStatus, proposalVersion: updated.deliveryDateProposalVersion, responseDeadlineAt: updated.deliveryDateResponseDeadlineAt?.toISOString() ?? null } } }) : null;
+                    return { po: updated, notification: persisted.created ? persisted.notification : null, message };
+                }, { isolationLevel: 'Serializable' });
+                const po = result.po;
+                publishBusinessNotification(result.notification);
                 if (po.buyerOrgId)
                     sendToOrg(po.buyerOrgId, 'purchaseOrder:accepted', { poId: po.id, poNumber: po.poNumber });
-                if (po.conversationId)
-                    sendToConversation(po.conversationId, 'conversation:newMessage', { conversationId: po.conversationId, poId: po.id, poNumber: po.poNumber, type: 'PO_ACCEPTED', message: `Purchase Order ${po.poNumber} has been accepted.`, createdAt: new Date().toISOString(), metadata: { event: 'PO_ACCEPTED', poId: po.id, expectedDeliveryDate: input.expectedDeliveryDate, driverName: input.driverName?.trim() || null, driverContact: input.driverContact?.trim() || null, supplierNote: input.supplierNote?.trim() || null } });
+                if (po.conversationId && result.message)
+                    sendToConversation(po.conversationId, 'conversation:newMessage', { ...result.message, createdAt: result.message.createdAt.toISOString() });
+                if (po.deliveryDateResponseDeadlineAt && po.supplierExpectedDeliveryAt) {
+                    void enqueueDeliveryAgreementTimeout({ purchaseOrderId: po.id, proposalVersion: po.deliveryDateProposalVersion, deadline: po.deliveryDateResponseDeadlineAt, supplierProposal: po.supplierExpectedDeliveryAt }).catch((error) => {
+                        if (process.env.NODE_ENV === 'development')
+                            console.warn('[Delivery agreement] delayed job unavailable; recovery scan remains active.', error);
+                    });
+                }
                 return po;
             },
         });
@@ -349,44 +430,12 @@ export const PurchaseOrderMutation = extendType({
                 purchaseOrderId: nonNull(stringArg()),
                 expectedDeliveryDate: nonNull(arg({ type: 'DateTime' })),
             },
-            resolve: async (_, { purchaseOrderId, expectedDeliveryDate }, ctx) => {
-                requireAuth(ctx);
-                PAGE_PERMISSIONS.supplierPurchaseOrders.edit(ctx);
-                const supplierOrgId = ctx.user.orgId;
-                if (!supplierOrgId)
-                    throw new Error('A supplier organization is required to update a delivery date.');
-                const po = await ctx.prisma.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
-                if (po.supplierOrgId !== supplierOrgId)
-                    throw new Error('You do not have permission to update this purchase order.');
-                if (po.status !== 'PREPARING' || po.supplierConfirmation !== 'CONFIRMED')
-                    throw new Error('Delivery dates can only be proposed while this order is being prepared.');
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (expectedDeliveryDate < today)
-                    throw new Error('The expected delivery date cannot be in the past.');
-                const agreed = !!po.requestedDate && po.requestedDate.getTime() === expectedDeliveryDate.getTime();
-                const updated = await ctx.prisma.$transaction(async (tx) => {
-                    await tx.delivery.upsert({
-                        where: { poId: po.id },
-                        create: { poId: po.id, scheduledDate: expectedDeliveryDate, status: 'SCHEDULED' },
-                        update: { scheduledDate: expectedDeliveryDate },
-                    });
-                    return tx.purchaseOrder.update({
-                        where: { id: po.id },
-                        data: {
-                            supplierExpectedDeliveryAt: expectedDeliveryDate,
-                            deliveryDateAgreementStatus: agreed ? 'AGREED' : 'PENDING_BUYER',
-                            deliveryDateAgreedAt: agreed ? new Date() : null,
-                        },
-                    });
-                });
-                const metadata = { event: 'delivery_date_proposed', poId: updated.id, poNumber: updated.poNumber, expectedDeliveryDate, deliveryDateAgreementStatus: updated.deliveryDateAgreementStatus };
-                if (updated.buyerOrgId)
-                    sendToOrg(updated.buyerOrgId, 'purchaseOrder:deliveryDateProposed', metadata);
-                if (updated.conversationId)
-                    sendToConversation(updated.conversationId, 'conversation:newMessage', { conversationId: updated.conversationId, type: 'DELIVERY_SCHEDULED', message: `Supplier proposed delivery on ${expectedDeliveryDate.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}.`, createdAt: new Date().toISOString(), metadata });
-                return updated;
-            },
+            resolve: (_, { purchaseOrderId, expectedDeliveryDate }, ctx) => supplierProposePurchaseOrderDeliveryDate(ctx, purchaseOrderId, expectedDeliveryDate),
+        });
+        t.nonNull.field('acceptRetailerPurchaseOrderDeliveryDate', {
+            type: 'PurchaseOrder',
+            args: { purchaseOrderId: nonNull(stringArg()) },
+            resolve: (_, { purchaseOrderId }, ctx) => supplierAcceptRetailerPurchaseOrderDeliveryDate(ctx, purchaseOrderId),
         });
         t.nonNull.field('rejectPO', {
             type: 'PurchaseOrder',
@@ -411,7 +460,7 @@ export const PurchaseOrderMutation = extendType({
                     throw new Error('This purchase order has already been reviewed by the supplier.');
                 const po = await ctx.prisma.purchaseOrder.update({
                     where: { id },
-                    data: { status: 'REJECTED', supplierConfirmation: 'DECLINED', rejectionReason: reason.trim() },
+                    data: { status: 'REJECTED', supplierConfirmation: 'DECLINED', rejectionReason: reason.trim(), deliveryDateResponseDeadlineAt: null, deliveryDateAgreementMethod: null },
                     include: {
                         lineItems: { include: { supplierItem: { include: { priceTiers: true } } } },
                         delivery: true,
@@ -459,7 +508,24 @@ export const PurchaseOrderMutation = extendType({
                     throw new Error('You do not have permission to decline this purchase order.');
                 if (existing.paymentStatus === 'PAID' || existing.supplierConfirmation !== 'REVIEW_REQUIRED')
                     throw new Error('This purchase order can no longer be reviewed.');
-                const po = await ctx.prisma.purchaseOrder.update({ where: { id: existing.id }, data: { status: 'REJECTED', supplierConfirmation: 'DECLINED', rejectionReason: input.rejectionReason.trim() } });
+                let notification = null;
+                const po = await ctx.prisma.$transaction(async (tx) => {
+                    const updated = await tx.purchaseOrder.update({ where: { id: existing.id }, data: { status: 'REJECTED', supplierConfirmation: 'DECLINED', rejectionReason: input.rejectionReason.trim(), deliveryDateResponseDeadlineAt: null, deliveryDateAgreementMethod: null } });
+                    const persisted = await persistBusinessNotification(tx, {
+                        orgId: updated.buyerOrgId,
+                        outletId: updated.deliveryOutletId,
+                        conversationId: updated.conversationId,
+                        type: 'NEW_TRANSACTION',
+                        title: 'Purchase order declined',
+                        message: `Purchase Order ${updated.poNumber} was declined by the Supplier.`,
+                        referenceType: 'PURCHASE_ORDER',
+                        referenceId: updated.id,
+                    });
+                    if (persisted.created)
+                        notification = persisted.notification;
+                    return updated;
+                });
+                publishBusinessNotification(notification);
                 if (po.buyerOrgId)
                     sendToOrg(po.buyerOrgId, 'purchaseOrder:rejected', { poId: po.id, poNumber: po.poNumber, reason: po.rejectionReason });
                 if (po.conversationId)
@@ -476,7 +542,7 @@ export const PurchaseOrderMutation = extendType({
                 const supplierOrgId = ctx.user.orgId;
                 if (!supplierOrgId)
                     throw new Error('You are not authorized to prepare this purchase order.');
-                const po = await ctx.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId } });
+                const po = await ctx.prisma.purchaseOrder.findUnique({ where: { id: purchaseOrderId }, include: { delivery: true } });
                 if (!po || po.supplierOrgId !== supplierOrgId)
                     throw new Error('You are not authorized to prepare this purchase order.');
                 if (po.status === 'REJECTED')
@@ -487,19 +553,38 @@ export const PurchaseOrderMutation = extendType({
                     throw new Error('This order is already being prepared.');
                 if (po.supplierConfirmation !== 'CONFIRMED')
                     throw new Error('Supplier confirmation is required before the order can be prepared.');
-                const payment = await ctx.prisma.paymentTransaction.findFirst({
-                    where: { relatedType: 'PURCHASE_ORDER', relatedId: po.id, deletedAt: null },
-                    orderBy: { updatedAt: 'desc' },
-                    select: { status: true },
-                });
-                if (payment?.status === 'RECONCILIATION_REQUIRED')
+                if (!hasConfirmedDeliveryLocation(po.delivery))
+                    throw new Error('The buyer must confirm the delivery address before the order can be prepared.');
+                if (po.source === 'DIRECT_ORDER' && po.deliveryDateAgreementStatus !== 'AGREED')
+                    throw deliveryDateNotAgreedError();
+                const funding = await inspectPurchaseOrderFunding(ctx.prisma, po);
+                if (funding.latestPayment?.status === 'RECONCILIATION_REQUIRED' && funding.classification !== 'PREPAID_PAID')
                     throw new Error('Payment is awaiting reconciliation and cannot enter fulfillment yet.');
-                if (payment?.status !== 'SUCCEEDED')
-                    throw new Error('Payment must be confirmed before the order can be prepared.');
+                if (!isPurchaseOrderFundingSatisfied(po, funding.authoritativePayment))
+                    throw new Error('Payment requirements must be satisfied before the order can be prepared.');
                 const preparedAt = new Date();
                 const updated = await ctx.prisma.$transaction(async (tx) => {
+                    await tx.$queryRaw `SELECT id FROM "PurchaseOrder" WHERE id = ${po.id} FOR UPDATE`;
+                    const current = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: po.id }, include: { delivery: true } });
+                    const cancellation = await tx.purchaseOrderCancellation.findUnique({ where: { purchaseOrderId: po.id } });
+                    if (cancellation?.status === 'REQUESTED')
+                        throw new Error('Resolve the pending cancellation request before preparing this order.');
+                    const refund = await tx.paymentRefund.findUnique({ where: { purchaseOrderId: po.id }, select: { id: true } });
+                    if (refund)
+                        throw new Error('This order cannot be prepared while it has a refund record.');
+                    if (current.supplierConfirmation !== 'CONFIRMED')
+                        throw new Error('Supplier confirmation is required before the order can be prepared.');
+                    if (!hasConfirmedDeliveryLocation(current.delivery))
+                        throw new Error('The buyer must confirm the delivery address before the order can be prepared.');
+                    if (current.source === 'DIRECT_ORDER' && current.deliveryDateAgreementStatus !== 'AGREED')
+                        throw deliveryDateNotAgreedError();
+                    const currentFunding = await inspectPurchaseOrderFunding(tx, current);
+                    if (currentFunding.latestPayment?.status === 'RECONCILIATION_REQUIRED' && currentFunding.classification !== 'PREPAID_PAID')
+                        throw new Error('Payment is awaiting reconciliation and cannot enter fulfillment yet.');
+                    if (!isPurchaseOrderFundingSatisfied(current, currentFunding.authoritativePayment))
+                        throw new Error('Payment requirements must be satisfied before the order can be prepared.');
                     const transitioned = await tx.purchaseOrder.updateMany({
-                        where: { id: po.id, supplierOrgId, status: { in: ['SUPPLIER_ACCEPTED', 'ACCEPTED'] }, supplierConfirmation: 'CONFIRMED' },
+                        where: { id: po.id, supplierOrgId, status: { in: ['SUPPLIER_ACCEPTED', 'ACCEPTED'] }, supplierConfirmation: 'CONFIRMED', ...(current.source === 'DIRECT_ORDER' ? { deliveryDateAgreementStatus: 'AGREED' } : {}) },
                         data: { status: 'PREPARING', preparingAt: preparedAt },
                     });
                     if (transitioned.count !== 1)
@@ -517,7 +602,7 @@ export const PurchaseOrderMutation = extendType({
                         });
                     }
                     return preparedPo;
-                });
+                }, { isolationLevel: 'Serializable' });
                 if (updated.buyerOrgId)
                     sendToOrg(updated.buyerOrgId, 'purchaseOrder:preparing', { poId: updated.id, poNumber: updated.poNumber, preparingAt: preparedAt.toISOString() });
                 if (updated.conversationId)
@@ -559,13 +644,17 @@ export const SendPoMessageMutation = extendType({
             },
             resolve: async (_, { input }, ctx) => {
                 requireAuth(ctx);
-                PAGE_PERMISSIONS.supplierPurchaseOrders.create(ctx);
                 const user = ctx.user;
-                // Verify the supplier has access to this PO
-                const po = await ctx.prisma.purchaseOrder.findUniqueOrThrow({
-                    where: { id: input.poId, supplierOrgId: user.orgId },
-                    select: { conversationId: true },
+                // The current Supplier or Retailer buyer may use the existing secured
+                // PO conversation. Foreign organizations receive a not-found response.
+                const po = await ctx.prisma.purchaseOrder.findFirst({
+                    where: { id: input.poId, OR: [{ supplierOrgId: user.orgId }, { buyerOrgId: user.orgId }] },
+                    select: { conversationId: true, supplierOrgId: true, buyerOrgId: true },
                 });
+                if (!po)
+                    throw new Error('Purchase order not found.');
+                if (po.supplierOrgId === user.orgId)
+                    PAGE_PERMISSIONS.supplierPurchaseOrders.create(ctx);
                 if (!po.conversationId) {
                     throw new Error('PO has no conversation');
                 }

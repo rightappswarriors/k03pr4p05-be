@@ -27,6 +27,7 @@ import { DateTimeScalar, JsonScalar } from './lib/scalars.js'
 import http from "http"
 import { initWebSocket } from "./lib/ws.js"
 import { resolvePermissionState } from "./lib/permissionResolution.js"
+import { assertMayaWebhookSource, processMayaWebhook } from "./services/mayaPayment.service.js"
 // PromoType
 import * as Resolvers from "./graphql/resolvers/index.js";
 import * as TypeDefs from "./graphql/typeDefs/index.js";
@@ -73,10 +74,22 @@ if (process.env.NODE_ENV === "development") {
 
 // 3. Initialize Apollo server with the generated schema
 async function startApolloServer() {
+  const { startDeliveryAgreementRecovery } = await import('./workers/deliveryAgreement.worker.js')
+  startDeliveryAgreementRecovery()
   const app = express();
 
   app.use(cookieParser());
   app.use(express.json());
+  app.post('/api/payments/webhook/maya', async (req, res) => {
+    try {
+      assertMayaWebhookSource(req.socket.remoteAddress)
+      const result = await processMayaWebhook(prisma, req.body)
+      res.status(200).json(result)
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') console.error('[Maya webhook]', error)
+      res.status(503).json({ received: false })
+    }
+  });
   const server = new ApolloServer({
     schema,
   });

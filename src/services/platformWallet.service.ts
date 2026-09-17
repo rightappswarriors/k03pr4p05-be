@@ -1,10 +1,10 @@
 /** Platform treasury posting is kept separate from organization wallet logic.
  * Every caller must provide the same Prisma transaction that finalizes payment.
  */
-export async function getOrCreatePlatformWallet(prisma: any, currency = 'PHP') {
+export async function getOrCreatePlatformWallet(prisma: any, environment: 'SANDBOX' | 'PRODUCTION', currency = 'PHP') {
   return prisma.platformWallet.upsert({
-    where: { currency },
-    create: { currency, balance: 0, heldBalance: 0 },
+    where: { currency_environment: { currency, environment } },
+    create: { currency, environment, balance: 0, heldBalance: 0 },
     update: {},
   });
 }
@@ -25,7 +25,7 @@ export async function settleSuccessfulPayment(tx: any, paymentId: string) {
   // A unique source/reference pair makes webhook retries safe. Only increment
   // balances after a ledger row was actually created.
   const existingSupplierCredit = await tx.walletLedgerEntry.findFirst({
-    where: { walletId: supplierWallet.id, sourceType: 'RETAIL_ORDER', referenceId: payment.id },
+    where: { walletId: supplierWallet.id, sourceType: 'ESCROW_HOLD', referenceId: payment.id },
   });
   if (!existingSupplierCredit) {
     const updatedWallet = await tx.wallet.update({
@@ -58,40 +58,5 @@ export async function settleSuccessfulPayment(tx: any, paymentId: string) {
     update: {},
   });
 
-  if (payment.feeAmount > 0) {
-    const platformWallet = await getOrCreatePlatformWallet(tx);
-    const existingPlatformCredit = await tx.platformWalletLedgerEntry.findFirst({
-      where: { walletId: platformWallet.id, sourceType: 'TRANSACTION_FEE', referenceId: payment.id },
-    });
-    if (!existingPlatformCredit) {
-      const updatedPlatformWallet = await tx.platformWallet.update({
-        where: { id: platformWallet.id }, data: { balance: { increment: payment.feeAmount } },
-      });
-      await tx.platformWalletLedgerEntry.create({
-        data: {
-          walletId: platformWallet.id, type: 'CREDIT', sourceType: 'TRANSACTION_FEE',
-          referenceId: payment.id, paymentTransactionId: payment.id, amount: payment.feeAmount,
-          balanceAfter: updatedPlatformWallet.balance,
-          description: 'Kompra platform fee from successful payment settlement.',
-          environment: payment.environment,
-        },
-      });
-    }
-  }
   return payment;
-}
-
-export async function adjustPlatformWallet(tx: any, amount: number, description: string, referenceId: string) {
-  if (!Number.isFinite(amount) || amount === 0) throw new Error('Adjustment amount must not be zero.');
-  const wallet = await getOrCreatePlatformWallet(tx);
-  const existing = await tx.platformWalletLedgerEntry.findFirst({
-    where: { walletId: wallet.id, sourceType: 'MANUAL_ADJUSTMENT', referenceId },
-  });
-  if (existing) throw new Error('This platform wallet adjustment has already been recorded.');
-  const updated = await tx.platformWallet.update({
-    where: { id: wallet.id }, data: { balance: { increment: amount } },
-  });
-  return tx.platformWalletLedgerEntry.create({
-    data: { walletId: wallet.id, type: amount > 0 ? 'CREDIT' : 'DEBIT', sourceType: 'MANUAL_ADJUSTMENT', referenceId, amount, balanceAfter: updated.balance, description, environment: 'PRODUCTION' },
-  });
 }

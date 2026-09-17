@@ -3,18 +3,28 @@ export const POLineItem = objectType({
     name: 'POLineItem',
     definition(t) {
         t.nonNull.string('id');
+        t.nonNull.string('supplierItemId');
+        t.nullable.string('supplierItemVariantId');
         t.nonNull.int('qty');
         t.nonNull.float('unitPrice');
         t.nonNull.float('subtotal');
         t.nullable.string('itemName');
         t.nullable.string('itemSku');
         t.nullable.string('itemDescription');
+        t.nullable.string('variantName');
+        t.nullable.string('variantSku');
         t.nonNull.field('supplierItem', {
             type: 'SupplierItem',
             resolve: (parent, _, ctx) => ctx.prisma.supplierItem.findUniqueOrThrow({
                 where: { id: parent.supplierItemId },
                 include: { priceTiers: true },
             }),
+        });
+        t.nullable.field('supplierItemVariant', {
+            type: 'SupplierItemVariant',
+            resolve: (parent, _, ctx) => parent.supplierItemVariantId
+                ? ctx.prisma.supplierItemVariant.findUnique({ where: { id: parent.supplierItemVariantId } })
+                : null,
         });
     },
 });
@@ -30,6 +40,9 @@ export const PurchaseOrder = objectType({
         t.nullable.field('supplierExpectedDeliveryAt', { type: 'DateTime' });
         t.nonNull.field('deliveryDateAgreementStatus', { type: 'DeliveryDateAgreementStatus' });
         t.nullable.field('deliveryDateAgreedAt', { type: 'DateTime' });
+        t.nullable.field('deliveryDateResponseDeadlineAt', { type: 'DateTime' });
+        t.nonNull.int('deliveryDateProposalVersion');
+        t.nullable.string('deliveryDateAgreementMethod');
         t.nullable.string('supplierNote');
         t.nullable.string('rejectionReason');
         t.nonNull.float('subtotalAmount');
@@ -66,6 +79,7 @@ export const PurchaseOrder = objectType({
         });
         t.nullable.string('agentId');
         t.nonNull.field('paymentStatus', { type: 'PaymentStatus' });
+        t.nullable.field('paymentMethod', { type: 'PaymentMethod' });
         t.nullable.field('preparingAt', { type: 'DateTime' });
         t.nullable.string('paymentAttemptStatus', {
             resolve: (parent, _, ctx) => ctx.prisma.paymentTransaction.findFirst({
@@ -73,6 +87,18 @@ export const PurchaseOrder = objectType({
                 orderBy: { updatedAt: 'desc' },
                 select: { status: true },
             }).then((payment) => payment?.status ?? null),
+        });
+        t.nullable.string('cancellationStatus', {
+            resolve: (parent, _, ctx) => ctx.prisma.purchaseOrderCancellation.findUnique({
+                where: { purchaseOrderId: parent.id },
+                select: { status: true },
+            }).then((cancellation) => cancellation?.status ?? null),
+        });
+        t.nullable.field('supplierItemVariant', {
+            type: 'SupplierItemVariant',
+            resolve: (parent, _, ctx) => parent.supplierItemVariantId
+                ? ctx.prisma.supplierItemVariant.findUnique({ where: { id: parent.supplierItemVariantId } })
+                : null,
         });
         t.nullable.field('receiptSnapshot', { type: 'Json' });
         t.nullable.string('conversationId');

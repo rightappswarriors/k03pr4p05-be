@@ -47,8 +47,8 @@ export const RefreshMutation = extendType({
                             },
                         },
                     });
-                    if (!user)
-                        throw new Error("User not found");
+                    if (!user || !user.isActive)
+                        throw new Error("REFRESH_TOKEN_INVALID");
                     const newAccessToken = jwt.sign({ userId: user.id, role: user.role, email: user.email, orgId: user.orgId ?? null }, JWT_SECRET, { expiresIn: "1d" });
                     const newRefreshToken = jwt.sign({ userId: user.id }, REFRESH_SECRET, { expiresIn: "24h" });
                     res.cookie("jid", newRefreshToken, {
@@ -75,6 +75,9 @@ export const RefreshMutation = extendType({
                     }
                     if (error instanceof jwt.JsonWebTokenError) {
                         throw new Error("REFRESH_TOKEN_INVALID");
+                    }
+                    if (error instanceof Error && error.message === "REFRESH_TOKEN_INVALID") {
+                        throw error;
                     }
                     throw new Error("Error refreshing token.");
                 }

@@ -7,6 +7,37 @@ export const Wallet = objectType({
         t.nonNull.field('environment', { type: 'Environment' });
         t.nonNull.float('balance');
         t.nonNull.float('heldBalance');
+        t.nonNull.float('totalFunds', {
+            resolve: (parent) => parent.balance + parent.heldBalance,
+        });
+        t.nonNull.float('paymentEscrowBalance', {
+            resolve: async (parent, _, ctx) => {
+                const result = await ctx.prisma.walletLedgerEntry.aggregate({
+                    where: {
+                        walletId: parent.id,
+                        deletedAt: null,
+                        sourceType: 'ESCROW_HOLD',
+                        type: 'CREDIT',
+                        status: 'HELD',
+                        environment: parent.environment,
+                    },
+                    _sum: { amount: true },
+                });
+                return result._sum.amount ?? 0;
+            },
+        });
+        t.nonNull.int('paymentEscrowOrderCount', {
+            resolve: (parent, _, ctx) => ctx.prisma.walletLedgerEntry.count({
+                where: {
+                    walletId: parent.id,
+                    deletedAt: null,
+                    sourceType: 'ESCROW_HOLD',
+                    type: 'CREDIT',
+                    status: 'HELD',
+                    environment: parent.environment,
+                },
+            }),
+        });
         t.nonNull.float('pendingWithdrawalTotal', {
             resolve: async (parent, _, ctx) => {
                 const result = await ctx.prisma.withdrawal.aggregate({

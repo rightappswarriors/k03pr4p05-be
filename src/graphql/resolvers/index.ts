@@ -10,6 +10,7 @@ export * from './admin/commerce.resolver.js'
 export * from './admin/settlement.resolver.js'
 export * from './admin/withdrawalReview.resolver.js'
 export * from './admin/payoutReconciliation.resolver.js'
+export * from './admin/platformFinance.resolver.js'
 // AccountTitle
 export * from './accountTitle/accountTitle.mutation.js';
 export * from './accountTitle/accountTitle.query.js';
@@ -172,6 +173,7 @@ export * from './supplierInventory/supplierInventory.mutation.js'
 export * from './supplierInventory/supplierInventory.query.js'
 export * from './priceTier/priceTier.resolver.js'
 export * from './supplierLink/supplierLink.resolver.js'
+export * from './retailerOrdering/retailerOrdering.resolver.js'
 // Marketplace Publishing
 
 // Procurement Invitation resolvers

@@ -22,6 +22,7 @@
 import { WebSocketServer, WebSocket } from "ws";   // FIX 1: added WebSocket
 import jwt from "jsonwebtoken";
 import { createClient } from "redis";
+import { prisma } from "./prisma.js";
 
 // Keyed by a unique per-connection socket id, NOT by userId.
 // This prevents the reconnect bug where a closing socket's `close` handler
@@ -111,6 +112,8 @@ export function initWebSocket(server) {
     client.rooms.add(`user:${userIdKey}`);
     // Join org room if JWT contains orgId
     if (claims.orgId != null) client.rooms.add(`org:${claims.orgId}`);
+    // Platform-wide operational events are isolated to an authenticated role room.
+    if (claims.role) client.rooms.add(`role:${claims.role}`);
 
     clients.set(clientId, client);
 
@@ -118,7 +121,7 @@ export function initWebSocket(server) {
       console.log(`[PortalWebSocket] CONNECTED user:${userIdKey} clientId:${clientId} role=${claims.role} orgId=${claims.orgId} rooms=${[...client.rooms].join(",")}`);
     }
 
-    ws.on("message", (message) => {
+    ws.on("message", async (message) => {
       let data;
       try { data = JSON.parse(message); } catch { return; }
 
@@ -137,6 +140,20 @@ export function initWebSocket(server) {
       // Room management — join/leave conversation rooms
       const evt = data.event || data.type;
       if ((evt === "conversation:join" || evt === "join") && data.conversationId) {
+        const participant = await prisma.conversationParticipant.findFirst({
+          where: {
+            conversationId: String(data.conversationId),
+            OR: [
+              ...(client.orgId != null ? [{ organizationId: Number(client.orgId) }] : []),
+              { agentId: String(client.userId) },
+            ],
+          },
+          select: { id: true },
+        });
+        if (!participant) {
+          send(ws, "conversation:forbidden", { conversationId: String(data.conversationId) });
+          return;
+        }
         const room = `conversation:${data.conversationId}`;
         client.rooms.add(room);
         if (process.env.NODE_ENV === "development") console.log(`[PortalWebSocket] JOIN ${room} user:${userIdKey}`);
@@ -243,6 +260,11 @@ export function sendToUser(userId, event, payload) {
 export function sendToOrg(orgId, event, payload) {
   if (process.env.NODE_ENV === "development") console.log(`[PortalWebSocket] sendToOrg org:${orgId} event=${event}`);
   emit(`org:${orgId}`, event, payload);
+}
+
+export function sendToRole(role, event, payload) {
+  if (process.env.NODE_ENV === "development") console.log(`[PortalWebSocket] sendToRole role:${role} event=${event}`);
+  emit(`role:${role}`, event, payload);
 }
 
 export function sendToConversation(conversationId, event, payload) {
